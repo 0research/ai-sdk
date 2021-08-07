@@ -5,7 +5,7 @@ from dash.dependencies import Input, Output
 from app import app
 from app import server
 
-from apps import page1, page2
+from apps import page1, page2, page3
 
 
 def serve_layout():
@@ -13,7 +13,8 @@ def serve_layout():
         dcc.Location(id='url', refresh=False),
         html.Div([
             dcc.Link('Page 1 | ', href='/apps/page1'),
-            dcc.Link('Page 2 ', href='/apps/page2'),
+            dcc.Link('Page 2 | ', href='/apps/page2'),
+            dcc.Link('Page 3 ', href='/apps/page3'),
         ], className="row"),
         html.Div(id='page-content', children=[])
     ])
@@ -29,6 +30,8 @@ def display_page(pathname):
         return page1.layout
     if pathname == '/apps/page2':
         return page2.layout
+    if pathname == '/apps/page3':
+        return page3.layout
     else:
         return page1.layout
 

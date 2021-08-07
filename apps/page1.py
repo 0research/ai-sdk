@@ -3,6 +3,7 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import plotly.express as px
 from app import app
+import dash_bootstrap_components as dbc
 import dash_table
 from dash import no_update
 
