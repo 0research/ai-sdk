@@ -5,16 +5,15 @@ from dash.dependencies import Input, Output
 from app import app
 from app import server
 
-from apps import page1, page2, page3
+from apps import merge_strategy, page2, page3
 
 
 def serve_layout():
     return html.Div([
         dcc.Location(id='url', refresh=False),
         html.Div([
-            dcc.Link('Page 1 | ', href='/apps/page1'),
+            dcc.Link('Merge Strategy | ', href='/apps/merge_strategy'),
             dcc.Link('Page 2 | ', href='/apps/page2'),
-            dcc.Link('Page 3 ', href='/apps/page3'),
         ], className="row"),
         html.Div(id='page-content', children=[])
     ])
@@ -26,14 +25,12 @@ app.layout = serve_layout
 @app.callback(Output('page-content', 'children'),
               [Input('url', 'pathname')])
 def display_page(pathname):
-    if pathname == '/apps/page1':
-        return page1.layout
+    if pathname == '/apps/merge_strategy':
+        return merge_strategy.layout
     if pathname == '/apps/page2':
         return page2.layout
-    if pathname == '/apps/page3':
-        return page3.layout
     else:
-        return page1.layout
+        return merge_strategy.layout
 
 
 if __name__ == '__main__':
