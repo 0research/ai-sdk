@@ -1,0 +1,65 @@
+{
+    "created": "2021-05-08T12:30:00.715759Z",
+    "events": [
+        {
+            "date": "2021-04-11 01:00:00",
+            "type": "land",
+            "actual": true,
+            "status": "CEP",
+            "vessel": null,
+            "voyage": null,
+            "location": 1,
+            "description": "Empty to shipper"
+        },
+        {
+            "date": "2021-04-14 01:34:00",
+            "type": "land",
+            "actual": true,
+            "status": "CGI",
+            "vessel": 1,
+            "voyage": "0DV8GN1MA",
+            "location": 1,
+            "description": "Ready to be loaded"
+        },
+        {
+            "date": "2021-04-15 12:39:00",
+            "type": "sea",
+            "actual": true,
+            "status": "CLL",
+            "vessel": 1,
+            "voyage": "0DV8GN1MA",
+            "location": 1,
+            "description": "Loaded on board"
+        },
+        {
+            "date": "2021-04-30 15:43:00",
+            "type": "sea",
+            "actual": true,
+            "status": "CDT",
+            "vessel": 1,
+            "voyage": "0DV8VS1MA",
+            "location": 2,
+            "description": "Discharged in transhipment"
+        },
+        {
+            "date": "2021-05-04 22:01:00",
+            "type": "sea",
+            "actual": true,
+            "status": "CLT",
+            "vessel": 2,
+            "voyage": "1RSNPS1MA",
+            "location": 2,
+            "description": "Loaded on board"
+        },
+        {
+            "date": "2021-05-11 06:00:00",
+            "type": "sea",
+            "actual": false,
+            "status": "CDD",
+            "vessel": 2,
+            "voyage": "1RSNPS1MA",
+            "location": 3,
+            "description": "Arrival final port of discharge"
+        }
+    ]
+}

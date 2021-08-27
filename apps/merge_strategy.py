@@ -1,313 +1,228 @@
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output, State, ALL, MATCH
+import dash_bootstrap_components as dbc
 import plotly.express as px
 from app import app
 import dash_bootstrap_components as dbc
 import dash_table
-from dash import no_update
-import json_dash
+from dash import no_update, callback_context
 import json
 from flatten_json import flatten, unflatten, unflatten_list
 from jsonmerge import Merger
 from pprint import pprint
+from genson import SchemaBuilder
+from jsondiff import diff
+import json
+from jsondiff import diff
+from apps.util import *
+import base64
+import pandas as pd
 
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 
-import io
-import base64
-import datetime
-
-import pandas as pd
-
-
-def generate_tab(label, value):
-    return dcc.Tab(
-                label=label,
-                value=value,
-                className='custom-tab',
-                selected_className='custom-tab--selected'
-            )
-
-
-def generate_tabs(tabs_id, tab_labels, tab_values):
-        return dcc.Tabs(
-            id=tabs_id,
-            parent_className='custom-tabs',
-            className='custom-tabs-container',
-            children=[
-                generate_tab(label, value) for label, value in zip(tab_labels, tab_values)
-            ],
-        )
-
-
-
-def is_json(myjson):
-    try:
-        json_object = json.loads(myjson)
-    except ValueError as e:
-        return False
-    return True
-
-
-def get_data(filedir):
-    with open(filedir) as f:
-        data = json.load(f)
-    for i in range(len(data)):
-        data[i]['raw_response'] = json.loads(data[i]['raw_response'])
-
-    return data
-
-
-def generate_upload():
-    return html.Div([
-        dcc.Upload(
-            id='upload-file',
-            children=html.Div([
-                'Drag and Drop or ', html.A('Select Files')
-            ]),
-            style={
-                'width': '100%',
-                'height': '60px',
-                'lineHeight': '60px',
-                'borderWidth': '1px',
-                'borderStyle': 'dashed',
-                'borderRadius': '5px',
-                'textAlign': 'center',
-                'margin': '10px'
-            },
-            multiple=True
-        )
-    ], id='topDiv')
-
-
-def generate_json(component_id, data):
-    return html.Div(id=component_id, children=[
-        # html.Button('Submit', id='button'),
-        # html.Div(dcc.Input(id='input-box', type='text')),
-        json_dash.jsondash(
-            id='json_merge_strategy',
-            json=data,
-            height=800,
-            width=600,
-            selected_node='',
-        ),
-        html.Div('', id='node_selected')
-    ])
-
-
-tab_labels = ['Original', 'Flattened', 'Overwrite', 'Version',
-                      'Append', 'arrayMergeById', 'arrayMergeByIndex', 'objectMerge']
-tab_values = ['tab-' + str(i) for i in range(1, len(tab_labels) + 1)]
-data = get_data('datasets/cntr1_dataprovider.json') # TODO remove? or create placeholder file to instantiate json tree
 
 # Layout
 layout = html.Div([
+    dcc.Store(id='input_data', storage_type='session'),
     html.H1('Merge Strategy', style={"textAlign": "center"}),
     generate_upload(),
-    html.Div(id='topDiv2', style={'text-align': 'center'}),
+    html.Div(id='topDiv2', style={'text-align': 'center'}, children=[
+        dbc.ButtonGroup(id='select_list'),
+        html.Div(id='selected_list'),
+        html.Button('Clear Selection', id={'type': 'select_button', 'index': -1}),
+    ]),
 
     html.Div([
         generate_tabs('tabs-1', tab_labels, tab_values),
-        generate_json('json_merge_strategy_div', data=data),
-    ], id='leftDiv', style={'float': 'left', 'width': '50%', "textAlign": "center", 'display': 'block'}),
+        html.Div([
+            html.Pre(id='json_tree', style={"textAlign": "left"})
+        ], id='leftDiv', style={'float': 'left', 'width': '50%', "textAlign": "center"}),
 
-    html.Div([
-        html.P('Output something')
-    ], id='rightDiv', style={'float': 'right', 'width': '50%', "textAlign": "center"})
+        html.Div([
+            html.Pre(id='json_tree2', children=[], style={"textAlign": "left"})
+        ], id='rightDiv', style={'float': 'right', 'width': '50%', "textAlign": "center"})
+    ], id='contentDiv', style={'display':'block'})
 ])
 
+def get_selected_merge_strategy(selected_tab):
+    merge_strategy = None
+    if selected_tab == 'tab-1': merge_strategy = 'overwrite'
+    elif selected_tab == 'tab-2': merge_strategy = 'version'
+    elif selected_tab == 'tab-6': merge_strategy = 'objectMerge'
 
-def parse_contents(contents, filename, date):
-    content_type, content_string = contents.split(',')
-    decoded = base64.b64decode(content_string)
+    return merge_strategy
+
+
+
+def json_merge(base, new, merge_strategy):
+    schema = {'mergeStrategy': merge_strategy}
+    merger = Merger(schema)
+    base = merger.merge(base, new)
+    return base
+
+
+# @app.callback(Output('rightDiv', 'children'),
+#               Input('submit-button','n_clicks'),
+#               State('stored-data','data'),
+#               State('xaxis-data','value'),
+#               State('yaxis-data', 'value'))
+# def update_graph(n, data, x_data, y_data):
+#     if n is None:
+#         return no_update
+#     else:
+#         bar_fig = px.bar(data, x=x_data, y=y_data)
+#         # print(data)
+#         return dcc.Graph(figure=bar_fig)
+
+
+# Update JSON Tree, Datatable and Tab Selection
+# @app.callback([Output('select_list', 'children'),
+#                Output('leftDiv', 'children'),
+#                Output('contentDiv', 'style'),
+#                Output('json_tree', 'children'),
+#                Output('json_tree2', 'children')],
+#               [Input('input_data', 'data'),
+#                Input('tabs-1', 'value')],
+#               [State('upload-file', 'filename'),
+#               State('upload-file', 'last_modified')])
+# def update_data_table(contents, selected_tab, filename, last_modified):
+#     ctx = callback_context
+
+#     if ctx.triggered[0]['prop_id'].split('.')[0] == 'input_data':
+#         pass
+
+#     if ctx.triggered[0]['prop_id'].split('.')[0] == 'tabs-1':
+#         return no_update
+
+
+#     json_selection = [dbc.Button(name.split('.')[0], id=('json_select_'+str(name.split('.')[0]))) for name in filename]
+
+#     # Get Version merge data
+#     schema = {'mergeStrategy': 'version'}
+#     base = None
+#     merger = Merger(schema)
+#     base = merger.merge(base, json_dict, merge_options={'version': {'metadata': {'revision': 1}}})
+
+#     # Get selected merge data
+#     json_dict = render_tabs_json_data(json_dict, selected_tab)
+
+#     # Overwrite Selected data with version data
+#     schema = {'mergeStrategy': 'overwrite'}
+#     mergeHistory = {}
+#     merger = Merger(schema)
+#     for i, (selected, version) in enumerate(zip(json_dict, base)):
+#         merge = merger.merge(selected, version['value'])
+#         mergeHistory[str(i)] = merge
+
+#     difference = diff(json_dict, mergeHistory, syntax='symmetric')
+
+#     return json_selection, no_update, {'display':'block'}, json.dumps(json_dict, indent=2), json.dumps(difference, indent=2)
+
+
+
+
+# Saves input file data in Store
+@app.callback(Output('input_data', 'data'), Input('upload-file', 'contents'), 
+            [State('upload-file', 'filename'), State('upload-file', 'last_modified')])
+def save_input_data(contents, filename, last_modified):
+    if filename is None:
+        return no_update
+    for name in filename:
+        if not name.endswith('.json'):
+            return no_update
+
+    data = {}
     try:
-        if 'csv' in filename:
-            # Assume that the user uploaded a CSV file
-            df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
-        elif 'xls' in filename:
-            # Assume that the user uploaded an excel file
-            df = pd.read_excel(io.BytesIO(decoded))
+        for filename, content in zip(filename, contents):
+            content_type, content_string = content.split(',')
+            decoded = base64.b64decode(content_string)
+            data[filename] = json.loads(decoded.decode('utf-8'))
     except Exception as e:
         print(e)
-        return html.Div([
-            'There was an error processing this file.'
-        ])
-    return html.Div([
-        html.H5(filename),
-        html.H6(datetime.datetime.fromtimestamp(date)),
-        html.P("Inset X axis data"),
-        dcc.Dropdown(id='xaxis-data', options=[{'label': x, 'value': x} for x in df.columns], persistence=True),
-        html.P("Inset Y axis data"),
-        dcc.Dropdown(id='yaxis-data', options=[{'label': x, 'value': x} for x in df.columns], persistence=True),
-        html.Button(id="submit-button", children="Create Graph"),
-        html.Hr(),
 
-        dash_table.DataTable(
-            data=df.to_dict('records'),
-            columns=[{'name': i, 'id': i} for i in df.columns],
-            page_size=15
-        ),
-        dcc.Store(id='stored-data', data=df.to_dict('records')),
-
-        html.Hr(),  # horizontal line
-
-        # For debugging, display the raw contents provided by the web browser
-        html.Div('Raw Content'),
-        html.Pre(contents[0:200] + '...', style={
-            'whiteSpace': 'pre-wrap',
-            'wordBreak': 'break-all'
-        })
-    ])
-
-
-
-@app.callback(Output('rightDiv', 'children'),
-              Input('submit-button','n_clicks'),
-              State('stored-data','data'),
-              State('xaxis-data','value'),
-              State('yaxis-data', 'value'))
-def update_graph(n, data, x_data, y_data):
-    if n is None:
-        return no_update
-    else:
-        bar_fig = px.bar(data, x=x_data, y=y_data)
-        # print(data)
-        return dcc.Graph(figure=bar_fig)
-
-
-
-
-def flatten_json(data):
-    for i in range(len(data)):
-        data[i] = flatten(data[i])
     return data
 
 
-def overwrite_json(data):
-    schema = {'mergeStrategy': 'overwrite'}
-    base = None
-    mergeHistory = {}
-    merger = Merger(schema)
-    for i in range(len(data)):
-        base = merger.merge(base, data[i])
-        mergeHistory[str(i+1)] = base
-    return mergeHistory
+
+@app.callback(Output('select_list', 'children'), Input('input_data', 'data'))
+def generate_select(input_data):
+    return [dbc.Button(name.split('.')[0], value=name, id={'type': 'select_button', 'index': name.split('.')[0]}) for name in sorted(input_data.keys())]
 
 
-def version_json(data):
-    schema = {'mergeStrategy': 'version'}
-    base = None
-    merger = Merger(schema)
-    for i in range(len(data)):
-        base = merger.merge(base, data[i], merge_options={'version': {'metadata': {'revision': i}}})
-    return base
+@app.callback(Output('selected_list', 'children'), 
+            Input({'type': 'select_button', 'index': ALL}, 'n_clicks'),
+            State('selected_list', 'children'))
+def generate_selected(n_clicks, selected_list):
+    if all(v is None for v in n_clicks): return no_update
+    if selected_list is None: selected_list = []
+    triggered_id = json.loads(callback_context.triggered[0]['prop_id'].split('.')[0])['index']
 
-def append_json(data):
-    schema = {'mergeStrategy': 'append'}
-    base = None
-    merger = Merger(schema)
-    for i in range(len(data)):
-        base = merger.merge(base, [data[i]])
-    return base
+    # If clicked on Clear Selection
+    if triggered_id == -1:
+        return []
 
-
-def arrayMergeById_json(data):
-    schema = {'mergeStrategy': 'arrayMergeById'}
-    base = None
-    merger = Merger(schema)
-    for i in range(len(data)):
-        base = merger.merge(base, [data[i]])
-    return base
-
-
-def arrayMergeByIndex_json(data):
-    schema = {'mergeStrategy': 'arrayMergeByIndex'}
-    base = None
-    mergeHistory = {}
-    merger = Merger(schema)
-    for i in range(len(data)):
-        base = merger.merge(base, [data[i]])
-        mergeHistory[str(i + 1)] = base
-    return mergeHistory
-
-
-def objectMerge_json(data):
-    schema = {'mergeStrategy': 'objectMerge'}
-    base = None
-    merger = Merger(schema)
-    mergeHistory = {}
-    for i in range(len(data)):
-        base = merger.merge(base, data[i])
-        mergeHistory[str(i + 1)] = base
-    return mergeHistory
-
-
-# @app.callback(
-#     Output('json_merge_strategy', 'json'),
-#     Input('tabs-1', 'value')
-# )
-# def render_tabs(active_tab):
-#     data = get_data('datasets/cntr1_dataprovider.json')
-#
-#     if active_tab == 'tab-2':
-#         data = flatten_json(data)
-#     if active_tab == 'tab-3':
-#         data = flatten_json(data)
-#         data = overwrite_json(data)
-#
-#     if active_tab == 'tab-4':
-#         data = flatten_json(data)
-#         data = version_json(data)
-#     if active_tab == 'tab-5':
-#         data = flatten_json(data)
-#         data = append_json(data)
-#     if active_tab == 'tab-6':
-#         data = flatten_json(data)
-#         data = arrayMergeById_json(data)
-#     if active_tab == 'tab-7':
-#         data = flatten_json(data)
-#         data = arrayMergeByIndex_json(data)
-#     if active_tab == 'tab-8':
-#         data = flatten_json(data)
-#         data = objectMerge_json(data)
-#
-#     # for i in range(len(data)):
-#     #     # print(type(data[i]))
-#     #     data[i] = unflatten(data[i])
-#
-#     return data
-
-
-@app.callback(
-               Output('json_merge_strategy', 'json'),
-              Input('upload-file', 'contents'),
-              State('upload-file', 'filename'),
-              State('upload-file', 'last_modified'))
-def update_data_table(contents, filename, last_modified):
-    # data =
-    # print(type(contents))
-    # pprint(contents)
-
-    if contents is None:
-        return no_update
-
-    if 'json' in filename[0]:
-        try:
-            content_type, content_string = contents[0].split(',')
-            decoded = base64.b64decode(content_string)
-            json_dict = json.loads(decoded.decode('utf-8'))
-            children = pd.DataFrame()  # TODO flatten into df format
-        except Exception as e:
-            print(e)
+    # If clicked on Clear Selection
+    if triggered_id == -1:
+        selected_list = []
+    # Return selected
     else:
-        children = [parse_contents(c, n, d) for c, n, d in zip(contents, filename, last_modified)]
+        selected_list.append(triggered_id)
+
+    return selected_list
 
 
-    return html.Div([
-        html.P('individual file info & metadata inputs'),
-        html.P('missing data stats'),
-        html.P('schema r/s discovery')
-    ]), children, json_dict
+# Update Left and Right Json Trees
+@app.callback([Output('json_tree', 'children'), Output('json_tree2', 'children')], 
+            [Input('selected_list', 'children'), 
+            Input('tabs-1', 'value')],
+            State('input_data', 'data'))
+def generate_json(selected_list, selected_tab, input_data):
+    if selected_list == None or len(selected_list) == 0:
+        return [], []
+
+    selected_filenames = [s+'.json' for s in selected_list]
+    merge_strategy = get_selected_merge_strategy(selected_tab)
+    mergeHistory = []
+    version_merge_data = []
+    difference_list = []
+
+    # Get Selected Merge Data
+    if merge_strategy == 'version':
+        flat_base = None
+        start_index = 0
+    elif merge_strategy in ['append', 'arrayMergeById', 'arrayMergeByIndex']:
+        if type(input_data[selected_filenames[0]]) is not list:
+            print("Input must be List")
+            return json.dumps("Invalid Datatype", indent=2)
+    else:
+        base = input_data[selected_filenames[0]]
+        flat_base = flatten_json(base)
+        mergeHistory.append(flat_base)
+        start_index = 1
+    
+    for name in selected_filenames[start_index:]:
+        new = flatten(input_data[name])
+        flat_base = json_merge(flat_base, new, merge_strategy)
+        mergeHistory.append(flat_base)
+
+    if len(selected_list) >= 2:
+        # Get Version Merge Data
+        for i in range(len(selected_list)):
+            new = flatten(input_data[selected_filenames[i]])
+            version_merge_data = json_merge(version_merge_data, new, 'version')
+            # version_merge_data.append(flat_base)
+
+        # Get Difference between Selected Merge Data and Version
+        if merge_strategy == 'version':
+            difference = []
+        else:
+            for i in range(len(selected_list)):
+                difference = diff(mergeHistory[i], version_merge_data[i]['value'], syntax='symmetric')
+                difference_list.append(difference)
+        
+    return json.dumps(mergeHistory, indent=2), json.dumps(difference_list, indent=2)
+
+
 
