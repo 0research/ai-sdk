@@ -23,9 +23,13 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 
 
+tab_labels = ['Overwrite', 'objectMerge']
+tab_values = ['tab-' + str(i) for i in range(1, len(tab_labels) + 1)]
+
 # Layout
 layout = html.Div([
     dcc.Store(id='input_data', storage_type='session'),
+    dcc.Store(id='selected_list_store', storage_type='session'),
     html.H1('Merge Strategy', style={"textAlign": "center"}),
     generate_upload(),
     html.Div(id='topDiv2', style={'text-align': 'center'}, children=[
@@ -148,13 +152,13 @@ def save_input_data(contents, filename, last_modified):
 
 @app.callback(Output('select_list', 'children'), Input('input_data', 'data'))
 def generate_select(input_data):
-    return [dbc.Button(name.split('.')[0], value=name, id={'type': 'select_button', 'index': name.split('.')[0]}) for name in sorted(input_data.keys())]
+    return [dbc.Button(name.split('.')[0], value=name, id={'type': 'select_button', 'index': name.split('.')[0]}) for name in sorted(input_data.keys(), key=lambda x:x[:-5])]
 
 
-@app.callback(Output('selected_list', 'children'), 
+@app.callback(Output('selected_list_store', 'data'),
             Input({'type': 'select_button', 'index': ALL}, 'n_clicks'),
-            State('selected_list', 'children'))
-def generate_selected(n_clicks, selected_list):
+            State('selected_list_store', 'data'))
+def store_selected(n_clicks, selected_list):
     if all(v is None for v in n_clicks): return no_update
     if selected_list is None: selected_list = []
     triggered_id = json.loads(callback_context.triggered[0]['prop_id'].split('.')[0])['index']
@@ -163,19 +167,21 @@ def generate_selected(n_clicks, selected_list):
     if triggered_id == -1:
         return []
 
-    # If clicked on Clear Selection
-    if triggered_id == -1:
-        selected_list = []
     # Return selected
     else:
         selected_list.append(triggered_id)
-
+        
     return selected_list
+
+
+@app.callback(Output('selected_list', 'children'), Input('selected_list_store', 'data'))
+def generate_selected(selected_list):
+    return str(selected_list)
 
 
 # Update Left and Right Json Trees
 @app.callback([Output('json_tree', 'children'), Output('json_tree2', 'children')], 
-            [Input('selected_list', 'children'), 
+            [Input('selected_list_store', 'data'), 
             Input('tabs-1', 'value')],
             State('input_data', 'data'))
 def generate_json(selected_list, selected_tab, input_data):

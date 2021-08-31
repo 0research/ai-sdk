@@ -13,6 +13,10 @@ from apps.util import *
 # Layout
 layout = html.Div([
     dcc.Store(id='input_data', storage_type='session'),
+    dcc.Store(id='selected_list_store', storage_type='session'),
+    dcc.Store(id='selected_list_store_2', storage_type='session'),
+    dcc.Store(id='selected_list_store_3', storage_type='session'),
+    dcc.Store(id='selected_list_store_4', storage_type='session'),
     html.H1('Temporal Data Evolution', style={"textAlign": "center"}),
 
     generate_upload(),
@@ -42,6 +46,7 @@ layout = html.Div([
                 dbc.ButtonGroup(id='select_list_2'),
                 html.Div(id='selected_list_2'),
                 html.Button('Clear Selected', id={'type': 'select_button_2', 'index': -1}),
+                html.H4('', id='selected_filename_difference_1', style={'text-decoration': 'underline', 'textAlign': 'center'}), 
                 html.Pre(id='json_tree_difference_1'),
             ]),
             
@@ -49,6 +54,7 @@ layout = html.Div([
                 dbc.ButtonGroup(id='select_list_3'),
                 html.Div(id='selected_list_3'),
                 html.Button('Clear Selected', id={'type': 'select_button_3', 'index': -1}),
+                html.H4('', id='selected_filename_difference_2', style={'text-decoration': 'underline', 'textAlign': 'center'}), 
                 html.Pre(id='json_tree_difference_2'),
             ]),
 
@@ -56,6 +62,7 @@ layout = html.Div([
                 dbc.ButtonGroup(id='select_list_4'),
                 html.Div(id='selected_list_4'),
                 html.Button('Clear Selected', id={'type': 'select_button_4', 'index': -1}),
+                html.H4('', id='selected_filename_difference_3', style={'text-decoration': 'underline', 'textAlign': 'center'}), 
                 html.Pre(id='json_tree_difference_3'),
             ]),
         ], id='rightDiv', style={'float': 'right', 'width': '60%', "textAlign": "left"})
@@ -66,7 +73,7 @@ layout = html.Div([
 
 @app.callback([Output('json_tree_select_1', 'children'), Output('json_tree_select_2', 'children'), 
             Output('selected_filename_1', 'children'), Output('selected_filename_2', 'children')], 
-            Input('selected_list', 'children'),
+            Input('selected_list_store', 'data'),
             State('input_data', 'data'))
 def generate_selected_data(selected_list, input_data):
     selected_filenames = [s+'.json' for s in selected_list]
@@ -83,24 +90,24 @@ def generate_selected_data(selected_list, input_data):
 
 
 @app.callback(Output('select_list_2', 'children'), Input('input_data', 'data'))
-def generate_select2(input_data):
+def generate_select_2(input_data):
     return [dbc.Button(name.split('.')[0], value=name, id={'type': 'select_button_2', 'index': name.split('.')[0]}) for name in sorted(input_data.keys())]
 
 
 @app.callback(Output('select_list_3', 'children'), Input('input_data', 'data'))
-def generate_select3(input_data):
+def generate_select_3(input_data):
     return [dbc.Button(name.split('.')[0], value=name, id={'type': 'select_button_3', 'index': name.split('.')[0]}) for name in sorted(input_data.keys())]
 
 
 @app.callback(Output('select_list_4', 'children'), Input('input_data', 'data'))
-def generate_selec4(input_data):
+def generate_select_4(input_data):
     return [dbc.Button(name.split('.')[0], value=name, id={'type': 'select_button_4', 'index': name.split('.')[0]}) for name in sorted(input_data.keys())]
 
 
-@app.callback(Output('selected_list_2', 'children'), 
+@app.callback(Output('selected_list_store_2', 'data'), 
             Input({'type': 'select_button_2', 'index': ALL}, 'n_clicks'),
-            State('selected_list_2', 'children'))
-def generate_selected2(n_clicks, selected_list):
+            State('selected_list_store_2', 'data'))
+def store_selected_2(n_clicks, selected_list):
     if all(v is None for v in n_clicks): return no_update
     if selected_list is None: selected_list = []
     triggered_id = json.loads(callback_context.triggered[0]['prop_id'].split('.')[0])['index']
@@ -114,9 +121,13 @@ def generate_selected2(n_clicks, selected_list):
 
     return selected_list
 
-@app.callback(Output('selected_list_3', 'children'), 
+@app.callback(Output('selected_list_2', 'children'), Input('selected_list_store_2', 'data'))
+def generate_selected(selected_list):
+    return str(selected_list)
+
+@app.callback(Output('selected_list_store_3', 'data'), 
             Input({'type': 'select_button_3', 'index': ALL}, 'n_clicks'),
-            State('selected_list_3', 'children'))
+            State('selected_list_store_3', 'data'))
 def generate_selected2(n_clicks, selected_list):
     if all(v is None for v in n_clicks): return no_update
     if selected_list is None: selected_list = []
@@ -131,10 +142,14 @@ def generate_selected2(n_clicks, selected_list):
 
     return selected_list
 
+@app.callback(Output('selected_list_3', 'children'), Input('selected_list_store_3', 'data'))
+def generate_selected(selected_list):
+    return str(selected_list)
 
-@app.callback(Output('selected_list_4', 'children'), 
+
+@app.callback(Output('selected_list_store_4', 'data'), 
             Input({'type': 'select_button_4', 'index': ALL}, 'n_clicks'),
-            State('selected_list_4', 'children'))
+            State('selected_list_store_4', 'data'))
 def generate_selected2(n_clicks, selected_list):
     if all(v is None for v in n_clicks): return no_update
     if selected_list is None: selected_list = []
@@ -149,13 +164,16 @@ def generate_selected2(n_clicks, selected_list):
 
     return selected_list
 
+@app.callback(Output('selected_list_4', 'children'), Input('selected_list_store_4', 'data'))
+def generate_selected(selected_list):
+    return str(selected_list)
 
-@app.callback(Output('json_tree_difference_1', 'children'), 
-            Input('selected_list_2', 'children'), 
+@app.callback([Output('json_tree_difference_1', 'children'), Output('selected_filename_difference_1', 'children')], 
+            Input('selected_list_store_2', 'data'), 
             State('input_data', 'data'))
 def generate_selected_lists(selected_list, input_data):
     if selected_list is None: return no_update
-    if len(selected_list) < 2: return 'Select one more'
+    if len(selected_list) < 2: return 'Select one more', no_update
 
     selected_filenames = [s+'.json' for s in selected_list]
     json1, json2, filename1, filename2 = None, None, None, None
@@ -168,15 +186,15 @@ def generate_selected_lists(selected_list, input_data):
         json2 = input_data[filename2]
     difference = diff(json1, json2, syntax='symmetric')
 
-    return json.dumps(difference, indent=2)
+    return json.dumps(difference, indent=2), (filename1 + ' & ' + filename2)
 
 
-@app.callback(Output('json_tree_difference_2', 'children'), 
-            Input('selected_list_3', 'children'), 
+@app.callback([Output('json_tree_difference_2', 'children'), Output('selected_filename_difference_2', 'children')], 
+            Input('selected_list_store_3', 'data'), 
             State('input_data', 'data'))
 def generate_selected_lists(selected_list, input_data):
     if selected_list is None: return no_update
-    if len(selected_list) < 2: return 'Select one more'
+    if len(selected_list) < 2: return 'Select one more', no_update
 
     selected_filenames = [s+'.json' for s in selected_list]
     json1, json2, filename1, filename2 = None, None, None, None
@@ -189,15 +207,15 @@ def generate_selected_lists(selected_list, input_data):
         json2 = input_data[filename2]
     difference = diff(json1, json2, syntax='symmetric')
 
-    return json.dumps(difference, indent=2)
+    return json.dumps(difference, indent=2), (filename1 + ' & ' + filename2)
 
 
-@app.callback(Output('json_tree_difference_3', 'children'), 
-            Input('selected_list_4', 'children'), 
+@app.callback([Output('json_tree_difference_3', 'children'), Output('selected_filename_difference_3', 'children')], 
+            Input('selected_list_store_4', 'data'), 
             State('input_data', 'data'))
 def generate_selected_lists(selected_list, input_data):
     if selected_list is None: return no_update
-    if len(selected_list) < 2: return 'Select one more'
+    if len(selected_list) < 2: return 'Select one more', no_update
 
     selected_filenames = [s+'.json' for s in selected_list]
     json1, json2, filename1, filename2 = None, None, None, None
@@ -210,4 +228,4 @@ def generate_selected_lists(selected_list, input_data):
         json2 = input_data[filename2]
     difference = diff(json1, json2, syntax='symmetric')
 
-    return json.dumps(difference, indent=2)
+    return json.dumps(difference, indent=2), (filename1 + ' & ' + filename2)

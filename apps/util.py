@@ -18,8 +18,7 @@ import json
 import os
 from jsondiff import diff
 
-tab_labels = ['Overwrite', 'Version', 'objectMerge']
-tab_values = ['tab-' + str(i) for i in range(1, len(tab_labels) + 1)]
+
 
 def generate_tab(label, value):
     return dcc.Tab(
