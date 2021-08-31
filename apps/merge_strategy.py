@@ -53,8 +53,7 @@ layout = html.Div([
 def get_selected_merge_strategy(selected_tab):
     merge_strategy = None
     if selected_tab == 'tab-1': merge_strategy = 'overwrite'
-    elif selected_tab == 'tab-2': merge_strategy = 'version'
-    elif selected_tab == 'tab-6': merge_strategy = 'objectMerge'
+    elif selected_tab == 'tab-2': merge_strategy = 'objectMerge'
 
     return merge_strategy
 
@@ -166,7 +165,6 @@ def store_selected(n_clicks, selected_list):
     # If clicked on Clear Selection
     if triggered_id == -1:
         return []
-
     # Return selected
     else:
         selected_list.append(triggered_id)
@@ -185,50 +183,28 @@ def generate_selected(selected_list):
             Input('tabs-1', 'value')],
             State('input_data', 'data'))
 def generate_json(selected_list, selected_tab, input_data):
-    if selected_list == None or len(selected_list) == 0:
-        return [], []
+    if selected_list == None: return '', ''
+    if len(selected_list) < 2: return 'Select at least two', 'Select at least two'
 
     selected_filenames = [s+'.json' for s in selected_list]
     merge_strategy = get_selected_merge_strategy(selected_tab)
-    mergeHistory = []
-    version_merge_data = []
-    difference_list = []
+    base_history, difference_history = [], []
+    base, base_version = None, None
 
     # Get Selected Merge Data
-    if merge_strategy == 'version':
-        flat_base = None
-        start_index = 0
-    elif merge_strategy in ['append', 'arrayMergeById', 'arrayMergeByIndex']:
-        if type(input_data[selected_filenames[0]]) is not list:
-            print("Input must be List")
-            return json.dumps("Invalid Datatype", indent=2)
-    else:
-        base = input_data[selected_filenames[0]]
-        flat_base = flatten_json(base)
-        mergeHistory.append(flat_base)
-        start_index = 1
-    
-    for name in selected_filenames[start_index:]:
+    for name in selected_filenames:
         new = flatten(input_data[name])
-        flat_base = json_merge(flat_base, new, merge_strategy)
-        mergeHistory.append(flat_base)
 
-    if len(selected_list) >= 2:
-        # Get Version Merge Data
-        for i in range(len(selected_list)):
-            new = flatten(input_data[selected_filenames[i]])
-            version_merge_data = json_merge(version_merge_data, new, 'version')
-            # version_merge_data.append(flat_base)
-
-        # Get Difference between Selected Merge Data and Version
-        if merge_strategy == 'version':
-            difference = []
-        else:
-            for i in range(len(selected_list)):
-                difference = diff(mergeHistory[i], version_merge_data[i]['value'], syntax='symmetric')
-                difference_list.append(difference)
+        base = json_merge(base, new, merge_strategy)
+        base_version = json_merge(base_version, new, 'version')
         
-    return json.dumps(mergeHistory, indent=2), json.dumps(difference_list, indent=2)
+        difference = diff(base, base_version[0]['value'], syntax='symmetric')
+        # print('aaa'*30)
+        # pprint(base_version)
+        base_history.append(base)
+        difference_history.append(difference)
+        
+    return json.dumps(base_history, indent=2), json.dumps(difference_history, indent=2)
 
 
 
