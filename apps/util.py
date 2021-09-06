@@ -29,14 +29,14 @@ def generate_tab(label, value):
             )
 
 def generate_tabs(tabs_id, tab_labels, tab_values):
-        return dcc.Tabs(
-            id=tabs_id,
-            parent_className='custom-tabs',
-            className='custom-tabs-container',
-            children=[
-                generate_tab(label, value) for label, value in zip(tab_labels, tab_values)
-            ],
-        )
+    return dcc.Tabs(
+        id=tabs_id,
+        parent_className='custom-tabs',
+        className='custom-tabs-container',
+        children=[
+            generate_tab(label, value) for label, value in zip(tab_labels, tab_values)
+        ],
+    )
 
 def is_json(myjson):
     try:
@@ -54,26 +54,29 @@ def get_data(path):
     
     return data
 
-def generate_upload():
-    return html.Div([
-        dcc.Upload(
-            id='upload-file',
-            children=html.Div([
-                'Drag and Drop or ', html.A('Select Files')
-            ]),
-            style={
-                'width': '100%',
-                'height': '100px',
-                'lineHeight': '60px',
-                'borderWidth': '1px',
-                'borderStyle': 'dashed',
-                'borderRadius': '5px',
-                'textAlign': 'center',
-                'margin': '10px',
-            },
-            multiple=True
-        )
-    ], id='topDiv')
+def generate_upload(component_id, display_text=None):
+    if display_text is not None:
+        display_text = html.A(display_text)
+    else:
+        display_text = html.A('Drag and Drop or Click Here to Select Files')
+
+    return dcc.Upload(
+        id=component_id,
+        children=html.Div([
+            display_text
+        ]),
+        style={
+            'width': '90%',
+            'height': '120px',
+            'lineHeight': '60px',
+            'borderWidth': '1px',
+            'borderStyle': 'dashed',
+            'borderRadius': '5px',
+            'textAlign': 'center',
+            'margin': '10px',
+        },
+        multiple=True
+    )
 
 def generate_json_tree(component_id, data):
     return html.Div(children=[
@@ -142,3 +145,30 @@ def flatten_json(data):
     elif type(data) == dict:
         data = flatten(data)
     return data
+
+def generate_selection(index):
+    index = str(index)
+    id_select_button = 'select_list_merge_'+index
+    id_selected_list = 'selected_list_merge_'+index
+    id_button_clear = {'type': 'select_button_merge_'+index, 'index': -1}
+
+    return [
+        html.Div(id=id_selected_list, style={'border-style': 'outset', 'margin': '5px'}),
+        html.Button('Clear Selection', id=id_button_clear, style={'width':'90%'}),
+        html.Br(),
+        html.Br(),
+        dbc.ButtonGroup(id=id_select_button)]
+
+def get_selected_merge_strategy(selected_tab):
+    merge_strategy = None
+    if selected_tab == 'tab-1': merge_strategy = 'overwrite'
+    elif selected_tab == 'tab-2': merge_strategy = 'objectMerge'
+    elif selected_tab == 'tab-3': merge_strategy = 'version'
+    return merge_strategy
+
+def json_merge(base, new, merge_strategy):
+    schema = {'mergeStrategy': merge_strategy}
+    merger = Merger(schema)
+    base = merger.merge(base, new)
+    return base
+
