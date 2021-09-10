@@ -9,6 +9,7 @@ from jsondiff import diff
 from dash import no_update
 from apps.util import *
 
+id = id_factory('temporal_evolution')
 
 # Layout
 layout = html.Div([
@@ -19,7 +20,9 @@ layout = html.Div([
     dcc.Store(id='selected_list_store_evolution_5', storage_type='session'),
     html.H1('Temporal Data Evolution', style={"textAlign": "center"}),
 
-    generate_upload('upload'),
+    generate_upload('upload_json'),
+    html.Div(children=generate_datatable()),
+    
 
     html.Div([
         html.Div([
@@ -73,21 +76,21 @@ layout = html.Div([
 
 
 # Generate buttons
-@app.callback(Output('select_list_evolution_1', 'children'), Input('input_data_store', 'data'))
-def generate_select_2(input_data):
-    return [dbc.Button(name.split('.')[0], value=name, id={'type': 'select_button_evolution_1', 'index': name.split('.')[0]}) for name in sorted(input_data.keys())]
+# @app.callback(Output('select_list_evolution_1', 'children'), Input('input_data_store', 'data'))
+# def generate_select_2(input_data):
+#     return [dbc.Button(name.split('.')[0], value=name, id={'type': 'select_button_evolution_1', 'index': name.split('.')[0]}) for name in sorted(input_data.keys())]
 
-@app.callback(Output('select_list_evolution_3', 'children'), Input('input_data_store', 'data'))
-def generate_select_2(input_data):
-    return [dbc.Button(name.split('.')[0], value=name, id={'type': 'select_button_evolution_3', 'index': name.split('.')[0]}) for name in sorted(input_data.keys())]
+# @app.callback(Output('select_list_evolution_3', 'children'), Input('input_data_store', 'data'))
+# def generate_select_2(input_data):
+#     return [dbc.Button(name.split('.')[0], value=name, id={'type': 'select_button_evolution_3', 'index': name.split('.')[0]}) for name in sorted(input_data.keys())]
 
-@app.callback(Output('select_list_evolution_4', 'children'), Input('input_data_store', 'data'))
-def generate_select_3(input_data):
-    return [dbc.Button(name.split('.')[0], value=name, id={'type': 'select_button_evolution_4', 'index': name.split('.')[0]}) for name in sorted(input_data.keys())]
+# @app.callback(Output('select_list_evolution_4', 'children'), Input('input_data_store', 'data'))
+# def generate_select_3(input_data):
+#     return [dbc.Button(name.split('.')[0], value=name, id={'type': 'select_button_evolution_4', 'index': name.split('.')[0]}) for name in sorted(input_data.keys())]
 
-@app.callback(Output('select_list_evolution_5', 'children'), Input('input_data_store', 'data'))
-def generate_select_4(input_data):
-    return [dbc.Button(name.split('.')[0], value=name, id={'type': 'select_button_evolution_5', 'index': name.split('.')[0]}) for name in sorted(input_data.keys())]
+# @app.callback(Output('select_list_evolution_5', 'children'), Input('input_data_store', 'data'))
+# def generate_select_4(input_data):
+#     return [dbc.Button(name.split('.')[0], value=name, id={'type': 'select_button_evolution_5', 'index': name.split('.')[0]}) for name in sorted(input_data.keys())]
 
 
 # Store & generate selected
@@ -139,7 +142,7 @@ for x in range(3, 6):
     @app.callback([Output('json_tree_evolution_'+str(x), 'children'), Output('selected_filename_evolution_'+str(x), 'children')], 
                 [Input('selected_list_store_evolution_'+str(x), 'data'), State('input_data_store', 'data')])
     def generate_json_tree(selected_list, input_data):
-        if selected_list is None: return selected_list
+        if selected_list is None: return selected_list, no_update
         if len(selected_list) < 2: return 'Select one more', no_update
 
         selected_filenames = [s+'.json' for s in selected_list]

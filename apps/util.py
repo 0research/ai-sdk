@@ -17,8 +17,17 @@ from jsondiff import diff
 import json
 import os
 from jsondiff import diff
+from pandas.io.json import json_normalize
 
 
+mergeOptions = ['Overwrite', 'objectMerge', 'version']
+flattenOptions = ['Flatten', 'Unflatten']
+
+
+def id_factory(page: str):
+    def func(_id: str):
+        return f"{page}-{_id}"
+    return func
 
 def generate_tab(label, value):
     return dcc.Tab(
@@ -73,7 +82,7 @@ def generate_upload(component_id, display_text=None):
             'borderStyle': 'dashed',
             'borderRadius': '5px',
             'textAlign': 'center',
-            'margin': '10px',
+            'margin': 'auto',
         },
         multiple=True
     )
@@ -172,3 +181,54 @@ def json_merge(base, new, merge_strategy):
     base = merger.merge(base, new)
     return base
 
+def generate_datatable(df=None):
+    # df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder2007.csv')
+
+    # TODO Remove hard code filler data
+    containerEventList = []
+    # path = 'datasets/TRIU8780930/'
+    # path = 'datasets/Full/'
+    path = 'datasets/Full_raw/'
+    for name in os.listdir(path):
+        with open(path+name) as f:
+            containerEvent = json.load(f)
+            containerEvent = flatten(containerEvent)
+            containerEventList.append(containerEvent)
+    
+    df = json_normalize(containerEventList)
+    df.insert(0, column='Index', value=range(1, len(df)+1))
+
+    return (dash_table.DataTable(
+        id='input_data_datatable',
+        columns=[
+            {"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns
+        ],
+        data=df.to_dict('records'),
+        editable=True,
+        filter_action="native",
+        sort_action="native",
+        sort_mode="multi",
+        column_selectable="single",
+        row_selectable="multi",
+        row_deletable=True,
+        selected_columns=[],
+        selected_rows=[],
+        page_action="native",
+        page_current= 0,
+        page_size= 50,
+        style_table={'height': '500px', 'overflowY': 'auto'},
+        style_data={
+            'whiteSpace': 'normal',
+        },
+        css=[{
+            'selector': '.dash-spreadsheet td div',
+            'rule': '''
+                line-height: 15px;
+                max-height: 30px; min-height: 30px; height: 30px;
+                display: block;
+                overflow-y: hidden;
+            '''
+        }],
+         style_cell={'textAlign': 'left'} # left align text in columns for readability
+    ),
+    html.Div(id='datatable-interactivity-container'))

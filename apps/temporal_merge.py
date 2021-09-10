@@ -21,6 +21,7 @@ import pandas as pd
 from itertools import zip_longest
 from datetime import datetime
 
+id = id_factory('temporal_merge')
 
 def generate_slider(component_id):
     return dcc.RangeSlider(
@@ -30,6 +31,9 @@ def generate_slider(component_id):
         step=None,
         value=[0, 11]
     ),
+
+
+
 
 tab_labels = ['Overwrite', 'objectMerge', 'version']
 tab_values = ['tab-' + str(i) for i in range(1, len(tab_labels) + 1)]
@@ -45,9 +49,15 @@ layout = html.Div([
     html.H1('Temporal Merge', style={"textAlign": "center"}),
     generate_upload('upload_json', "Step 1: Drag and Drop or Click Here to Select Files"),
     html.Div(children=[
+
         html.H4('Step 2: Select Merge Strategy', style={'text-align':'center'}),
         generate_tabs('tabs-1', tab_labels, tab_values),
     ], style={'background-color':'#F5F5DC', 'padding':'5px 25px 25px 5px'}),
+
+    html.Div([
+        html.Div(id=id('selected_list')),
+        html.Button('Clear Selection', id=id('button_clear')),
+    ], style={'background-color': '#E6E6FA', 'text-align': 'center'}),
 
     html.Div(children=[
         html.Div([
@@ -85,28 +95,6 @@ layout = html.Div([
 
     ], style={'overflow':'auto'}),
 ])
-
-
-# Save Upload data
-@app.callback(Output('input_data_store', 'data'), Input('upload_json', 'contents'), 
-                [State('upload_json', 'filename'), State('upload_json', 'last_modified'), State('input_data_store', 'data')])
-def save_input_data(contents, filename, last_modified, input_data_store):
-    if filename is None: 
-        return input_data_store
-    for name in filename:
-        if not name.endswith('.json'):
-            return no_update
-        
-    data = {}
-    try:
-        for filename, content in zip(filename, contents):
-            content_type, content_string = content.split(',')
-            decoded = base64.b64decode(content_string)
-            data[filename] = json.loads(decoded.decode('utf-8'))
-    except Exception as e:
-        print(e)
-
-    return data
 
 
 
