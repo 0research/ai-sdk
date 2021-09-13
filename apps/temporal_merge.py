@@ -23,14 +23,7 @@ from datetime import datetime
 
 id = id_factory('temporal_merge')
 
-def generate_slider(component_id):
-    return dcc.RangeSlider(
-        id=component_id,
-        min=None,
-        max=None,
-        step=None,
-        value=[0, 11]
-    ),
+
 
 
 

@@ -20,7 +20,7 @@ from jsondiff import diff
 from pandas.io.json import json_normalize
 
 
-mergeOptions = ['Overwrite', 'objectMerge', 'version']
+mergeOptions = ['overwrite', 'objectMerge', 'version']
 flattenOptions = ['Flatten', 'Unflatten']
 
 
@@ -168,20 +168,13 @@ def generate_selection(index):
         html.Br(),
         dbc.ButtonGroup(id=id_select_button)]
 
-def get_selected_merge_strategy(selected_tab):
-    merge_strategy = None
-    if selected_tab == 'tab-1': merge_strategy = 'overwrite'
-    elif selected_tab == 'tab-2': merge_strategy = 'objectMerge'
-    elif selected_tab == 'tab-3': merge_strategy = 'version'
-    return merge_strategy
-
 def json_merge(base, new, merge_strategy):
     schema = {'mergeStrategy': merge_strategy}
     merger = Merger(schema)
     base = merger.merge(base, new)
     return base
 
-def generate_datatable(df=None):
+def generate_datatable(component_id, df=None):
     # df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder2007.csv')
 
     # TODO Remove hard code filler data
@@ -199,7 +192,7 @@ def generate_datatable(df=None):
     df.insert(0, column='Index', value=range(1, len(df)+1))
 
     return (dash_table.DataTable(
-        id='input_data_datatable',
+        id=component_id,
         columns=[
             {"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns
         ],
@@ -216,7 +209,7 @@ def generate_datatable(df=None):
         page_action="native",
         page_current= 0,
         page_size= 50,
-        style_table={'height': '500px', 'overflowY': 'auto'},
+        style_table={'height': '450px', 'overflowY': 'auto'},
         style_data={
             'whiteSpace': 'normal',
         },
@@ -232,3 +225,35 @@ def generate_datatable(df=None):
          style_cell={'textAlign': 'left'} # left align text in columns for readability
     ),
     html.Div(id='datatable-interactivity-container'))
+
+def generate_radio(id, options, label, default_value=0):
+    return dbc.FormGroup(
+        [
+            dbc.Label(label),
+            dbc.RadioItems(
+                options=[{'label': o, 'value': o} for o in options],                 
+                value=options[default_value],
+                id=id,
+                # className='custom-radio',
+            )
+        ]
+    )
+
+def generate_slider(component_id):
+    return dcc.RangeSlider(
+        id=component_id,
+        min=None,
+        max=None,
+        step=None,
+        value=[0, 0]
+    ),
+
+
+
+
+
+
+
+
+
+
