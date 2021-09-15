@@ -1,0 +1,15 @@
+{
+    "internal_error": null,
+    "created": "2021-05-08T18:30:01.066796Z",
+    "bl_bkg_no": "CTR0209495",
+    "source_error": "SEALINE_HASNT_PROVIDE_INFO",
+    "cntr_no": "TRIU8126106",
+    "scac": "CMDU",
+    "id": "ac02eea2-5896-45c2-a143-ef9d01114418",
+    "org_id": null,
+    "lookup_id": "637b2fa6-92bd-58ca-a922-99278bc51f8b",
+    "source": "data_provider_api",
+    "raw_response": "{\"data\": {}, \"status\": \"success\", \"message\": \"SEALINE_HASNT_PROVIDE_INFO\"}",
+    "updated": "2021-05-08T18:30:01.066796Z",
+    "source_call_type": "BL"
+}
