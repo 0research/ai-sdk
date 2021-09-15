@@ -42,7 +42,6 @@ layout = html.Div([
     html.H1('Temporal Merge', style={"textAlign": "center"}),
     generate_upload('upload_json', "Step 1: Drag and Drop or Click Here to Select Files"),
     html.Div(children=[
-
         html.H4('Step 2: Select Merge Strategy', style={'text-align':'center'}),
         generate_tabs('tabs-1', tab_labels, tab_values),
     ], style={'background-color':'#F5F5DC', 'padding':'5px 25px 25px 5px'}),

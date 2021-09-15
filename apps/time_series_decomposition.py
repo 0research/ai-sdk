@@ -11,9 +11,6 @@ from apps.util import *
 
 
 
-# Layout
-tab_labels = ['tab one', 'tab two', 'tab three']
-tab_values = ['tab-' + str(i) for i in range(1, len(tab_labels)+1)]
 layout = html.Div([
     dcc.Store(id='input_data_store', storage_type='session'),
     html.H1('Missing Data', style={"textAlign": "center"}),

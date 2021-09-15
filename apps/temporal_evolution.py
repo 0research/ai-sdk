@@ -37,7 +37,7 @@ layout = html.Div([
         dbc.Row([
             dbc.Col(html.H5('Step 1: Select Rows to Merge'), width=12),
             dbc.Col(html.Div(children=generate_datatable('input_datatable'))),
-            dbc.Col(html.Div(generate_slider('slider_merge')), width=12),
+            dbc.Col(html.Div(generate_slider('slider_merge'), style={'display':'hidden'}), width=12),
             dbc.Col(html.H5('Selection: None', id='selection_list'), width=12),
             dbc.Col(html.Button('Clear Selection', className='btn-secondary', id='button_clear'), width=12),
         ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),

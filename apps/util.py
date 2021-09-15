@@ -16,7 +16,6 @@ from genson import SchemaBuilder
 from jsondiff import diff
 import json
 import os
-from jsondiff import diff
 from pandas.io.json import json_normalize
 
 
@@ -247,6 +246,31 @@ def generate_slider(component_id):
         step=None,
         value=[0, 0]
     ),
+
+
+def generate_difference_history(json_history_1, json_history_2):
+    if json_history_1 is None or json_history_2 is None: return []
+    if len(json_history_1) < 1  or len(json_history_2) < 1: return []
+
+    # difference_history option 1
+    difference, difference_history = None, []
+    for i in range(max(len(json_history_1), len(json_history_2))):
+        ix1 = min(i, len(json_history_1)-1)
+        ix2 = min(i, len(json_history_2)-1)
+        difference = diff(json_history_1[ix1], json_history_2[ix2], syntax='symmetric', marshal=True)
+        difference_history.append(difference)
+
+    return  difference_history
+
+def generate_number_changes(difference_history):
+    num_changes = {}
+    for difference in difference_history:
+        for key in difference.keys():
+            if key in num_changes:
+                num_changes[key] +=1 
+            else:
+                num_changes[key] = 1
+    return num_changes
 
 
 

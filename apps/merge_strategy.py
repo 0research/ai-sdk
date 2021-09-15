@@ -226,27 +226,11 @@ for x in range(1, 3):
 @app.callback([Output(id('json_3'), 'children'), Output(id('selected_list_3'), 'children')], 
             [Input(id('json_store_1'), 'data'), Input(id('json_store_2'), 'data')])
 def generate_json(json_history_1, json_history_2):
-    if json_history_1 is None or json_history_2 is None: return []
-    if len(json_history_1) < 1  or len(json_history_2) < 1: return []
+    # Difference_history 
+    difference_history = generate_difference_history(json_history_1, json_history_2)
 
-    # difference_history option 1
-    difference, difference_history = None, []
-    for i in range(max(len(json_history_1), len(json_history_2))):
-        ix1 = min(i, len(json_history_1)-1)
-        ix2 = min(i, len(json_history_2)-1)
-        difference = diff(json_history_1[ix1], json_history_2[ix2], syntax='symmetric', marshal=True)
-        difference_history.append(difference)
-
-    # difference_history option 2 
-    # difference_history = diff(json_history_1, json_history_2, syntax='symmetric', marshal=True)
-
-    num_changes = {}
-    for difference in difference_history:
-        for key in difference.keys():
-            if key in num_changes:
-                num_changes[key] +=1 
-            else:
-                num_changes[key] = 1
+    # Number of changes
+    num_changes = generate_number_changes(difference_history)
 
     return (json.dumps(difference_history, indent=2),
             ([html.P('Number of Changes per key', style={'textAlign':'left'}), 
