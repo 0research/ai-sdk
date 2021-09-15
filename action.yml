@@ -1,4 +1,4 @@
-name: "ai-sdk Json Merge"
+name: "ai-sdk-action"
 description: "Merge Json Files"
 author: "Kevin"
 inputs:
