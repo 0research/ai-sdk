@@ -11,4 +11,4 @@ FROM gcr.io/distroless/python3-debian10
 COPY --from=builder /apps /apps
 WORKDIR /apps
 ENV PYTHONPATH /app
-CMD ["/cmd/diff.py"]
+CMD ["diff.py"]
