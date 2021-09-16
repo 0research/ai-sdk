@@ -45,8 +45,8 @@ def main():
     
     # Output to workflow variable
     print(f"::set-output name=merge_strategy::{merge_strategy}")
-    print(f"::set-output name=merge_json_1::{merged_json_1}")
-    print(f"::set-output name=merge_json_2::{merged_json_2}")
+    print(f"::set-output name=merged_json_1::{merged_json_1}")
+    print(f"::set-output name=merged_json_2::{merged_json_2}")
 
     # Difference_history & Number of changes per key
     # difference_history = generate_difference_history(json_history_1, json_history_2)
