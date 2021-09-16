@@ -8,8 +8,39 @@ from pprint import pprint
 from jsondiff import diff
 from dash import no_update
 from apps.util import *
+import plotly.graph_objects as go
+import pandas as pd
 
 id = id_factory('impute_time_series_missing_data')
+
+def generate_missing_bar_graph():
+    colors = {
+        'background': '#111111',
+        'text': '#7FDBFF'
+    }
+
+    # assume you have a "long-form" data frame
+    # see https://plotly.com/python/px-arguments/ for more options
+    df = pd.DataFrame({
+        "Fruit": ["Apples", "Oranges", "Bananas", "Apples", "Oranges", "Bananas"],
+        "Amount": [4, 1, 2, 2, 4, 5],
+        "City": ["SF", "SF", "SF", "Montreal", "Montreal", "Montreal"]
+    })
+
+    fig = px.bar(df, x="Fruit", y="Amount", color="City", barmode="group")
+
+    fig.update_layout(
+        plot_bgcolor=colors['background'],
+        paper_bgcolor=colors['background'],
+        font_color=colors['text']
+    )
+
+    return dcc.Graph(
+        id='example-graph-2',
+        figure=fig
+    ),
+
+    
 
 # Layout
 layout = html.Div([
@@ -51,6 +82,7 @@ layout = html.Div([
         ], className='text-center', style={'margin': '5px'}),
 
         dbc.Row([
+            dbc.Col(generate_missing_bar_graph()),
             
         ], className='text-center', style={'margin': '5px'}),
         
@@ -61,6 +93,7 @@ layout = html.Div([
 
 @app.callback(Output(id('selection_list_store'), 'data'), Input('input_datatable', 'selected_columns'))
 def save_selected_column(selected_columns):
+    if selected_columns is None: return None
     return selected_columns
 
 @app.callback(Output(id('selection_list'), 'children'), Input(id('selection_list_store'), 'data'))
