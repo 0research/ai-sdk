@@ -1,9 +1,35 @@
 import os
 import json
-from apps.util import *
+# from apps.util import json_merge
 from flatten_json import flatten
 from jsonmerge import Merger
-from json_diff import diff
+from jsondiff import diff
+
+
+def read_json_folder(directory):
+    json_list = []
+    for name in os.listdir(directory):
+        with open(directory+name) as f:
+            data = json.load(f)
+            json_list.append(data)
+    return json_list
+
+
+def json_merge(base, new, merge_strategy):
+    schema = {'mergeStrategy': merge_strategy}
+    merger = Merger(schema)
+    base = merger.merge(base, new)
+    return base
+    
+
+def merge(json1_list, merge_strategy):
+    base, base_history = None, []
+    for json in json1_list:
+        new = flatten(json)
+        base = json_merge(base, new, merge_strategy)
+        base_history.append(base)
+    return base_history
+
 
 def main():
     merge_strategy = os.environ["INPUT_MERGE_STRATEGY"]
@@ -46,20 +72,3 @@ def main():
 if __name__ == "__main__":
     main()
 
-
-def read_json_folder(directory):
-    json_list = []
-    for name in os.listdir(directory):
-        with open(directory+name) as f:
-            data = json.load(f)
-            json_list.append(data)
-    return json_list
-
-
-def merge(json1_list, merge_strategy):
-    base, base_history = None, []
-    for json in json1_list:
-        new = flatten(json)
-        base = json_merge(base, new, merge_strategy)
-        base_history.append(base)
-    return base_history
