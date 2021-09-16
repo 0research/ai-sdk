@@ -12,3 +12,4 @@ COPY --from=builder /app /app
 WORKDIR /app
 ENV PYTHONPATH /app
 CMD ["/app/diff.py"]
+
