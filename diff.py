@@ -1,9 +1,9 @@
 import os
 import json
-from apps.util import *
+from apps.util import json_merge
 from flatten_json import flatten
 from jsonmerge import Merger
-from json_diff import diff
+from jsondiff import diff
 
 def main():
     merge_strategy = os.environ["INPUT_MERGE_STRATEGY"]
