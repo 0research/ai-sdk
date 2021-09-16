@@ -1,6 +1,6 @@
 FROM python:3-slim AS builder
-ADD . /apps
-WORKDIR /apps
+ADD . /app
+WORKDIR /app
 
 # We are installing a dependency here directly into our app source dir
 RUN pip install --target=/app -r requirements.txt
@@ -9,6 +9,7 @@ RUN pip install --target=/app -r requirements.txt
 # https://github.com/GoogleContainerTools/distroless
 FROM gcr.io/distroless/python3-debian10
 COPY --from=builder /apps /apps
-WORKDIR /apps
+WORKDIR /app
 ENV PYTHONPATH /app
-CMD ["/apps/diff.py"]
+CMD ["/app/diff.py"]
+
