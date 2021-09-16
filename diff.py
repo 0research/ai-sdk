@@ -1,6 +1,6 @@
 import os
 import json
-from apps.util import json_merge
+# from apps.util import json_merge
 from flatten_json import flatten
 from jsonmerge import Merger
 from jsondiff import diff
@@ -55,6 +55,11 @@ def read_json_folder(directory):
             json_list.append(data)
     return json_list
 
+def json_merge(base, new, merge_strategy):
+    schema = {'mergeStrategy': merge_strategy}
+    merger = Merger(schema)
+    base = merger.merge(base, new)
+    return base
 
 def merge(json1_list, merge_strategy):
     base, base_history = None, []
