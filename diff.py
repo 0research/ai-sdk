@@ -37,7 +37,7 @@ def main():
     
     # Write File
     with open('merged_json.json', 'w', encoding='utf-8') as f:
-        json.dump(base, f, ensure_ascii=False, indent=4
+        json.dump(base, f, ensure_ascii=False, indent=4)
                   
     # TODO Github Commit File
     
