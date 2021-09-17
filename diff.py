@@ -16,9 +16,9 @@ def json_merge(base, new, merge_strategy):
 def main():
     merge_strategy = os.environ["INPUT_MERGE_STRATEGY"]
     
-    with open(directory_1) as f:
+    with open('json1.json') as f:
         json1 = json.load(f)
-    with open(directory_2) as f:
+    with open('json2.json') as f:
         json2 = json.load(f)
       
     base = None
