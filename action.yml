@@ -5,12 +5,6 @@ inputs:
   merge_strategy:
     description: "Select Merge strategy (overwrite, version, objectMerge)"
     required: true
-  json1:
-    description: "Enter directory for json files"
-    required: false
-  json2:
-    description: "Enter directory for json files"
-    required: false
 
 runs:
   using: "docker"
