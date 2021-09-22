@@ -15,17 +15,12 @@ id = id_factory('temporal_evolution')
 # Layout
 layout = html.Div([
     dcc.Store(id='input_data_store', storage_type='session'),
-    dcc.Store(id='selection_list_store', storage_type='session'),
+    dcc.Store(id=id('selection_list_store'), storage_type='session'),
     dcc.Store(id=id('json_store_1'), storage_type='session'),
     dcc.Store(id=id('json_store_2'), storage_type='session'),
     dcc.Store(id=id('json_store_3'), storage_type='session'),
     dcc.Store(id=id('json_store_4'), storage_type='session'),
     dcc.Store(id=id('json_store_5'), storage_type='session'),
-
-    # dcc.Store(id='selected_list_store_evolution_1', storage_type='session'),
-    # dcc.Store(id='selected_list_store_evolution_3', storage_type='session'),
-    # dcc.Store(id='selected_list_store_evolution_4', storage_type='session'),
-    # dcc.Store(id='selected_list_store_evolution_5', storage_type='session'),
 
     dbc.Container([
         # Upload Files
@@ -36,10 +31,9 @@ layout = html.Div([
         # Datatable & Selected Rows/Json List
         dbc.Row([
             dbc.Col(html.H5('Step 1: Select Rows to Merge'), width=12),
-            dbc.Col(html.Div(children=generate_datatable('input_datatable'))),
-            dbc.Col(html.Div(generate_slider('slider_merge'), style={'display':'hidden'}), width=12),
-            dbc.Col(html.H5('Selection: None', id='selection_list'), width=12),
-            dbc.Col(html.Button('Clear Selection', className='btn-secondary', id='button_clear'), width=12),
+            dbc.Col(html.Div(generate_datatable(id('input_datatable')))),
+            dbc.Col(html.H5('Selection: None', id=id('selection_list')), width=12),
+            dbc.Col(html.Button('Clear Selection', className='btn-secondary', id=id('button_clear')), width=12),
         ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
 
         # Json Data Headers
@@ -69,23 +63,46 @@ layout = html.Div([
     
 ])
 
+# Update datatable when files upload
+@app.callback([Output(id('input_datatable'), "data"), Output(id('input_datatable'), 'columns')], 
+                Input('input_data_store', "data"))
+def update_data_table(input_data):
+    if input_data == None: return [], []
+    # for i in range(len(input_data)):
+    #     input_data[i] = flatten(input_data[i])
+        
+    df = json_normalize(input_data)
+    df.insert(0, column='index', value=range(1, len(df)+1))
+    json_dict = df.to_dict('records')
+
+    
+
+    # Convert all values to string
+    for i in range(len(json_dict)):
+        for key, val in json_dict[i].items():
+            if type(json_dict[i][key]) == list:
+                json_dict[i][key] = str(json_dict[i][key])
+
+    columns = [{"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns]
+
+    return json_dict, columns
 
 # Store/Clear selected rows
-# @app.callback(Output('selection_list_store', "data"),
-#             Input('input_datatable', "selected_rows"), Input('button_clear', 'n_clicks'))
-# def save_table_data(selected_rows, n_clicks):
-#     triggered = callback_context.triggered[0]['prop_id']
+@app.callback(Output(id('selection_list_store'), "data"),
+            Input(id('input_datatable'), "selected_rows"), Input(id('button_clear'), 'n_clicks'))
+def save_table_data(selected_rows, n_clicks):
+    triggered = callback_context.triggered[0]['prop_id']
 
-#     if triggered == 'button_clear.n_clicks':
-#         selected_rows = []
-#     elif triggered == 'input_data_datatable.derived_virtual_selected_rows':
-#         pass
-
-#     return selected_rows
+    if triggered == id('input_datatable.selected_rows'):
+        pass
+    elif triggered == id('button_clear.n_clicks'):
+        selected_rows = []
+    
+    return selected_rows
 
 
 # Display selected rows/json
-@app.callback(Output(id('selection_list'), "children"), Input('selection_list_store', 'data'))
+@app.callback(Output(id('selection_list'), "children"), Input(id('selection_list_store'), 'data'))
 def generate_selected_list(selection_list):
     selection_list = list(map(lambda x:x+1, selection_list))
     return 'Selection: ', str(selection_list)[1:-1]
@@ -96,7 +113,7 @@ def generate_selected_list(selection_list):
 # Update Json Trees (Original)
 for x in range(1, 3):
     @app.callback(Output(id('selected_list_'+str(x)), 'children'), 
-                [Input(id('button_json_')+str(x), 'n_clicks'), State('selection_list_store', 'data')])
+                [Input(id('button_json_')+str(x), 'n_clicks'), State(id('selection_list_store'), 'data')])
     def display_selected(n_clicks, selection_list):
         if selection_list is None: return no_update
         selection_list = list(map(lambda x:x+1, selection_list))[-1:]
@@ -104,7 +121,7 @@ for x in range(1, 3):
 
     @app.callback(Output(id('json_store_')+str(x), 'data'), 
                 [Input(id('button_json_')+str(x), 'n_clicks'),
-                State('selection_list_store', 'data'), State('input_data_store', 'data')])
+                State(id('selection_list_store'), 'data'), State('input_data_store', 'data')])
     def save_json(n_clicks, selected_list, input_data):
         if selected_list is None or len(selected_list) == 0: return []
         if input_data is None or len(input_data) == 0: return []
@@ -127,7 +144,7 @@ for x in range(1, 3):
 # Update Json Trees (Difference)
 for x in range(3, 6):
     @app.callback(Output(id('selected_list_'+str(x)), 'children'), 
-                [Input(id('button_json_')+str(x), 'n_clicks'), State('selection_list_store', 'data')])
+                [Input(id('button_json_')+str(x), 'n_clicks'), State(id('selection_list_store'), 'data')])
     def display_selected(n_clicks, selection_list):
         if selection_list is None: return no_update
         selection_list = list(map(lambda x:x+1, selection_list))[-2:]
@@ -135,7 +152,7 @@ for x in range(3, 6):
 
     @app.callback(Output(id('json_store_')+str(x), 'data'), 
                 [Input(id('button_json_')+str(x), 'n_clicks'),
-                State('selection_list_store', 'data'), State('input_data_store', 'data')])
+                State(id('selection_list_store'), 'data'), State('input_data_store', 'data')])
     def save_json(n_clicks, selected_list, input_data):
         if selected_list is None or len(selected_list) < 2: return []
         if input_data is None or len(input_data) == 0: return []

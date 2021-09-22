@@ -247,7 +247,6 @@ def generate_slider(component_id):
         value=[0, 0]
     ),
 
-
 def generate_difference_history(json_history_1, json_history_2):
     if json_history_1 is None or json_history_2 is None: return []
     if len(json_history_1) < 1  or len(json_history_2) < 1: return []
@@ -265,6 +264,9 @@ def generate_difference_history(json_history_1, json_history_2):
 def generate_number_changes(difference_history):
     num_changes = {}
     for difference in difference_history:
+        if type(difference) is list:
+            continue
+        
         for key in difference.keys():
             if key in num_changes:
                 num_changes[key] +=1 
