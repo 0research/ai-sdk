@@ -4,7 +4,7 @@ AI-SDK is a nocode tool used for doing datasets discovery, exploratory, schema d
 
 # ai-sdk Action
 AI-SDK Action allows users to 
-* Periodically Fetch JSON data from two sources
+* Periodically Fetch JSON data from two sources through [Flat Data](https://github.com/githubocto/flat)
 * Merge both JSON data via Merging Strategies 
 
 
