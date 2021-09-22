@@ -12,11 +12,13 @@ def serve_layout():
     return html.Div([
         dcc.Location(id='url', refresh=False),
         html.Div([
+            dcc.Link('Upload Data | ', href='/apps/upload_data'),
             dcc.Link(' Merge Strategy | ', href='/apps/merge_strategy'),
             # dcc.Link('Temporal Merge | ', href='/apps/temporal_merge'),
             dcc.Link(' Temporal Evolution | ', href='/apps/temporal_evolution'),
             dcc.Link(' Impute Time Series Missing Data | ', href='/apps/impute_time_series_missing_data'),
             dcc.Link(' Time Series Decomposition | ', href='/apps/time_series_decomposition'),
+            dcc.Link(' Remove Duplicate | ', href='/apps/remove_duplicate'),
             dcc.Link(' Page 3 | ', href='/apps/page3'),
             dcc.Link(' Page 4 | ', href='/apps/page4'),
             # dcc.Link('Page 6 | ', href='/apps/page6'),
