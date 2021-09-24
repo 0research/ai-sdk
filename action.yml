@@ -1,6 +1,9 @@
 name: "ai-sdk-action"
 description: "Merge Json Files"
 author: "Kevin"
+branding:
+  icon: 'database'
+  color: 'gray-dark'
 inputs:
   merge_strategy:
     description: "Select Merge strategy (overwrite, version, objectMerge)"
@@ -9,3 +12,5 @@ inputs:
 runs:
   using: "docker"
   image: "Dockerfile"
+
+

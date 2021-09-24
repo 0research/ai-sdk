@@ -34,18 +34,22 @@ def main():
     json2 = flatten(json2)
     base = json_merge(base, json1, merge_strategy)
     base = json_merge(base, json2, merge_strategy)
-    # difference_history = generate_difference_history(json_history_1, json_history_2)
-    # num_changes = generate_number_changes(difference_history)
+    difference = diff(json1, json2, syntax='symmetric', marshal=True)
     
     # Write Files
     with open('merged_json.json', 'w', encoding='utf-8') as f:
         json.dump(base, f, ensure_ascii=False, indent=4)
+    with open('difference.json', 'w', encoding='utf-8') as f:
+        json.dump(difference, f, ensure_ascii=False, indent=4)
     
-    # Push to Git
+    # Push to Git (Set Config, Reset staged files from flat-data, commit, push, add previously staged files)
     repo = Repo('.')
+    username = "ai-sdk"
+    repo.config_writer().set_value("user", "name", username).release()
+    repo.config_writer().set_value("user", "email", username+"@users.noreply.github.com").release()
     repo.git.reset()
-    repo.index.add(['merged_json.json'])
-    repo.index.commit('Upload Merged Json')
+    repo.index.add(['merged_json.json', 'difference.json'])
+    repo.index.commit('ai-sdk: Upload & Process data')
     origin = repo.remote('origin')
     origin.push()
     repo.index.add(['json1.json', 'json2.json'])
