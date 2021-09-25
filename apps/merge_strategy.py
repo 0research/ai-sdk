@@ -42,11 +42,6 @@ layout = html.Div([
         # Page Title
         # dbc.Row(dbc.Col(html.H2('Merge Strategy'))),
 
-        # Upload Files
-        dbc.Row([
-            dbc.Col(generate_upload('upload_json', "Drag and Drop or Click Here to Select Files"), className='text-center'),
-        ], className='text-center', style={'margin': '5px'}),
-
         # Datatable & Selected Rows/Json List
         dbc.Row([
             dbc.Col(html.H5('Step 1: Select Rows to Merge'), width=12),
@@ -85,34 +80,34 @@ layout = html.Div([
     
 ])
 
-# Save Upload data
-@app.callback(Output('input_data_store', 'data'), Input('upload_json', 'contents'), 
-                [State('upload_json', 'filename'), State('upload_json', 'last_modified'), State('input_data_store', 'data')])
-def save_input_data(contents, filename, last_modified, input_data_store):
-    if filename is None: 
-        return input_data_store
-    for name in filename:
-        if not name.endswith('.json'):
-            return no_update
+# # Save Upload data
+# @app.callback(Output('input_data_store', 'data'), Input('upload_json', 'contents'), 
+#                 [State('upload_json', 'filename'), State('upload_json', 'last_modified'), State('input_data_store', 'data')])
+# def save_input_data(contents, filename, last_modified, input_data_store):
+#     if filename is None: 
+#         return input_data_store
+#     for name in filename:
+#         if not name.endswith('.json'):
+#             return no_update
         
-    data = []
-    try:
-        for filename, content in zip(filename, contents):
-            content_type, content_string = content.split(',')
-            decoded = base64.b64decode(content_string)
-            decoded = json.loads(decoded.decode('utf-8'))
-            decoded = flatten(decoded)
-            data.append(decoded)
+#     data = []
+#     try:
+#         for filename, content in zip(filename, contents):
+#             content_type, content_string = content.split(',')
+#             decoded = base64.b64decode(content_string)
+#             decoded = json.loads(decoded.decode('utf-8'))
+#             decoded = flatten(decoded)
+#             data.append(decoded)
 
-    except Exception as e:
-        print(e)
+#     except Exception as e:
+#         print(e)
 
-    return data
+#     return data
 
 # Update datatable when files upload
 @app.callback([Output(id('input_datatable'), "data"), Output(id('input_datatable'), 'columns')], 
-                Input('input_data_store', "data"))
-def update_data_table(input_data):
+                Input('input_data_store', "data"), Input('url', 'pathname'))
+def update_data_table(input_data, pathname):
     if input_data == None: return [], []
     # for i in range(len(input_data)):
     #     input_data[i] = flatten(input_data[i])
@@ -134,10 +129,11 @@ def update_data_table(input_data):
 
 # Generate Slider data
 @app.callback([Output(id('slider'), 'marks'), Output(id('slider'), 'min'), Output(id('slider'), 'max'), Output(id('slider'), 'value')],
-            Input('input_data_store', 'data'))
-def generate_slider_values(input_data_store):
-    if input_data_store is None: return no_update
-    for json in input_data_store:
+            Input(id('input_datatable'), 'data'))
+def generate_slider_values(data):
+    if data is None: return no_update
+
+    for json in data:
         date = json['created']
         if date[-1] == 'Z':
             date = date[:-1]
@@ -145,14 +141,14 @@ def generate_slider_values(input_data_store):
             date = date.rsplit('.', 1)[0] + '.000000'            
         created = datetime.fromisoformat(date)
     
-    input_data_store.sort(key=lambda item:item['created'], reverse=False)
+    data.sort(key=lambda item:item['created'], reverse=False)
 
     marks = {}
-    for i, json in enumerate(input_data_store):
+    for i, json in enumerate(data):
         marks[i] = str(i+1)
 
     start = 0
-    end = len(input_data_store) - 1
+    end = len(data) - 1
 
     return marks, start, end, [start, start]
 

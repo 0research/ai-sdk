@@ -65,8 +65,8 @@ layout = html.Div([
 
 # Update datatable when files upload
 @app.callback([Output(id('input_datatable'), "data"), Output(id('input_datatable'), 'columns')], 
-                Input('input_data_store', "data"))
-def update_data_table(input_data):
+                Input('input_data_store', "data"), Input('url', 'pathname'))
+def update_data_table(input_data, pathname):
     if input_data == None: return [], []
     # for i in range(len(input_data)):
     #     input_data[i] = flatten(input_data[i])
@@ -74,8 +74,6 @@ def update_data_table(input_data):
     df = json_normalize(input_data)
     df.insert(0, column='index', value=range(1, len(df)+1))
     json_dict = df.to_dict('records')
-
-    
 
     # Convert all values to string
     for i in range(len(json_dict)):
@@ -88,8 +86,8 @@ def update_data_table(input_data):
     return json_dict, columns
 
 # Store/Clear selected rows
-@app.callback(Output(id('selection_list_store'), "data"),
-            Input(id('input_datatable'), "selected_rows"), Input(id('button_clear'), 'n_clicks'))
+@app.callback([Output(id('selection_list_store'), "data"), Output(id('input_datatable'), "selected_rows")],
+            [Input(id('input_datatable'), "selected_rows"), Input(id('button_clear'), 'n_clicks')])
 def save_table_data(selected_rows, n_clicks):
     triggered = callback_context.triggered[0]['prop_id']
 
@@ -97,8 +95,8 @@ def save_table_data(selected_rows, n_clicks):
         pass
     elif triggered == id('button_clear.n_clicks'):
         selected_rows = []
-    
-    return selected_rows
+
+    return selected_rows, selected_rows
 
 
 # Display selected rows/json

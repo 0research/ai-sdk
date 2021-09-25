@@ -178,22 +178,34 @@ def generate_datatable(component_id, df=None):
 
     # TODO Remove hard code filler data
     containerEventList = []
-    # path = 'datasets/TRIU8780930/'
+    path = 'datasets/TRIU8780930/'
     # path = 'datasets/Full/'
-    path = 'datasets/Full_raw/'
+    # path = 'datasets/Full_raw/'
     for name in os.listdir(path):
         with open(path+name) as f:
             containerEvent = json.load(f)
             containerEvent = flatten(containerEvent)
             containerEventList.append(containerEvent)
-    
+
     df = json_normalize(containerEventList)
     df.insert(0, column='Index', value=range(1, len(df)+1))
+
+    datatypes = ['string', 'float', 'date']
+    options_datatype = [{}]
+    for key in df.to_dict('records')[0].keys():
+        options_datatype[0][key] = {}
+        options_datatype[0][key]['options'] = [{'label': i, 'value': i} for i in datatypes]
+        options_datatype[0][key]['clearable'] = False
+
+    # options_datatype[0]['created'] = {}
+    # options_datatype[0]['created']['options'] = [{'label': i, 'value': i} for i in datatypes]
+
+    # pprint(options_datatype)
 
     return (dash_table.DataTable(
         id=component_id,
         columns=[
-            {"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns
+            {"name": i, "id": i, "deletable": True, "selectable": True, "presentation": 'dropdown'} for i in df.columns
         ],
         data=df.to_dict('records'),
         editable=True,
@@ -208,6 +220,7 @@ def generate_datatable(component_id, df=None):
         page_action="native",
         page_current= 0,
         page_size= 50,
+        dropdown_data = options_datatype,
         style_table={'height': '450px', 'overflowY': 'auto'},
         style_data={
             'whiteSpace': 'normal',
