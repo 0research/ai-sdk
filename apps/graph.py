@@ -16,12 +16,11 @@ from genson import SchemaBuilder
 from jsondiff import diff
 import json
 import os
-from pandas.io.json import json_normalize
 import pandas as pd
 
 
 
-def bar_graph(component_id, barmode, x=None, y=None, data=None):
+def bar_graph(component_id, barmode, x=None, y=None, data=None, orientation='v'):
     colors = {
         'background': '#111111',
         'text': '#7FDBFF'
@@ -36,7 +35,7 @@ def bar_graph(component_id, barmode, x=None, y=None, data=None):
             "City": ["SF", "SF", "SF", "Montreal", "Montreal", "Montreal"]
         })
 
-    fig = px.bar(data, x=x, y=y, color="City", barmode=barmode)
+    fig = px.bar(data, x=x, y=y, color="City", barmode=barmode, orientation=orientation)
 
     fig.update_layout(
         plot_bgcolor=colors['background'],

@@ -18,7 +18,6 @@ from jsondiff import diff, symbols
 from apps.util import *
 import base64
 import pandas as pd
-from pandas.io.json import json_normalize
 from itertools import zip_longest
 from datetime import datetime
 
@@ -46,7 +45,7 @@ layout = html.Div([
         dbc.Row([
             dbc.Col(html.H5('Step 1: Select Rows to Merge'), width=12),
             dbc.Col(html.Div(generate_datatable(id('input_datatable'))), width=12),
-            dbc.Col(html.Div(generate_slider(id('slider')), style={'display':'hidden'}), width=12),
+            dbc.Col(html.Div(generate_range_slider(id('slider')), style={'display':'hidden'}), width=12),
             dbc.Col(html.H5('Selection: None', id=id('selection_list')), width=12),
             dbc.Col(html.Button('Clear Selection', className='btn-secondary', id=id('button_clear')), width=12),
         ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
@@ -109,8 +108,6 @@ layout = html.Div([
                 Input('input_data_store', "data"), Input('url', 'pathname'))
 def update_data_table(input_data, pathname):
     if input_data == None: return [], []
-    # for i in range(len(input_data)):
-    #     input_data[i] = flatten(input_data[i])
         
     df = json_normalize(input_data)
     df.insert(0, column='index', value=range(1, len(df)+1))
@@ -130,7 +127,7 @@ def update_data_table(input_data, pathname):
 # Generate Slider data
 @app.callback([Output(id('slider'), 'marks'), Output(id('slider'), 'min'), Output(id('slider'), 'max'), Output(id('slider'), 'value')],
             Input(id('input_datatable'), 'data'))
-def generate_slider_values(data):
+def generate_range_slider_values(data):
     if data is None: return no_update
 
     for json in data:
