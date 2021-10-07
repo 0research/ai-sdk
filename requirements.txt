@@ -10,3 +10,4 @@ importlib-metadata
 typing_extensions
 GitPython
 gunicorn==20.0.4
+pandas

@@ -2,10 +2,13 @@ import json
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State, ALL, MATCH
-import dash_bootstrap_components as dbc
+
+#import dash_bootstrap_components as dbc
+from app import dbc # https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
+
 import plotly.express as px
 from app import app
-import dash_bootstrap_components as dbc
+
 import dash_table
 from dash import no_update, callback_context
 import json
