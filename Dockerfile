@@ -8,4 +8,4 @@ RUN pip install --target=/app -r requirements.txt
 RUN apt-get update && apt-get install -y git
 
 ENV PYTHONPATH /app
-CMD ["python", "/app.py"]
+CMD ["python", "/app/index.py"]
