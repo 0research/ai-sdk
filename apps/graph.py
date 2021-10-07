@@ -20,7 +20,7 @@ import pandas as pd
 
 
 
-def bar_graph(component_id, barmode, x=None, y=None, data=None, orientation='v'):
+def bar_graph(component_id, barmode, x=None, y=None, data=None, orientation='v', showlegend=True):
     colors = {
         'background': '#111111',
         'text': '#7FDBFF'
@@ -40,7 +40,8 @@ def bar_graph(component_id, barmode, x=None, y=None, data=None, orientation='v')
     fig.update_layout(
         plot_bgcolor=colors['background'],
         paper_bgcolor=colors['background'],
-        font_color=colors['text']
+        font_color=colors['text'],
+        showlegend=showlegend
     )
 
     return dcc.Graph(

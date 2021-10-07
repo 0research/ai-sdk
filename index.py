@@ -8,7 +8,7 @@ from app import app
 from app import server
 
 from apps import (upload_data, overview, merge_strategy, temporal_evolution, temporal_merge, 
-                time_series_decomposition, impute_time_series_missing_data, remove_duplicate, data_lineage,
+                time_series_decomposition, impute_time_series_missing_data, remove_duplicate, data_explorer,
                 page2, page3, page4, page6, page6,page7, page8, page9, page10)
 
 
@@ -34,9 +34,9 @@ CONTENT_STYLE = {
 LOGO = "../assets/static/logo.svg"
 
 search_bar = dbc.Row([
-    dbc.Col(dbc.Button("Workflow", color="info", className="ml-2", active="exact", style={'width':'130px'})),
-    dbc.Col(dbc.Button("Upload", color="success", className="ml-2", active="exact", style={'width':'130px'})),
-    dbc.Col(dbc.Input(type="search", placeholder="Search"))],
+    dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
+    dbc.Col(dbc.Button("Data Explorer", href='/apps/data_explorer', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
+    dbc.Col(dbc.Input(type="search", placeholder="Search")) ],
     no_gutters=True,
     className="ml-auto flex-nowrap mt-3 mt-md-0",
     align="center",
@@ -73,7 +73,7 @@ sidebar = html.Div([
         dbc.NavLink("Impute Missing Data", href="/apps/impute_time_series_missing_data", active="exact", className='fas fa-search-plus'),
         dbc.NavLink("Remove Duplicate", href="/apps/remove_duplicate", active="exact", className='far fa-copy'),
         dbc.NavLink("Time Series Decomposition", href="/apps/time_series_decomposition", active="exact", className='fas fa-recycle'),
-        # dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className='fas fa-history'),
+        # dbc.NavLink("Data Lineage", href="/apps/data_explorer", active="exact", className='fas fa-history'),
 
         # dcc.Link(' Page 3 | ', href='/apps/page3'),
         # dcc.Link(' Page 4 | ', href='/apps/page4'),
@@ -109,7 +109,8 @@ def display_page(pathname):
     if pathname == '/apps/time_series_decomposition': return time_series_decomposition.layout
     if pathname == '/apps/impute_time_series_missing_data': return impute_time_series_missing_data.layout
     if pathname == '/apps/remove_duplicate': return remove_duplicate.layout
-    if pathname == '/apps/data_lineage': return data_lineage.layout
+
+    if pathname == '/apps/data_explorer': return data_explorer.layout
 
     # if pathname == '/apps/page3': return page3.layout
     # if pathname == '/apps/page4': return page4.layout

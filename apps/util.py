@@ -166,14 +166,15 @@ def json_merge(base, new, merge_strategy):
     return base
 
 
-def generate_dropdown(component_id, options, value=None):
-    if value == None: options[0]['value']
+def generate_dropdown(component_id, options, value=None, placeholder='Select...'):
+    if value == None: value = options[0]['value']
     return dcc.Dropdown(
         id=component_id,
         options=options,
         value=value,
         searchable=False,
         clearable=False,
+        placeholder=placeholder,
         style={'color': 'black'},
     )
 
@@ -225,7 +226,7 @@ def generate_checklist(id, options, label, default_value=0):
         dbc.Label(label),
         dbc.Checklist(
             options=[{'label': o, 'value': o} for o in options],                 
-            value=options[default_value],
+            value=[options[default_value]],
             id=id,
         )]
     )
