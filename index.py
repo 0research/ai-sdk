@@ -66,15 +66,7 @@ def serve_layout():
         #dbc.Container(dbc.Alert("Wrangle Data!", color="success"),className="p-5") #Added by Sagun
     ])
 
-#https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
-# To use dash-bootstrap-components you must do two things:
-#    1.Link a Bootstrap v4 compatible stylesheet (example code shown below)
-#    2.Incorporate dash-bootstrap-components into the layout of your app.(already done in app.py)
 
-# app.layout = dbc.Container(
-#     dbc.Alert("Wrangle Data!", color="success"),
-#     className="p-5",
-# )
 
 app.layout = serve_layout
 
