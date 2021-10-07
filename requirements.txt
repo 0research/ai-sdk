@@ -5,3 +5,4 @@ flatten_json==0.1.13
 importlib-metadata
 typing_extensions
 GitPython
+gunicorn==20.0.4
