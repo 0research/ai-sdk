@@ -12,13 +12,12 @@ import plotly.express as px
 
 import dash_table
 from dash import no_update, callback_context
-import json
 from flatten_json import flatten, unflatten, unflatten_list
 from jsonmerge import Merger
 from pprint import pprint
 from genson import SchemaBuilder
 from jsondiff import diff
-import json
+
 import os
 from pandas.io.json import json_normalize
 
