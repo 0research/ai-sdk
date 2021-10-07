@@ -1,11 +1,12 @@
 import dash_core_components as dcc
-import dash_bootstrap_components as dbc
+#import dash_bootstrap_components as dbc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from pandas.io.json import json_normalize
 from apps.util import *
 from app import app
-from app import server
+from app import server 
+from app import dbc # https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
 
 from apps import (upload_data, merge_strategy, temporal_evolution, temporal_merge, 
                 time_series_decomposition, impute_time_series_missing_data, remove_duplicate, data_lineage,
