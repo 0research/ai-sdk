@@ -63,7 +63,7 @@ def serve_layout():
         dcc.Store(id='input_data_store', storage_type='session'),
         sidebar,
         html.Div(id='page-content', style=CONTENT_STYLE),
-        dbc.Container( dbc.Alert("Wrangle Data!", color="success"),className="p-5") #Added by Sagun
+        #dbc.Container(dbc.Alert("Wrangle Data!", color="success"),className="p-5") #Added by Sagun
     ])
 
 #https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
