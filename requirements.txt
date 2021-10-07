@@ -1,4 +1,4 @@
-   
+dash==1.12.0
 jsondiff==1.3.0
 jsonmerge==1.8.0
 flatten_json==0.1.13
