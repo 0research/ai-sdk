@@ -7,7 +7,8 @@ from dash.dependencies import Input, Output, State
 from app import dbc # https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
 
 import plotly.express as px
-from app import app
+
+#from app import app # Not being used in utils
 
 import dash_table
 from dash import no_update, callback_context
