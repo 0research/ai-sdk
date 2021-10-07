@@ -10,8 +10,7 @@ import plotly.express as px
 
 #from app import app # Not being used in utils
 
-import dash_table
-from dash import no_update, callback_context
+from dash import dash_table, no_update, callback_context
 from flatten_json import flatten, unflatten, unflatten_list
 from jsonmerge import Merger
 from pprint import pprint
