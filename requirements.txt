@@ -13,3 +13,5 @@ GitPython
 gunicorn==20.0.4
 pandas
 genson
+typesense
+subprocess
