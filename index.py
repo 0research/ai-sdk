@@ -37,7 +37,7 @@ LOGO = "../assets/static/polymath-ai-0research-logo.svg"
 YOUTUBE = "../assets/static/youtube-icon.svg"
 GITHUB = "../assets/static/github-icon.svg"
 DOCKER = "../assets/static/docker-icon.svg"
-GITHUB-ACTION ="../assets/static/github-action-icon.svg"
+GITHUB-ACTION = "../assets/static/github-action-icon.svg"
 
 search_bar = dbc.Row([
     dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
@@ -54,9 +54,9 @@ navbar = dbc.Navbar(
             # Use row and col to control vertical alignment of logo / brand
             dbc.Row(
                 [
-                    dbc.Col(html.Img(src=LOGO, height="30px")),
-                    dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2")),
-                    dbc.Col(html.Img(src=YOUTUBE, height="30px")), # Link to href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
+                    dbc.Col(html.Img(src=LOGO, height="30px")), # Link to Home Page of Website href='https://0research.com'
+                    dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2")), # Link to App href='https://ai-sdk.herokuapp.com'
+                    dbc.Col(html.Img(src=YOUTUBE, height="30px")), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
                     dbc.Col(html.Img(src=GITHUB, height="30px")), # Link to href='https://github.com/0research/ai-sdk'
                     dbc.Col(html.Img(src=DOCKER, height="30px")), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
                     dbc.Col(html.Img(src=GITHUB-ACTION, height="30px")), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
@@ -64,8 +64,10 @@ navbar = dbc.Navbar(
                 align="center",
                 no_gutters=True,
             ),
-            href="https://www.youtube.com/watch?v=ntN3xPEyy3U",
+            href="https://ai-sdk.herokuapp.com"), 
+
         ),
+
         dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
         dbc.Collapse(search_bar, id="navbar-collapse", navbar=True, is_open=False),
     ],
