@@ -32,7 +32,9 @@ CONTENT_STYLE = {
     "padding": "2rem 1rem",
 }
 
+# Define path for images used
 LOGO = "../assets/static/logo.svg"
+VID0 = "../assets/static/vid7.svg"
 
 search_bar = dbc.Row([
     dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
@@ -51,6 +53,7 @@ navbar = dbc.Navbar(
                 [
                     dbc.Col(html.Img(src=LOGO, height="30px")),
                     dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2")),
+                    dbc.Col(html.Img(src=VID0, height="30px",href='https://www.youtube.com/watch?v=ntN3xPEyy3U')),
                 ],
                 align="center",
                 no_gutters=True,
