@@ -33,8 +33,11 @@ CONTENT_STYLE = {
 }
 
 # Define path for images used
-LOGO = "../assets/static/logo.svg"
-VID0 = "../assets/static/vid7.svg"
+LOGO = "../assets/static/polymath-ai-0research-logo.svg"
+YOUTUBE = "../assets/static/youtube-icon.svg"
+GITHUB = "../assets/static/github-icon.svg"
+DOCKER = "../assets/static/docker-icon.svg"
+GITHUB-ACTION ="../assets/static/github-action-icon.svg"
 
 search_bar = dbc.Row([
     dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
@@ -53,7 +56,10 @@ navbar = dbc.Navbar(
                 [
                     dbc.Col(html.Img(src=LOGO, height="30px")),
                     dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2")),
-                    dbc.Col(html.Img(src=VID0, height="30px")), # Link to href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
+                    dbc.Col(html.Img(src=YOUTUBE, height="30px")), # Link to href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
+                    dbc.Col(html.Img(src=GITHUB, height="30px")), # Link to href='https://github.com/0research/ai-sdk'
+                    dbc.Col(html.Img(src=DOCKER, height="30px")), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
+                    dbc.Col(html.Img(src=GITHUB-ACTION, height="30px")), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
                 ],
                 align="center",
                 no_gutters=True,
