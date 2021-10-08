@@ -12,7 +12,6 @@ from flatten_json import flatten, unflatten, unflatten_list
 from jsonmerge import Merger
 from pprint import pprint
 from genson import SchemaBuilder
-from jsondiff import diff
 import json
 from jsondiff import diff, symbols
 from apps.util import *
@@ -324,7 +323,6 @@ def update_output(value):
             State({'type':id('col_button_remove'), 'index': ALL}, 'value'),
             State(id('remove_list_store'), 'data')])
 def update_output(n_clicks, value, remove_list):
-    
     if remove_list is None: remove_list = []
 
     if value in remove_list:

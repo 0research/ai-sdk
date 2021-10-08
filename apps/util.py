@@ -1,20 +1,22 @@
 import json
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output, State, ALL, MATCH
-import dash_bootstrap_components as dbc
+from dash.dependencies import Input, Output, State
+
+#import dash_bootstrap_components as dbc
+from app import dbc # https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
+
 import plotly.express as px
-from app import app
-import dash_bootstrap_components as dbc
-import dash_table
-from dash import no_update, callback_context
-import json
+
+#from app import app # Not being used in utils
+
+from dash import dash_table, no_update, callback_context
 from flatten_json import flatten, unflatten, unflatten_list
 from jsonmerge import Merger
 from pprint import pprint
 from genson import SchemaBuilder
 from jsondiff import diff
-import json
+
 import os
 from pandas import json_normalize
 import pandas as pd
@@ -195,7 +197,25 @@ def generate_datatable(component_id, df=None):
             {'id': 'temperature', 'name': 'temperature'},
             {'id': 'city', 'name': 'city', 'presentation': 'dropdown'},
         ],
+        selected_rows=[],
+        column_selectable="single",
+        row_selectable="multi",
+        row_deletable=True,
         editable=True,
+        page_size= 50,
+        style_table={'height': '450px', 'overflowY': 'auto'},
+        style_data={
+            'whiteSpace': 'normal',
+        },
+        css=[{
+            'selector': '.dash-spreadsheet td div',
+            'rule': '''
+                line-height: 15px;
+                max-height: 30px; min-height: 30px; height: 30px;
+                display: block;
+                overflow-y: hidden;
+            '''
+        }],
     ),
 
     

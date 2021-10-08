@@ -130,15 +130,16 @@ def update_data_table(input_data, pathname):
 def generate_range_slider_values(data):
     if data is None: return no_update
 
-    for json in data:
-        date = json['created']
-        if date[-1] == 'Z':
-            date = date[:-1]
-        if len(date.rsplit('.', 1)[1]) != 6:
-            date = date.rsplit('.', 1)[0] + '.000000'            
-        created = datetime.fromisoformat(date)
+    # TODO Get Index field and sort
+    # for json in data:
+    #     date = json['created']
+    #     if date[-1] == 'Z':
+    #         date = date[:-1]
+    #     if len(date.rsplit('.', 1)[1]) != 6:
+    #         date = date.rsplit('.', 1)[0] + '.000000'            
+    #     created = datetime.fromisoformat(date)
     
-    data.sort(key=lambda item:item['created'], reverse=False)
+    # data.sort(key=lambda item:item['created'], reverse=False)
 
     marks = {}
     for i, json in enumerate(data):

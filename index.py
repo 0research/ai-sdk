@@ -1,11 +1,12 @@
 import dash_core_components as dcc
-import dash_bootstrap_components as dbc
+#import dash_bootstrap_components as dbc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from pandas.io.json import json_normalize
 from apps.util import *
 from app import app
-from app import server
+from app import server 
+from app import dbc # https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
 
 from apps import (upload_data, overview, merge_strategy, temporal_evolution, temporal_merge, 
                 time_series_decomposition, impute_time_series_missing_data, remove_duplicate, data_explorer,
@@ -86,15 +87,16 @@ sidebar = html.Div([
 ], style=SIDEBAR_STYLE)
 
 
-
 def serve_layout():
     return html.Div([
         dcc.Location(id='url', refresh=False),
         dcc.Store(id='input_data_store', storage_type='session'),
         sidebar,
         navbar,
-        html.Div(id='page-content', style=CONTENT_STYLE)
+        html.Div(id='page-content', style=CONTENT_STYLE),
+        #dbc.Container(dbc.Alert("Wrangle Data!", color="success"),className="p-5") #Added by Sagun
     ])
+
 
 
 app.layout = serve_layout
