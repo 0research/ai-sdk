@@ -53,12 +53,12 @@ navbar = dbc.Navbar(
                 [
                     dbc.Col(html.Img(src=LOGO, height="30px")),
                     dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2")),
-                    dbc.Col(html.Img(src=VID0, height="30px",href='https://www.youtube.com/watch?v=ntN3xPEyy3U')),
+                    dbc.Col(html.Img(src=VID0, height="30px")), # Link to href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
                 ],
                 align="center",
                 no_gutters=True,
             ),
-            href="#",
+            href="https://www.youtube.com/watch?v=ntN3xPEyy3U",
         ),
         dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
         dbc.Collapse(search_bar, id="navbar-collapse", navbar=True, is_open=False),
