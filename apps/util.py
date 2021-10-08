@@ -18,7 +18,8 @@ from genson import SchemaBuilder
 from jsondiff import diff
 
 import os
-from pandas.io.json import json_normalize
+from pandas import json_normalize
+import pandas as pd
 
 
 mergeOptions = ['overwrite', 'objectMerge', 'version']
@@ -30,21 +31,12 @@ def id_factory(page: str):
         return f"{page}-{_id}"
     return func
 
-def generate_tab(label, value):
-    return dcc.Tab(
-                label=label,
-                value=value,
-                className='custom-tab',
-                selected_className='custom-tab--selected'
-            )
-
 def generate_tabs(tabs_id, tab_labels, tab_values):
     return dcc.Tabs(
         id=tabs_id,
-        parent_className='custom-tabs',
-        className='custom-tabs-container',
+        value=tab_values[0],
         children=[
-            generate_tab(label, value) for label, value in zip(tab_labels, tab_values)
+            dcc.Tab(label=label, value=value) for label, value in zip(tab_labels, tab_values)
         ],
     )
 
@@ -175,54 +167,42 @@ def json_merge(base, new, merge_strategy):
     base = merger.merge(base, new)
     return base
 
-def generate_datatable(component_id, df=None):
-    # df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder2007.csv')
 
-    # TODO Remove hard code filler data
-    containerEventList = []
-    path = 'datasets/TRIU8780930/'
-    # path = 'datasets/Full/'
-    # path = 'datasets/Full_raw/'
-    for name in os.listdir(path):
-        with open(path+name) as f:
-            containerEvent = json.load(f)
-            containerEvent = flatten(containerEvent)
-            containerEventList.append(containerEvent)
-
-    df = json_normalize(containerEventList)
-    df.insert(0, column='Index', value=range(1, len(df)+1))
-
-    datatypes = ['string', 'float', 'date']
-    options_datatype = [{}]
-    for key in df.to_dict('records')[0].keys():
-        options_datatype[0][key] = {}
-        options_datatype[0][key]['options'] = [{'label': i, 'value': i} for i in datatypes]
-        options_datatype[0][key]['clearable'] = False
-
-    # options_datatype[0]['created'] = {}
-    # options_datatype[0]['created']['options'] = [{'label': i, 'value': i} for i in datatypes]
-
-    # pprint(options_datatype)
-
-    return (dash_table.DataTable(
+def generate_dropdown(component_id, options, value=None, placeholder='Select...'):
+    if value == None: value = options[0]['value']
+    return dcc.Dropdown(
         id=component_id,
-        columns=[
-            {"name": i, "id": i, "deletable": True, "selectable": True, "presentation": 'dropdown'} for i in df.columns
-        ],
+        options=options,
+        value=value,
+        searchable=False,
+        clearable=False,
+        placeholder=placeholder,
+        style={'color': 'black'},
+    )
+
+
+def generate_datatable(component_id, df=None):
+    from collections import OrderedDict
+    df = pd.DataFrame(OrderedDict([
+        ('climate', ['Sunny', 'Snowy', 'Sunny', 'Rainy']),
+        ('temperature', [13, 43, 50, 30]),
+        ('city', ['NYC', 'Montreal', 'Miami', 'NYC'])
+    ]))
+
+    return dash_table.DataTable(
+        id=component_id,
         data=df.to_dict('records'),
-        editable=True,
-        filter_action="native",
-        sort_action="native",
-        sort_mode="multi",
+        columns=[
+            {'id': 'climate', 'name': 'climate', 'presentation': 'dropdown'},
+            {'id': 'temperature', 'name': 'temperature'},
+            {'id': 'city', 'name': 'city', 'presentation': 'dropdown'},
+        ],
+        selected_rows=[],
         column_selectable="single",
         row_selectable="multi",
         row_deletable=True,
-        selected_columns=[],
-        selected_rows=[],
-        page_action="native",
-        page_current= 0,
+        editable=True,
         page_size= 50,
-        dropdown_data = options_datatype,
         style_table={'height': '450px', 'overflowY': 'auto'},
         style_data={
             'whiteSpace': 'normal',
@@ -236,30 +216,59 @@ def generate_datatable(component_id, df=None):
                 overflow-y: hidden;
             '''
         }],
-         style_cell={'textAlign': 'left'} # left align text in columns for readability
     ),
-    html.Div(id='datatable-interactivity-container'))
+
+    
+
+    return dash_table.DataTable(
+        id=component_id,
+        data=df.to_dict('records'),
+        columns=[
+            {'id': 'climate', 'name': 'climate', 'presentation': 'dropdown'},
+            {'id': 'temperature', 'name': 'temperature'},
+            {'id': 'city', 'name': 'city', 'presentation': 'dropdown'},
+        ],
+        editable=True,
+    ),
 
 def generate_radio(id, options, label, default_value=0):
-    return dbc.FormGroup(
-        [
-            dbc.Label(label),
-            dbc.RadioItems(
-                options=[{'label': o, 'value': o} for o in options],                 
-                value=options[default_value],
-                id=id,
-                # className='custom-radio',
-            )
-        ]
+    return dbc.FormGroup([
+        dbc.Label(label),
+        dbc.RadioItems(
+            options=[{'label': o, 'value': o} for o in options],                 
+            value=options[default_value],
+            id=id,
+        )]
     )
 
-def generate_slider(component_id):
+def generate_checklist(id, options, label, default_value=0):
+    return dbc.FormGroup([
+        dbc.Label(label),
+        dbc.Checklist(
+            options=[{'label': o, 'value': o} for o in options],                 
+            value=[options[default_value]],
+            id=id,
+        )]
+    )
+
+def generate_slider(component_id, min=None, max=None, step=None, value=None):
+    if value == None: value = 0
+    return dcc.Slider(
+        id=component_id,
+        min=min,
+        max=max,
+        step=step,
+        value=value
+    ),
+
+def generate_range_slider(component_id, min=None, max=None, step=None, value=None):
+    if value == None: value = [0, 0]
     return dcc.RangeSlider(
         id=component_id,
-        min=None,
-        max=None,
-        step=None,
-        value=[0, 0]
+        min=min,
+        max=max,
+        step=step,
+        value=value
     ),
 
 def generate_difference_history(json_history_1, json_history_2):

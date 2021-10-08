@@ -1,0 +1,13 @@
+.Select-menu-outer {
+	display : block !important;
+}
+
+
+/* Side Navigation Bar */
+.onHoverNavigation {
+	visibility: hidden;
+}
+
+.facebookicon:hover ~ #onhoverfb{
+    visibility: visible;
+}

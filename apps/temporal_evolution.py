@@ -68,8 +68,6 @@ layout = html.Div([
                 Input('input_data_store', "data"), Input('url', 'pathname'))
 def update_data_table(input_data, pathname):
     if input_data == None: return [], []
-    # for i in range(len(input_data)):
-    #     input_data[i] = flatten(input_data[i])
         
     df = json_normalize(input_data)
     df.insert(0, column='index', value=range(1, len(df)+1))
@@ -90,18 +88,19 @@ def update_data_table(input_data, pathname):
             [Input(id('input_datatable'), "selected_rows"), Input(id('button_clear'), 'n_clicks')])
 def save_table_data(selected_rows, n_clicks):
     triggered = callback_context.triggered[0]['prop_id']
-
+    
     if triggered == id('input_datatable.selected_rows'):
         pass
     elif triggered == id('button_clear.n_clicks'):
         selected_rows = []
-
+    
     return selected_rows, selected_rows
 
 
 # Display selected rows/json
 @app.callback(Output(id('selection_list'), "children"), Input(id('selection_list_store'), 'data'))
 def generate_selected_list(selection_list):
+    if selection_list == None: return None
     selection_list = list(map(lambda x:x+1, selection_list))
     return 'Selection: ', str(selection_list)[1:-1]
 
