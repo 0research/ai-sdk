@@ -92,8 +92,6 @@ navbar = dbc.Navbar(
             dbc.Row(
                 [
                     dbc.Col(html.Img(src=GITHUB, height="30px",id="tooltip-github")), # Link to href='https://github.com/0research/ai-sdk'
-                    dbc.Col(html.Img(src=DOCKER, height="30px",id="tooltip-docker")), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
-                    dbc.Col(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction")), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
                 ],
                 align="center",
                 no_gutters=True,
@@ -105,7 +103,6 @@ navbar = dbc.Navbar(
             dbc.Row(
                 [
                     dbc.Col(html.Img(src=DOCKER, height="30px",id="tooltip-docker")), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
-                    dbc.Col(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction")), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
                 ],
                 align="center",
                 no_gutters=True,
