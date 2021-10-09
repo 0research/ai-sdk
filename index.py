@@ -62,19 +62,19 @@ navbar = dbc.Navbar(
                     dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2",id="tooltip-navbarbrand")), # Link to App href='https://ai-sdk.herokuapp.com'
                     dbc.Col(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube")), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
                     dbc.Col(html.Img(src=GITHUB, height="30px",id="tooltip-github")), # Link to href='https://github.com/0research/ai-sdk'
-                    dbc.Col(html.Img(src=DOCKER, height="30px",id="tooltip-docker")), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
+                    dbc.Col(html.Img(src=DOCKER, height="30px",id="tooltip-docker"),href="https://hub.docker.com/r/0research/ai-sdk"), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
                     dbc.Col(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction")), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
                 ],
                 align="center",
                 no_gutters=True,
             ),
-            href="https://www.youtube.com/watch?v=ntN3xPEyy3U"), 
+            #href="https://www.youtube.com/watch?v=ntN3xPEyy3U"), 
         dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
         dbc.Collapse(search_bar, id="navbar-collapse", navbar=True, is_open=False),
         
 
         ## Href Links for each Icon
-        dbc.NavLink(target="tooltip-docker", href="https://hub.docker.com/r/0research/ai-sdk"),
+        dbc.NavLink(target="tooltip-github", href="https://github.com/0research/ai-sdk"),
 
         ## Tool tips for each Icon
         dbc.Tooltip("0Research Homepage",target="tooltip-homepagelogo"),
