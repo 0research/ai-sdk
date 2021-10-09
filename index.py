@@ -37,7 +37,7 @@ HOMEPAGELOGO = "../assets/static/polymath-ai-0research-logo.svg"
 YOUTUBE = "../assets/static/youtube-icon.svg"
 GITHUB = "../assets/static/github-icon.svg"
 DOCKER = "../assets/static/docker-icon.svg"
-GITHUBACTION = "../assets/static/github-action-icon.svg"
+GITHUBACTION = "../assets/static/githubaction-icon.svg"
 
 search_bar = dbc.Row([
     dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
