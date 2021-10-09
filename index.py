@@ -59,25 +59,51 @@ navbar = dbc.Navbar(
             dbc.Row(
                 [
                     dbc.Col(html.Img(src=HOMEPAGELOGO, height="30px", id="tooltip-homepagelogo")), # Link to Home Page of Website href='https://0research.com'
-                    dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2",id="tooltip-navbarbrand")), # Link to App href='https://ai-sdk.herokuapp.com'
-                    # dbc.Col(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube")), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
-                    # dbc.Col(html.Img(src=GITHUB, height="30px",id="tooltip-github")), # Link to href='https://github.com/0research/ai-sdk'
-                    # dbc.Col(html.Img(src=DOCKER, height="30px",id="tooltip-docker")), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
-                    # dbc.Col(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction")), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
+                ],
+                align="center",
+                no_gutters=True,
+            ),
+            href="https://0research.com"
+            ), 
+       
+        html.A(
+            dbc.Row(
+                [
+                    dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2",id="tooltip-navbarbrand")), # Link to App href='https://ai-sdk.herokuapp.com' 
+                ],
+                align="center",
+                no_gutters=True,
+            ),
+            href="https://ai-sdk.herokuapp.com"
+            ), 
+            
+        html.A(
+            dbc.Row(
+                [
+                    dbc.Col(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube")), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
                 ],
                 align="center",
                 no_gutters=True,
             ),
             href="https://www.youtube.com/watch?v=ntN3xPEyy3U"
-            ), 
-            
+            ),
+        
         html.A(
-            # Use row and col to control vertical alignment of logo / brand
             dbc.Row(
                 [
-                    
-                    dbc.Col(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube")), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
                     dbc.Col(html.Img(src=GITHUB, height="30px",id="tooltip-github")), # Link to href='https://github.com/0research/ai-sdk'
+                    dbc.Col(html.Img(src=DOCKER, height="30px",id="tooltip-docker")), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
+                    dbc.Col(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction")), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
+                ],
+                align="center",
+                no_gutters=True,
+            ),
+            href="https://github.com/0research/ai-sdk"
+            ),
+        
+        html.A(
+            dbc.Row(
+                [
                     dbc.Col(html.Img(src=DOCKER, height="30px",id="tooltip-docker")), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
                     dbc.Col(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction")), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
                 ],
@@ -86,10 +112,21 @@ navbar = dbc.Navbar(
             ),
             href="https://hub.docker.com/r/0research/ai-sdk"
             ),
+
+        html.A(
+            dbc.Row(
+                [
+                    dbc.Col(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction")), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
+                ],
+                align="center",
+                no_gutters=True,
+            ),
+            href="https://github.com/marketplace/actions/ai-sdk-action"
+            ),
+
         dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
         dbc.Collapse(search_bar, id="navbar-collapse", navbar=True, is_open=False),
         
-
         ## Href Links for each Icon
         #dbc.NavLink(target="tooltip-github", href="https://github.com/0research/ai-sdk"),
 
