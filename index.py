@@ -74,7 +74,7 @@ navbar = dbc.Navbar(
         
 
         ## Href Links for each Icon
-        dbc.NavLink(id="tooltip-docker", href="https://hub.docker.com/r/0research/ai-sdk"),
+        dbc.NavLink(target="tooltip-docker", href="https://hub.docker.com/r/0research/ai-sdk"),
 
         ## Tool tips for each Icon
         dbc.Tooltip("0Research Homepage",target="tooltip-homepagelogo"),
