@@ -48,8 +48,8 @@ search_bar = dbc.Row([
     align="center",
 )
 
-imp_links = dbc.Row([
-    dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
+# imp_links = dbc.Row([
+#     dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
 
 
 navbar = dbc.Navbar(
@@ -68,7 +68,7 @@ navbar = dbc.Navbar(
                 align="center",
                 no_gutters=True,
             ),
-            href="https://ai-sdk.herokuapp.com"), 
+            href="https://www.youtube.com/watch?v=ntN3xPEyy3U"), 
         dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
         dbc.Collapse(search_bar, id="navbar-collapse", navbar=True, is_open=False),
         dbc.Tooltip(
