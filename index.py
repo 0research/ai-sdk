@@ -68,8 +68,7 @@ navbar = dbc.Navbar(
                 align="center",
                 no_gutters=True,
             ),
-            #href="https://www.youtube.com/watch?v=ntN3xPEyy3U"
-            ), 
+            #href="https://www.youtube.com/watch?v=ntN3xPEyy3U"), 
         dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
         dbc.Collapse(search_bar, id="navbar-collapse", navbar=True, is_open=False),
         
@@ -87,7 +86,7 @@ navbar = dbc.Navbar(
     ],
     color="dark",
     dark=True,
-)
+))
 
 sidebar = html.Div([
     dbc.Nav([
