@@ -58,12 +58,12 @@ navbar = dbc.Navbar(
             # Use row and col to control vertical alignment of logo / brand
             dbc.Row(
                 [
-                    dbc.Col(html.Img(src=HOMEPAGELOGO, height="30px", id="tooltip-homepagelogo",)), # Link to Home Page of Website href='https://0research.com'
-                    dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2")), # Link to App href='https://ai-sdk.herokuapp.com'
-                    dbc.Col(html.Img(src=YOUTUBE, height="30px")), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
-                    dbc.Col(html.Img(src=GITHUB, height="30px")), # Link to href='https://github.com/0research/ai-sdk'
-                    dbc.Col(html.Img(src=DOCKER, height="30px")), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
-                    dbc.Col(html.Img(src=GITHUBACTION, height="30px")), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
+                    dbc.Col(html.Img(src=HOMEPAGELOGO, height="30px", id="tooltip-homepagelogo")), # Link to Home Page of Website href='https://0research.com'
+                    dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2",id="tooltip-navbarbrand")), # Link to App href='https://ai-sdk.herokuapp.com'
+                    dbc.Col(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube")), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
+                    dbc.Col(html.Img(src=GITHUB, height="30px",id="tooltip-github")), # Link to href='https://github.com/0research/ai-sdk'
+                    dbc.Col(html.Img(src=DOCKER, height="30px",id="tooltip-docker")), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
+                    dbc.Col(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction")), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
                 ],
                 align="center",
                 no_gutters=True,
@@ -71,11 +71,18 @@ navbar = dbc.Navbar(
             href="https://www.youtube.com/watch?v=ntN3xPEyy3U"), 
         dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
         dbc.Collapse(search_bar, id="navbar-collapse", navbar=True, is_open=False),
-        dbc.Tooltip(
-            "Noun: rare, "
-            "the action or habit of estimating something as worthless.",
-            target="tooltip-homepagelogo",
-        ),
+        
+
+        ## Href Links for each Icon
+        dbc.NavLink(id="tooltip-docker", href="https://hub.docker.com/r/0research/ai-sdk"),
+
+        ## Tool tips for each Icon
+        dbc.Tooltip("0Research Homepage",target="tooltip-homepagelogo"),
+        dbc.Tooltip("CloudApp Homepage",target="tooltip-navbarbrand"),
+        dbc.Tooltip("Demo Video",target="tooltip-youtube"),
+        dbc.Tooltip("Opensource Repo",target="tooltip-github"),
+        dbc.Tooltip("Self Hosted Docker",target="tooltip-docker"),
+        dbc.Tooltip("Use in GithubAction",target="tooltip-githubaction"),
     ],
     color="dark",
     dark=True,
