@@ -65,9 +65,6 @@ navbar = dbc.Navbar(
                 no_gutters=True,
             ),
             href="https://ai-sdk.herokuapp.com"), 
-
-        ),
-
         dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
         dbc.Collapse(search_bar, id="navbar-collapse", navbar=True, is_open=False),
     ],
