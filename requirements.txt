@@ -2,7 +2,7 @@ dash
 dash-core-components
 dash-html-components
 dash-renderer
-dash-bootstrap-components
+dash-bootstrap-components==1.0.0rc1
 plotly
 jsondiff
 jsonmerge
@@ -14,3 +14,4 @@ gunicorn==20.0.4
 pandas
 genson
 typesense
+dash_cytoscape

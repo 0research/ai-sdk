@@ -1,9 +1,9 @@
 # import json_dash
 import dash
-import dash_core_components as dcc
+from dash import dcc
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output,State
-import dash_html_components as html
+from dash import html
 
 #external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 

@@ -1,5 +1,5 @@
-import dash_html_components as html
-import dash_core_components as dcc
+from dash import html
+from dash import dcc
 from dash.dependencies import Input, Output, State, ALL, MATCH
 from app import app
 import collections
@@ -8,6 +8,7 @@ from pprint import pprint
 from jsondiff import diff
 from dash import no_update
 from apps.util import *
+from apps.typesense_client import *
 
 id = id_factory('temporal_evolution')
 
@@ -23,11 +24,6 @@ layout = html.Div([
     dcc.Store(id=id('json_store_5'), storage_type='session'),
 
     dbc.Container([
-        # Upload Files
-        # dbc.Row([
-        #     dbc.Col(generate_upload('upload_json', "Drag and Drop or Click Here to Select Files"), className='text-center'),
-        # ], className='text-center', style={'margin': '5px'}),
-
         # Datatable & Selected Rows/Json List
         dbc.Row([
             dbc.Col(html.H5('Step 1: Select Rows to Merge'), width=12),

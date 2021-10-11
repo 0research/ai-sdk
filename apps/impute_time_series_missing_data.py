@@ -1,5 +1,5 @@
-import dash_html_components as html
-import dash_core_components as dcc
+from dash import html
+from dash import dcc
 from dash.dependencies import Input, Output, State
 from app import app
 import collections
@@ -11,7 +11,6 @@ from apps.util import *
 from apps.graph import *
 import plotly.graph_objects as go
 import pandas as pd
-from wordcloud import WordCloud
 import base64
 from io import BytesIO
 
@@ -71,7 +70,6 @@ layout = html.Div([
         dbc.Row([
             dbc.Col(html.H5('Step 3: Visualize Data'), width=12),
             dbc.Col(html.Div('Invalid Data Stats (Total, unique)'), width=12),
-            # dbc.Col(html.Div(id=id('wordcloud')), width=6),
             dbc.Col(bar_graph(id('bar_graph_invalid'), 'stack', orientation='h'), width=12),
         ], className='text-center', style={'margin': '3px'}),
 
@@ -158,18 +156,6 @@ def generate_bar_graph(data):
     fig = px.bar(graph_df, x="Column", y="Number of Rows", color="Data", barmode='stack')
 
     return fig
-
-
-# @app.callback(Output(id('wordcloud'), 'children'), Input(id('selection_list_store'), 'data'))
-# def generate_wordcloud(selected_columns):
-#     di = {'abc':10, 'def': 20, 'ghi':2, 'jkl':55}
-#     wc = WordCloud().generate_from_frequencies(frequencies=di)
-#     wc_img = wc.to_image()
-#     with BytesIO() as buffer:
-#         wc_img.save(buffer, 'png')
-#         img2 = base64.b64encode(buffer.getvalue()).decode()
-
-#     return html.Img(src="data:image/png;base64," + img2)
 
 
 def perform_action(df, action):

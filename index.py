@@ -1,6 +1,6 @@
-import dash_core_components as dcc
+from dash import dcc
 #import dash_bootstrap_components as dbc
-import dash_html_components as html
+from dash import html
 from dash.dependencies import Input, Output, State
 from pandas.io.json import json_normalize
 from apps.util import *
@@ -10,7 +10,10 @@ from app import dbc # https://dash-bootstrap-components.opensource.faculty.ai/do
 
 from apps import (upload_data, overview, merge_strategy, temporal_evolution, temporal_merge, 
                 time_series_decomposition, impute_time_series_missing_data, remove_duplicate, data_explorer,
-                page2, page3, page4, page6, page6,page7, page8, page9, page10)
+                page2, page3, page6, page6,page7, page8, page9, page10)
+
+
+
 
 
 SIDEBAR_STYLE = {
@@ -38,7 +41,6 @@ search_bar = dbc.Row([
     dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
     dbc.Col(dbc.Button("Data Explorer", href='/apps/data_explorer', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
     dbc.Col(dbc.Input(type="search", placeholder="Search")) ],
-    no_gutters=True,
     className="ml-auto flex-nowrap mt-3 mt-md-0",
     align="center",
 )
@@ -53,7 +55,6 @@ navbar = dbc.Navbar(
                     dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2")),
                 ],
                 align="center",
-                no_gutters=True,
             ),
             href="#",
         ),
@@ -77,7 +78,6 @@ sidebar = html.Div([
         # dbc.NavLink("Data Lineage", href="/apps/data_explorer", active="exact", className='fas fa-history'),
 
         # dcc.Link(' Page 3 | ', href='/apps/page3'),
-        # dcc.Link(' Page 4 | ', href='/apps/page4'),
         # dcc.Link('Page 6 | ', href='/apps/page6'),
         # dcc.Link('Merge Strategy | ', href='/apps/page7'),
         # dcc.Link('Temporal Merge | ', href='/apps/page8'),
@@ -115,7 +115,6 @@ def display_page(pathname):
     if pathname == '/apps/data_explorer': return data_explorer.layout
 
     # if pathname == '/apps/page3': return page3.layout
-    # if pathname == '/apps/page4': return page4.layout
     # if pathname == '/apps/temporal_merge': return temporal_merge.layout
     # if pathname == '/apps/page2': return page2.layout
     # if pathname == '/apps/page6': return page6.layout
@@ -143,6 +142,8 @@ def toggle_navbar_collapse(n, is_open):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+    
+
 
 
 

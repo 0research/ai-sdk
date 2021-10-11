@@ -1,13 +1,12 @@
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, html, dash_table, no_update, callback_context
 from dash.dependencies import Input, Output, State, ALL, MATCH
 import dash_bootstrap_components as dbc
 import plotly.express as px
 from app import app
 import dash_bootstrap_components as dbc
-import dash_table
-from dash import no_update, callback_context
 import json
+import io
+import sys
 from flatten_json import flatten, unflatten, unflatten_list
 from jsonmerge import Merger
 from pprint import pprint
@@ -20,7 +19,9 @@ import pandas as pd
 from itertools import zip_longest
 from datetime import datetime
 from pandas import json_normalize
-import io
+
+from apps.typesense_client import *
+
 
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
@@ -53,14 +54,16 @@ option_delimiter = [
 
 
 layout = html.Div([
-    dcc.Store(id='input_data_store', storage_type='session'),
-    dcc.Store(id='input_datatype_store', storage_type='session'),
-    dcc.Store(id=id('remove_list_store'), storage_type='session'),
+    dcc.Store(id='dataset_setting', storage_type='session'),
+    dcc.Store(id='dataset_profile', storage_type='session'),
     
     generate_tabs(id('tabs_content'), tab_labels, tab_values),
     dbc.Container([], fluid=True, id=id('content')),
+    html.Div(id='test1'),
 ])
 
+UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"
+du.configure_upload(app, UPLOAD_FOLDER_ROOT)
 
 @app.callback(Output(id("content"), "children"), [Input(id("tabs_content"), "value")])
 def generate_tab_content(active_tab):
@@ -68,13 +71,11 @@ def generate_tab_content(active_tab):
     if active_tab == id('upload_data'):
         content = dbc.Row([
             dbc.Col([
-                html.H5('Step 1.1: Upload Data'),
-                generate_upload('upload_json', "Drag and Drop or Click Here to Select Files"),
-            ], className='text-center', width=6),
-            
-            dbc.Col([
-                html.H5('Step 1.2: Select Settings'),
-                html.Div('Type of Dataset', style={'width':'20%', 'display':'inline-block', 'vertical-align':'top'}),
+                html.H5('Step 1.1: Dataset Settings'),
+                html.Div('Name', style={'width':'20%', 'display':'inline-block', 'vertical-align':'top'}),
+                html.Div(dbc.Input(id=id('input_name'), placeholder="Enter Name of Dataset", type="text"), style={'width':'80%', 'display':'inline-block', 'margin':'0px 0px 2px 0px'}),
+
+                html.Div('Type', style={'width':'20%', 'display':'inline-block', 'vertical-align':'top'}),
                 html.Div(generate_dropdown(id('dropdown_file_type'), option_data_nature), style={'width':'80%', 'display':'inline-block'}),
 
                 html.Div('Delimiter', style={'width':'20%', 'display':'inline-block', 'vertical-align':'top'}),
@@ -91,27 +92,33 @@ def generate_tab_content(active_tab):
                 ], inline=False, switch=True, id=id('checklist_settings'), value=['remove_space']),
             ], width=6),
 
+            dbc.Col([
+                html.H5('Step 1.2: Upload Data (Smaller than 1MB)'),
+                get_upload_component(id='dash-uploader'),
+                generate_upload('upload_json', "Drag and Drop or Click Here to Select Files"),
+            ], className='text-center', width=6),
+
             dbc.Col(html.Hr(), width=12),
 
             dbc.Col([
                 dbc.Col(html.H5('Sample Data', style={'text-align':'center'})),
-                dbc.Col(html.Div(generate_datatable(id('input_datatable_sample'))), width=12),
+                dbc.Col(html.Div(generate_datatable(id('input_datatable_sample'), height='300px')), width=12),
                 html.Br(),
             ], width=12),
 
+            dbc.Col(id=id('upload_error'), width=12),
+
             dbc.Col([
-                html.Div('Error Log', style={'text-align':'center', 'width':'100%'}, className='bg-warning'),
-                html.Div('Error Log', style={'text-align':'center', 'width':'100%'}, className='bg-danger'),
                 html.Br(),
                 # html.Div(html.Button('Next Step', className='btn btn-primary', id=id('next_button_1')), className='text-center'),
-            ], id=id('upload_errors'), width=12),
+            ]),
         ], className='text-center', style={'margin': '3px'}),
 
 
     elif active_tab == id('set_data_profile'):
         content = html.Div([
-            dbc.Row(dbc.Col(html.H5('Step 3: Set Data Profile'), width=12)),
-            html.Div(id=id('data_profile'), style={'overflow-y': 'auto', 'overflow-x': 'hidden', 'height':'600px', 'width':'100%', 'height':'800px'}),
+            dbc.Row(dbc.Col(html.H5('Step 2: Set Data Profile'), width=12)),
+            dbc.Row(dbc.Col(html.Div(id=id('data_profile'), style={'overflow-y': 'auto', 'overflow-x': 'hidden', 'height':'800px'}), width=12)),
             # html.Div(id=id('data_profile')),
             # html.Div(html.Button('Next Step', className='btn btn-primary', id=id('next_button_2')), className='text-center'),
         ], className='text-center', style={'margin': '3px'}),
@@ -119,42 +126,65 @@ def generate_tab_content(active_tab):
 
     elif active_tab == id('review_data'):
         content = dbc.Row([
-            dbc.Col(html.H5('Step 4: Review Data'), width=12),
+            dbc.Col(html.H5('Step 3: Review Data'), width=12),
             dbc.Col(html.Div(generate_datatable(id('input_datatable'))), width=12),
             html.Br(),
-            dbc.Col(html.Div(html.Button('Upload Data', className='btn btn-primary', id=id('upload')), className='text-center'), width=12),
+            dbc.Col(html.Div(html.Button('Upload Data', className='btn btn-primary', id=id('button_upload')), className='text-center'), width=12),
         ], className='text-center bg-light', style={'padding':'3px', 'margin': '3px'}),
 
     return content
 
 
+@app.callback(
+    Output('callback-output', 'children'),
+    [Input('dash-uploader', 'isCompleted')],
+    [State('dash-uploader', 'fileNames'),
+     State('dash-uploader', 'upload_id')],
+)
+def callback_on_completion(iscompleted, filenames, upload_id):
+    if not iscompleted:
+        return
 
-# @app.callback(Output(id("tabs_content"), "value"), [Input(id("next_button"), "n_clicks"), State(id('tabs_content'), 'value')])
-# def next_step_button(n_clicks, tab_value):
-#     print('insdie')
-#     if n_clicks is None: return tab_value
+    out = []
+    if filenames is not None:
+        if upload_id:
+            root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
+        else:
+            root_folder = Path(UPLOAD_FOLDER_ROOT)
 
-#     if tab_value == id('set_data_profile'):
-#         return id('review_data')
+        for filename in filenames:
+            file = root_folder / filename
+            out.append(file)
+        return html.Ul([html.Li(str(x)) for x in out])
 
-#     return tab_value
+    return html.Div("No Files Uploaded Yet!")
 
 
-
-# Save Upload data
-@app.callback([Output('input_data_store', 'data'), Output('input_datatype_store', 'data')], 
+# Save Uploaded data & Settings
+@app.callback([Output('dataset_setting', 'data'), 
+                Output(id('upload_error'), 'children')],
                 [Input('upload_json', 'contents'), 
-                # Input(id('upload'), 'n_clicks'), 
-                # State(id('checklist_settings'), 'value'), 
-                State('upload_json', 'filename'), State('upload_json', 'last_modified'), State('input_data_store', 'data'), State('input_datatype_store', 'data'),
-                State({'type':id('col_column'), 'index': ALL}, 'children'), State({'type':id('col_datatype'), 'index': ALL}, 'last_modified'), State('input_data_store', 'data')])
-def save_input_data(contents, filename, last_modified, input_data_store, input_datatype_store, column_list, datatype_list, remove_list):
-    if filename is None: 
-        return input_data_store, input_datatype_store
+                Input(id('dropdown_file_type'), 'value'), 
+                Input(id('dropdown_delimiter'), 'value'), 
+                Input(id('dropdown_index_column'), 'value'), 
+                Input(id('checklist_settings'), 'value'), 
+                State(id('input_name'), 'value'),
+                State('upload_json', 'filename'), 
+                State('upload_json', 'last_modified')])
+def save_settings_dataset(contents, type, delimiter, index_col, checklist_settings, input_name, filename, last_modified):
+    if filename is None: return no_update, no_update
+    # If Name exist or Invalid name
+    for c in client.collections.retrieve():
+        if input_name == None or (' ' in input_name): 
+            print('Invalid File Name')
+            return no_update, html.Div('Invalid File Name', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger') 
+        if c['name'] == input_name:
+            print('File Name Exist')
+            return no_update, html.Div('File Name Exist', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger')
 
-    data = []
     # JSON 
     if all(f.endswith('.json') for f in filename):
+        data = []
         try:
             for filename, content in zip(filename, contents):
                 content_type, content_string = content.split(',')
@@ -171,63 +201,67 @@ def save_input_data(contents, filename, last_modified, input_data_store, input_d
     elif len(filename) == 1 and filename[0].endswith('csv'):
         content_type, content_string = contents[0].split(',')
         decoded = base64.b64decode(content_string)
-        pprint(decoded)
         df = pd.read_csv(io.StringIO(decoded.decode('utf-8')), sep=',', header=0)
 
-    # if 'remove_space' in checklist_settings:
-    #     pass
-    # if 'remove_header' in checklist_settings:
-    #     df = df.iloc[1: , :].reset_index(drop=True)
 
-    datatype = list(map(str, df.convert_dtypes().dtypes))
-    datatype = dict(zip(df.columns, datatype))
+    # Check if exceed size
+    print('df size:', sys.getsizeof(df))
+    print('dict size:', sys.getsizeof(df.to_dict('records')))
+    if sys.getsizeof(df.to_dict('records')) > 1000000:
+        return no_update, html.Div('File size too large!', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger') 
 
-    return df.to_dict('records'), datatype
+    print('uploading')
+    # Upload to typesense
+    schema = generate_schema_auto(input_name)
+    client.collections.create(schema)
+    print('uploading2')
+    for row in df.to_dict('records'):
+        client.collections[input_name].documents.create(row)
+    print('uploaded')
+
+    # Settings
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+    if client.collections.collections.get(input_name) is not None:
+        print('inside1')
+        if triggered == id('checklist_settings'):
+            print('inside2')
+            if 'remove_space' in checklist_settings:
+                pass
+            if 'remove_header' in checklist_settings:
+                print('remove-header')
+                df = df.iloc[1: , :].reset_index(drop=True)
+
+            # df.insert(0, column='index', value=range(1, len(df)+1))
+            
+    settings = {}
+    settings['name'] = input_name
+    settings['type'] = type
+    settings['delimiter'] = delimiter
+    settings['index'] = index_col
+    settings['checklist'] = checklist_settings
+
+    return settings, html.Div('Successfully Uploaded', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-success') 
 
 
-# On Upload or click next button go onto next tab
-# @app.callback(Output(id('tabs_content'), 'value'), Input('input_data_store', 'data'))
-# def next_step_after_upload(data):
-#     print('aaainsidee')
-#     if data == None: return no_update
-#     return id('set_data_profile')
 
-
-# Update datatable when files upload
-@app.callback([Output(id('input_datatable_sample'), "data"), Output(id('input_datatable_sample'), 'columns')], 
-                Input('input_data_store', "data"), Input('url', 'pathname'))
-def update_data_table(input_data, pathname):
-    if input_data == None: return [], []
-        
-    df = json_normalize(input_data).iloc[:10,:]
+# Update Sample Datatable 
+@app.callback([Output(id('input_datatable_sample'), "data"), 
+                Output(id('input_datatable_sample'), 'columns')], 
+                Input('dataset_setting', "data"), 
+                Input('url', 'pathname'))
+def update_data_table(settings, pathname):
+    if settings == None: return [], []
+    
+    result = get_documents(settings['name'], 5)
+    df = json_normalize(result)
     df.insert(0, column='index', value=range(1, len(df)+1))
     json_dict = df.to_dict('records')
 
-    # Convert all values to string
-    for i in range(len(json_dict)):
-        for key, val in json_dict[i].items():
-            if type(json_dict[i][key]) == list:
-                json_dict[i][key] = str(json_dict[i][key])
-
-    columns = [{"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns]
-
-    return json_dict, columns
-
-# Update datatable when files upload
-@app.callback([Output(id('input_datatable'), "data"), Output(id('input_datatable'), 'columns')], 
-                Input('input_data_store', "data"), Input('url', 'pathname'))
-def update_data_table(input_data, pathname):
-    if input_data == None: return [], []
-        
-    df = json_normalize(input_data)
-    df.insert(0, column='index', value=range(1, len(df)+1))
-    json_dict = df.to_dict('records')
-
-    # Convert all values to string
-    for i in range(len(json_dict)):
-        for key, val in json_dict[i].items():
-            if type(json_dict[i][key]) == list:
-                json_dict[i][key] = str(json_dict[i][key])
+    # # Convert all values to string
+    # for i in range(len(json_dict)):
+    #     for key, val in json_dict[i].items():
+    #         if type(json_dict[i][key]) == list:
+    #             json_dict[i][key] = str(json_dict[i][key])
 
     columns = [{"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns]
 
@@ -263,18 +297,17 @@ def generate_expectations():
     ]
     
 
-
 @app.callback(Output(id('data_profile'), 'children'), 
-            [Input('input_data_store', 'data'), 
-            Input('input_datatype_store', 'data'),
-            # Input(id('dropdown_datatype'), 'value') 
+            [Input('dataset_setting', 'data'),
             Input('url', 'pathname')])
-def generate_profile(data, datatype, pathname):
-    if data == None: return [], []
-    df = json_normalize(data)
+def generate_profile(dataset_settings, pathname):
+    if dataset_settings == None: return [], []
+    
+    result = get_documents(dataset_settings['name'], 100)
+    df = json_normalize(result)
     columns = list(df.columns)
+    detected_datatype_list = list(map(str, df.convert_dtypes().dtypes))
 
-    detected_datatype_list = list(datatype.values())
     option_datatype = [
         {'label': 'object', 'value': 'object'},
         {'label': 'string', 'value': 'string'},
@@ -284,51 +317,100 @@ def generate_profile(data, datatype, pathname):
         {'label': 'category', 'value': 'category'}
     ]
 
-    return (
-        [dbc.Row([])] +
-        [dbc.Row([
-            dbc.Col(html.H6('Column'), width=3),
-            dbc.Col(html.H6('Datatype'), width=3),
-            dbc.Col(html.H6('Invalid(%)'), width=2),
-            dbc.Col(html.H6('Result'), width=2),
-        ])] +
-        [dbc.Row([
-        dbc.Col(html.H6(col), id={'type':id('col_column'), 'index': i}, width=3),
-        dbc.Col(generate_dropdown({'type':id('col_dropdown_datatype'), 'index': i}, option_datatype, value=dtype), width=3),
-        dbc.Col(html.H6('%', id={'type':id('col_invalid'), 'index': i}), width=2),
-        dbc.Col(html.H6('-', id={'type':id('col_result'), 'index': i}), width=2),
-        dbc.Col(html.Button('Remove', id={'type':id('col_button_remove'), 'index': i}, value=col), width=1),
-    ]) for i, (col, dtype) in enumerate(zip(columns, detected_datatype_list))])
+    return (html.Table(
+        [html.Tr([
+            html.Th('Column'),
+            html.Th('Datatype'),
+            html.Th('Invalid (%)'),
+            html.Th('Result'),
+            html.Th(''),
+        ])] + 
+        [html.Tr([
+            html.Td(html.H6(col), id={'type':id('col_column'), 'index': i}),
+            html.Td(generate_dropdown({'type':id('col_dropdown_datatype'), 'index': i}, option_datatype, value=dtype)),
+            html.Td(html.H6('%', id={'type':id('col_invalid'), 'index': i})),
+            html.Td(html.H6('-', id={'type':id('col_result'), 'index': i})),
+            html.Td(html.Button('Remove', id={'type':id('col_button_remove'), 'index': i}, style={'background-color':'white'})),
+            ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(zip(columns, detected_datatype_list))
+        ] +
+        [html.Tr([''])],
+        style={'width':'100%', 'height':'800px'}, 
+        id=id('table_data_profile')))
+
+
+# Style deleted row
+@app.callback(Output({'type':id('row'), 'index': MATCH}, 'style'), 
+            [Input({'type':id('col_button_remove'), 'index': MATCH}, 'n_clicks'),
+            State({'type':id('row'), 'index': MATCH}, 'style')])
+def style_row(n_clicks, style):
+    if n_clicks is None: return no_update
+
+    if style is None: newStyle = {'background-color':'grey'}
+    else: newStyle = None
+
+    return newStyle
 
 
 
-# @app.callback(Output('asd', 'data'),
-#             [Input({'type':id('col_dropdown_datatype'), 'index': ALL}, 'value'),
-#             Input({'type':id('col_button_remove'), 'index': MATCH}, 'n_clicks'),
-#             State({'type':id('col_column'), 'index': ALL}, 'children')])
-# def update_output(datatypes, column):
-#     pprint(datatypes)
-#     print(column)
+
+# Store profile
+@app.callback(Output('dataset_profile', 'data'),
+            [Input(id("tabs_content"), "value"),
+            Input({'type':id('col_dropdown_datatype'), 'index': ALL}, 'value'),
+            Input({'type':id('col_button_remove'), 'index': ALL}, 'n_clicks'),
+            State({'type':id('col_column'), 'index': ALL}, 'children')])
+def update_output(tab, datatype, remove_list, column):
+    if tab != id('set_data_profile'): return no_update
+
+    column = [c['props']['children'] for c in column]
+    remove_list = [0 if v is None else v for v in remove_list]
+    remove_list = [v%2 == 1 for v in remove_list]
+
+    profile = {}
+    profile['column'] = column
+    profile['datatype'] = datatype
+    profile['remove'] = remove_list
+
+    return profile
+
+
+# Update Datatable in "Review Data" Tab
+@app.callback([Output(id('input_datatable'), "data"), 
+                Output(id('input_datatable'), 'columns')], 
+                [Input(id("tabs_content"), "value"),
+                State('dataset_setting', "data"),
+                State('dataset_profile', "data")])
+def update_data_table(tab, setting, profile):
+    if setting is None: return no_update
+    if tab != id('review_data'): return no_update
+    
+    result = get_documents(setting['name'], 250)
+    df = json_normalize(result)
+    df.insert(0, column='index', value=range(1, len(df)+1))
+    json_dict = df.to_dict('records')
+
+    # # Convert all values to string
+    # for i in range(len(json_dict)):
+    #     for key, val in json_dict[i].items():
+    #         if type(json_dict[i][key]) == list:
+    #             json_dict[i][key] = str(json_dict[i][key])
+
+    # TODO update with setting & profile
+
+    columns = [{"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns]
+
+    return json_dict, columns
+
+
+
+# @app.callback(Output(id('????????'), "??????"), 
+#                 [Input(id("button_upload"), "n_clicks"),
+#                 State('dataset_setting', "data"),
+#                 State('dataset_profile', "data")])
+# def upload_data(n_clicks, setting, profile):
+#     if n_clicks is None: return no_update
+
+#     print(setting)
+#     print(profile)
+
 #     return no_update
-
-@app.callback(Output(id('val_not_null_threshold'), 'children'),
-            [Input(id('slider_not_null_threshold'), 'value')])
-def update_output(value):
-    return value
-
-
-# Remove Buttons
-@app.callback(Output(id('remove_list_store'), 'data'),
-            [Input({'type':id('col_button_remove'), 'index': ALL}, 'n_clicks'),
-            State({'type':id('col_button_remove'), 'index': ALL}, 'value'),
-            State(id('remove_list_store'), 'data')])
-def update_output(n_clicks, value, remove_list):
-    if remove_list is None: remove_list = []
-
-    if value in remove_list:
-        remove_list.remove(value)
-    else:
-        remove_list.append(value)
-
-    print('remove_list ', remove_list)
-    return remove_list

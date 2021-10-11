@@ -1,11 +1,11 @@
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 from dash.dependencies import Input, Output, State, ALL, MATCH
 import dash_bootstrap_components as dbc
 import plotly.express as px
 from app import app
 import dash_bootstrap_components as dbc
-import dash_table
+from dash import dash_table
 from dash import no_update, callback_context
 import json
 from flatten_json import flatten, unflatten, unflatten_list
@@ -20,6 +20,7 @@ import base64
 import pandas as pd
 from itertools import zip_longest
 from datetime import datetime
+from apps.typesense_client import *
 
 
 app.scripts.config.serve_locally = True
@@ -30,6 +31,7 @@ id = id_factory('merge_strategy')
 
 # Layout
 layout = html.Div([
+    dcc.Store(id='dataset_setting', storage_type='session'),
     dcc.Store(id='input_data_store', storage_type='session'),
     dcc.Store(id=id('slider_store'), storage_type='session'),
     dcc.Store(id=id('selection_list_store'), storage_type='session'),
@@ -79,45 +81,26 @@ layout = html.Div([
     
 ])
 
-# # Save Upload data
-# @app.callback(Output('input_data_store', 'data'), Input('upload_json', 'contents'), 
-#                 [State('upload_json', 'filename'), State('upload_json', 'last_modified'), State('input_data_store', 'data')])
-# def save_input_data(contents, filename, last_modified, input_data_store):
-#     if filename is None: 
-#         return input_data_store
-#     for name in filename:
-#         if not name.endswith('.json'):
-#             return no_update
-        
-#     data = []
-#     try:
-#         for filename, content in zip(filename, contents):
-#             content_type, content_string = content.split(',')
-#             decoded = base64.b64decode(content_string)
-#             decoded = json.loads(decoded.decode('utf-8'))
-#             decoded = flatten(decoded)
-#             data.append(decoded)
-
-#     except Exception as e:
-#         print(e)
-
-#     return data
-
-# Update datatable when files upload
-@app.callback([Output(id('input_datatable'), "data"), Output(id('input_datatable'), 'columns')], 
-                Input('input_data_store', "data"), Input('url', 'pathname'))
-def update_data_table(input_data, pathname):
-    if input_data == None: return [], []
-        
-    df = json_normalize(input_data)
+# Update Datatable in "Review Data" Tab
+@app.callback([Output(id('input_datatable'), "data"), 
+                Output(id('input_datatable'), 'columns')], 
+                [Input('url', 'pathname'),
+                State('dataset_setting', "data")])
+def update_data_table(pathname, setting):
+    if setting is None: return no_update
+    
+    result = get_documents(setting['name'], 250)
+    df = json_normalize(result)
     df.insert(0, column='index', value=range(1, len(df)+1))
     json_dict = df.to_dict('records')
 
-    # Convert all values to string
-    for i in range(len(json_dict)):
-        for key, val in json_dict[i].items():
-            if type(json_dict[i][key]) == list:
-                json_dict[i][key] = str(json_dict[i][key])
+    # # Convert all values to string
+    # for i in range(len(json_dict)):
+    #     for key, val in json_dict[i].items():
+    #         if type(json_dict[i][key]) == list:
+    #             json_dict[i][key] = str(json_dict[i][key])
+
+    # TODO update with setting & profile
 
     columns = [{"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns]
 
@@ -196,17 +179,34 @@ for x in range(1, 3):
         return (html.P('You have Selected: ' + str(selection_list)[1:-1]), html.P('Merge Strategy: ' + merge_strategy))
 
     @app.callback(Output(id('json_store_')+str(x), 'data'), 
-                [Input(id('button_json_')+str(x), 'n_clicks'),
-                State(id('selection_list_store'), 'data'), State(id('merge_strategy_store'), 'data'), State('input_data_store', 'data')])
-    def save_json(n_clicks, selected_list, merge_strategy, input_data):
+                    [Input(id('button_json_')+str(x), 'n_clicks'),
+                    State(id('selection_list_store'), 'data'), 
+                    State(id('merge_strategy_store'), 'data'), 
+                    State('dataset_setting', 'data')])
+    def save_json(n_clicks, selected_list, merge_strategy, setting):
         if selected_list is None or len(selected_list) == 0: return []
         triggered = callback_context.triggered[0]['prop_id']
         if triggered == '.': return [], []
 
         base, base_history = None, []
+        search_parameters = {
+            'q'         : '*',
+            'query_by'  : 'index',
+            'filter_by' : 'index:<3',
+            'sort_by'   : 'index:asc',
+            'per_page': 250
+        }
+        result = client.collections[setting['name']].documents.search(search_parameters)
+
+        df = json_normalize(result)
+        df.insert(0, column='index', value=range(1, len(df)+1))
+        json_dict = df.to_dict('records')
+
+        print(result)
+        return no_update
+
 
         for index in selected_list:
-            # TODO hard code convert raw response to json
             if 'raw_response' in input_data[index]:
                 input_data[index]['raw_response'] = json.loads(input_data[index]['raw_response'])
 

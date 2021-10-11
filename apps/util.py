@@ -1,6 +1,6 @@
 import json
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 from dash.dependencies import Input, Output, State
 
 #import dash_bootstrap_components as dbc
@@ -10,6 +10,7 @@ import plotly.express as px
 
 #from app import app # Not being used in utils
 
+from collections import OrderedDict
 from dash import dash_table, no_update, callback_context
 from flatten_json import flatten, unflatten, unflatten_list
 from jsonmerge import Merger
@@ -21,6 +22,8 @@ import os
 from pandas import json_normalize
 import pandas as pd
 
+import dash_uploader as du
+import uuid
 
 mergeOptions = ['overwrite', 'objectMerge', 'version']
 flattenOptions = ['Flatten', 'Unflatten']
@@ -30,6 +33,15 @@ def id_factory(page: str):
     def func(_id: str):
         return f"{page}-{_id}"
     return func
+
+def get_upload_component(id):
+    return du.Upload(
+        id=id,
+        max_file_size=1000,  # 1000 Mb
+        filetypes=['csv', 'json'],
+        upload_id=uuid.uuid1(),  # Unique session id
+    )
+
 
 def generate_tabs(tabs_id, tab_labels, tab_values):
     return dcc.Tabs(
@@ -56,7 +68,7 @@ def get_data(path):
     
     return data
 
-def generate_upload(component_id, display_text=None):
+def generate_upload(component_id, display_text=None, max_size=1000000):
     if display_text is not None:
         display_text = html.A(display_text)
     else:
@@ -77,7 +89,8 @@ def generate_upload(component_id, display_text=None):
             'textAlign': 'center',
             'margin': 'auto',
         },
-        multiple=True
+        multiple=True,
+        max_size=max_size
     )
 
 def generate_json_tree(component_id, data):
@@ -181,8 +194,7 @@ def generate_dropdown(component_id, options, value=None, placeholder='Select...'
     )
 
 
-def generate_datatable(component_id, df=None):
-    from collections import OrderedDict
+def generate_datatable(component_id, df=None, height='450px'):
     df = pd.DataFrame(OrderedDict([
         ('climate', ['Sunny', 'Snowy', 'Sunny', 'Rainy']),
         ('temperature', [13, 43, 50, 30]),
@@ -203,7 +215,7 @@ def generate_datatable(component_id, df=None):
         row_deletable=True,
         editable=True,
         page_size= 50,
-        style_table={'height': '450px', 'overflowY': 'auto'},
+        style_table={'height': height, 'overflowY': 'auto'},
         style_data={
             'whiteSpace': 'normal',
         },
@@ -218,27 +230,15 @@ def generate_datatable(component_id, df=None):
         }],
     ),
 
-    
-
-    return dash_table.DataTable(
-        id=component_id,
-        data=df.to_dict('records'),
-        columns=[
-            {'id': 'climate', 'name': 'climate', 'presentation': 'dropdown'},
-            {'id': 'temperature', 'name': 'temperature'},
-            {'id': 'city', 'name': 'city', 'presentation': 'dropdown'},
-        ],
-        editable=True,
-    ),
 
 def generate_radio(id, options, label, default_value=0):
-    return dbc.FormGroup([
-        dbc.Label(label),
-        dbc.RadioItems(
-            options=[{'label': o, 'value': o} for o in options],                 
-            value=options[default_value],
-            id=id,
-        )]
+
+    return (dbc.Label(label),
+            dbc.RadioItems(
+                options=[{'label': o, 'value': o} for o in options],                 
+                value=options[default_value],
+                id=id,
+            )
     )
 
 def generate_checklist(id, options, label, default_value=0):
