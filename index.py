@@ -35,7 +35,12 @@ CONTENT_STYLE = {
     "padding": "2rem 1rem",
 }
 
-LOGO = "../assets/static/logo.svg"
+# Define path for images used
+HOMEPAGELOGO = "../assets/static/polymath-ai-0research-logo.svg"
+YOUTUBE = "../assets/static/youtube-icon.svg"
+GITHUB = "../assets/static/github-icon.svg"
+DOCKER = "../assets/static/docker-icon.svg"
+GITHUBACTION = "../assets/static/githubaction-icon.svg"
 
 search_bar = dbc.Row([
     dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
@@ -45,25 +50,34 @@ search_bar = dbc.Row([
     align="center",
 )
 
-navbar = dbc.Navbar(
-    [
-        html.A(
-            # Use row and col to control vertical alignment of logo / brand
-            dbc.Row(
-                [
-                    dbc.Col(html.Img(src=LOGO, height="30px")),
-                    dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2")),
-                ],
-                align="center",
-            ),
-            href="#",
-        ),
-        dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
-        dbc.Collapse(search_bar, id="navbar-collapse", navbar=True, is_open=False),
-    ],
-    color="dark",
-    dark=True,
-)
+# imp_links = dbc.Row([
+#     dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
+
+
+navbar = dbc.Navbar([
+    # Use row and col to control vertical alignment of logo / brand
+    html.A(dbc.Row([dbc.Col(html.Img(src=HOMEPAGELOGO, height="30px", id="tooltip-homepagelogo"))], align="center"), href="https://0research.com"), # Link to Home Page of Website href='https://0research.com'
+    html.A(dbc.Row([dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2",id="tooltip-navbarbrand"))], align="center"), href="https://ai-sdk.herokuapp.com"), # Link to App href='https://ai-sdk.herokuapp.com' 
+    html.A(dbc.Row([dbc.Col(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube"))], align="center"), href="https://www.youtube.com/watch?v=ntN3xPEyy3U"), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
+    html.A(dbc.Row([dbc.Col(html.Img(src=GITHUB, height="30px",id="tooltip-github"))], align="center"),href="https://github.com/0research/ai-sdk"), # Link to href='https://github.com/0research/ai-sdk'
+    html.A(dbc.Row([dbc.Col(html.Img(src=DOCKER, height="30px",id="tooltip-docker"))], align="center"), href="https://hub.docker.com/r/0research/ai-sdk"), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
+    html.A(dbc.Row([dbc.Col(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction"))], align="center"), href="https://github.com/marketplace/actions/ai-sdk-action"), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
+
+    dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
+    dbc.Collapse(search_bar, id="navbar-collapse", navbar=True, is_open=False),
+    # dbc.Row(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), align='right'),
+    ## Href Links for each Icon
+    #dbc.NavLink(target="tooltip-github", href="https://github.com/0research/ai-sdk"),
+
+    ## Tool tips for each Icon
+    dbc.Tooltip("0Research Homepage",target="tooltip-homepagelogo"),
+    dbc.Tooltip("CloudApp Homepage",target="tooltip-navbarbrand"),
+    dbc.Tooltip("Demo Video",target="tooltip-youtube"),
+    dbc.Tooltip("Opensource Repo",target="tooltip-github"),
+    dbc.Tooltip("Self Hosted Docker",target="tooltip-docker"),
+    dbc.Tooltip("Use in GithubAction",target="tooltip-githubaction"),
+    ], color="dark", dark=True,)
+
 
 sidebar = html.Div([
     dbc.Nav([

@@ -16,8 +16,8 @@ def typesense_client(host, port, protocol, api_key, timeout=2):
   })
 
 # Initialize Typesense
-client = typesense_client('localhost', '8108', 'http', 'Hu52dwsas2AdxdE') # Local
-# client = typesense_client('oswmql6f04pndbi1p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
+# client = typesense_client('localhost', '8108', 'http', 'Hu52dwsas2AdxdE') # Local
+client = typesense_client('oswmql6f04pndbi1p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
 
 
 def generate_schema_auto(name):
