@@ -13,7 +13,8 @@ external_stylesheets = [dbc.themes.BOOTSTRAP, FA]
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True,
                 external_stylesheets=external_stylesheets,
-                meta_tags=[{'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'}]
+                meta_tags=[{'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'}],
+                title='AI-SDK'
                 )
 #https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
 # To use dash-bootstrap-components you must do two things:

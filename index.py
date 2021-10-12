@@ -87,6 +87,33 @@ navbar = dbc.Navbar(
             ),
             href="https://www.youtube.com/watch?v=ntN3xPEyy3U"
             ),
+
+        html.A(
+            dbc.Row(
+                [
+                    dbc.Col([
+                    html.Label('Version'),
+                    dcc.Dropdown(
+                        options=[
+                            {'label': 'v4_12-Oct21', 'value': 'http://demo789.0research.com'},
+                            {'label': 'v3_02-Oct21', 'value': 'http://demo788.0research.com'},
+                            {'label': 'v2_25-Sep21', 'value': 'http://demo787.0research.com'},
+                            {'label': 'v1_13-Sep1', 'value': 'http://demo786.0research.com'}
+                        ],
+                        value='http://demo789.0research.com'
+                    ),
+                    ]
+                    # dbc.Col(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube")), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
+                ],
+                align="center",
+                no_gutters=True,
+            ),
+            href="https://www.youtube.com/watch?v=ntN3xPEyy3U"
+            ),
+
+
+        
+
         
         html.A(
             dbc.Row(
