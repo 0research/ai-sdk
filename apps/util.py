@@ -34,14 +34,6 @@ def id_factory(page: str):
         return f"{page}-{_id}"
     return func
 
-def get_upload_component(id):
-    return du.Upload(
-        id=id,
-        max_file_size=1000,  # 1000 Mb
-        filetypes=['csv', 'json'],
-        upload_id=uuid.uuid1(),  # Unique session id
-    )
-
 
 def generate_tabs(tabs_id, tab_labels, tab_values):
     return dcc.Tabs(
