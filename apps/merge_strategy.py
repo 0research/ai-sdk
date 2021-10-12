@@ -99,8 +99,6 @@ def update_data_table(pathname, setting):
     #         if type(json_dict[i][key]) == list:
     #             json_dict[i][key] = str(json_dict[i][key])
 
-    # TODO update with setting & profile
-
     columns = [{"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns]
 
     return json_dict, columns
@@ -194,13 +192,8 @@ for x in range(1, 3):
 
         selected_list = list(map(lambda x:x+1, selected_list))
         base, base_history = None, []
-        result = get_documents(setting['name'], 250)
 
-        
         df = json_normalize(data)
-        print(df)
-        # df.insert(0, column='index', value=range(1, len(df)+1))
-        json_dict = df.to_dict('records')
         
         for index in selected_list:
             new = json.loads(df.set_index('index').loc[index].to_json())

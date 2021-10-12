@@ -18,7 +18,7 @@ from jsondiff import diff, symbols
 from apps.util import *
 import base64
 import pandas as pd
-from pandas.io.json import json_normalize
+from pandas import json_normalize
 from itertools import zip_longest
 from datetime import datetime
 import dash_cytoscape as cyto

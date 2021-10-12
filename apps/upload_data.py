@@ -27,8 +27,6 @@ from apps.typesense_client import *
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 
-UPLOAD_FOLDER_ROOT = "../Uploads/"
-du.configure_upload(app, UPLOAD_FOLDER_ROOT)
 
 id = id_factory('upload_data')
 tab_labels = ['Step 1: Upload Data', 'Step 2: Set Data Profile', 'Step 3: Review Data']

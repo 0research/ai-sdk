@@ -22,8 +22,6 @@ import os
 from pandas import json_normalize
 import pandas as pd
 
-import dash_uploader as du
-import uuid
 
 mergeOptions = ['overwrite', 'objectMerge', 'version']
 flattenOptions = ['Flatten', 'Unflatten']

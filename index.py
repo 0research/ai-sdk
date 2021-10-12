@@ -2,7 +2,7 @@ from dash import dcc
 #import dash_bootstrap_components as dbc
 from dash import html
 from dash.dependencies import Input, Output, State
-from pandas.io.json import json_normalize
+from pandas import json_normalize
 from apps.util import *
 from app import app
 from app import server 
@@ -11,9 +11,6 @@ from app import dbc # https://dash-bootstrap-components.opensource.faculty.ai/do
 from apps import (upload_data, overview, merge_strategy, temporal_evolution, temporal_merge, 
                 time_series_decomposition, impute_time_series_missing_data, remove_duplicate, data_explorer,
                 page2, page3, page6, page6,page7, page8, page9, page10)
-
-
-
 
 
 SIDEBAR_STYLE = {

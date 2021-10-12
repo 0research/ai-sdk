@@ -78,8 +78,6 @@ def update_data_table(pathname, setting):
     #         if type(json_dict[i][key]) == list:
     #             json_dict[i][key] = str(json_dict[i][key])
 
-    # TODO update with setting & profile
-
     columns = [{"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns]
 
     return json_dict, columns
@@ -128,7 +126,7 @@ for x in range(1, 3):
         if n_clicks is None: return no_update
         if selected_list is None or len(selected_list) == 0: return []
         
-        index = selected_list[-1]
+        index = selected_list[-1] + 1
         for d in data:
             if d['index'] == index:
                 data = data
@@ -160,12 +158,13 @@ for x in range(3, 6):
                 State('dataset_setting', 'data'), 
                 State(id('input_datatable'), 'data')])
     def save_json(n_clicks, selected_list, setting, data):
+        if n_clicks is None: return no_update
         if selected_list is None or len(selected_list) < 2: return []
         if setting is None: return no_update
-        
+
         df = json_normalize(data)
-        index1 = selected_list[-2]
-        index2 = selected_list[-1]
+        index1 = selected_list[-2] + 1
+        index2 = selected_list[-1] + 1
 
         json1 = json.loads(df.set_index('index').loc[index1].to_json())
         json2 = json.loads(df.set_index('index').loc[index2].to_json())

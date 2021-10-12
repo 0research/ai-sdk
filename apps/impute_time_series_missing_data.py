@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import base64
 from io import BytesIO
+from apps.typesense_client import *
 
 id = id_factory('impute_time_series_missing_data')
 
@@ -47,6 +48,8 @@ option_graph = [
 
 # Layout
 layout = html.Div([
+    dcc.Store(id='dataset_setting', storage_type='session'),
+    dcc.Store(id='dataset_profile', storage_type='session'),
     dcc.Store(id='input_data_store', storage_type='session'),
     dcc.Store(id='input_datatype_store', storage_type='session'),
     dcc.Store(id=id('selection_list_store'), storage_type='session'),
@@ -62,7 +65,7 @@ layout = html.Div([
         ], className='text-center', style={'margin': '3px'}),
 
         dbc.Row([
-            dbc.Col(html.H5('Step 2: Select a Column/Bar to modify'), width=12),
+            dbc.Col(html.H5('Step 2: Select a Column to modify'), width=12),
             dbc.Col(bar_graph(id('bar_graph'), 'stack'), width=12),
             dbc.Col(html.H6('Column Selected: None', id=id('selection_list')), width=12),
         ], className='text-center', style={'margin': '3px'}),
@@ -92,13 +95,19 @@ layout = html.Div([
 ])
 
 # Update datatable when files upload
-@app.callback([Output(id('input_datatable'), "data"), Output(id('input_datatable'), 'columns'), Output(id('input_datatable'), 'dropdown_data')], 
-                Input('input_data_store', "data"), Input('input_datatype_store', 'data'), Input('url', 'pathname'))
-def update_data_table(input_data, datatype, pathname):
-    if input_data == None: return no_update, no_update, no_update
+@app.callback([Output(id('input_datatable'), "data"), 
+                Output(id('input_datatable'), 'columns'), 
+                Output(id('input_datatable'), 'dropdown_data')], 
+                Input('dataset_setting', "data"), 
+                Input('dataset_profile', 'data'), 
+                Input('url', 'pathname'))
+def update_data_table(setting, profile, pathname):
+    if setting == None: return no_update
+    if profile == None: return no_update
     
     # Convert data & Convert all values to string
-    df = json_normalize(input_data)
+    result = get_documents(setting['name'], 250)
+    df = json_normalize(result)
     df.insert(0, column='index', value=range(1, len(df)+1))
 
     # for i in range(len(json_dict)):
@@ -106,15 +115,10 @@ def update_data_table(input_data, datatype, pathname):
     #         if type(json_dict[i][key]) == list:
     #             json_dict[i][key] = str(json_dict[i][key])
 
-    # Get Columns
-    # columns = [{ "id": i, "name": i, "deletable": True, "selectable": True, 'presentation': 'dropdown'} for i in df.columns]
-    columns = [{"id": i, "name": i, 'presentation': 'dropdown'} for i in df.columns]
-
     # Get best dtypes and insert to first row
-    row_dropdown_dtype = pd.DataFrame(datatype, index=[0]).reset_index(drop=True)
+    datatype = [[i] for i in profile['datatype']]
+    row_dropdown_dtype = pd.DataFrame.from_dict(dict(zip(df.columns, datatype)))
     df = pd.concat([row_dropdown_dtype, df]).reset_index(drop=True)
-
-    pprint(df)
 
     options_datatype = [{}]
     datatype_list = ['object', 'string', 'Int64', 'datetime64', 'boolean', 'category']
@@ -122,6 +126,11 @@ def update_data_table(input_data, datatype, pathname):
         options_datatype[0][key] = {}
         options_datatype[0][key]['options'] = [{'label': i, 'value': i} for i in datatype_list]
 
+    # Get Columns
+    # columns = [{ "id": i, "name": i, "deletable": True, "selectable": True, 'presentation': 'dropdown'} for i in df.columns]
+    columns = [{"id": i, "name": i, 'presentation': 'dropdown'} for i in df.columns]
+    print(df.to_dict('records'))
+    print(columns)
     return df.to_dict('records'), columns, options_datatype
 
 
