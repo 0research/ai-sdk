@@ -93,7 +93,7 @@ navbar = dbc.Navbar(
                 [
                     dbc.Col(
                             [
-                            html.Label('Version'),
+                            html.Label('Choose Version', height="30px",id="tooltip-choose-video-version"),
                             dcc.Dropdown(
                                 options=[
                                     {'label': 'v4_12-Oct21', 'value': 'http://demo789.0research.com'},
@@ -101,16 +101,17 @@ navbar = dbc.Navbar(
                                     {'label': 'v2_25-Sep21', 'value': 'http://demo787.0research.com'},
                                     {'label': 'v1_13-Sep21', 'value': 'http://demo786.0research.com'}
                                 ],
-                                value='http://demo789.0research.com'      
+                                value='http://demo789.0research.com',
+                                height="30px",      
                             ),
                             ]
                             )
                         
-                    
                     # dbc.Col(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube")), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
                 ],
                 align="center",
                 no_gutters=True,
+                width = 45px ,
             ),
             href="http://demo789.0research.com"
             ),
