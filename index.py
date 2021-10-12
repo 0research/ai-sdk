@@ -102,6 +102,7 @@ navbar = dbc.Navbar(
                         ],
                         value='http://demo789.0research.com'
                     ),
+                    )
                     
                     # dbc.Col(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube")), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
                 ],
