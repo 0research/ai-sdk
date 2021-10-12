@@ -227,7 +227,6 @@ def save_settings_dataset(n_clicks, type, delimiter, index_col, checklist_settin
     return settings, html.Div('Successfully Uploaded', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-success') 
 
 
-
 # Update Sample Datatable 
 @app.callback([Output(id('input_datatable_sample'), "data"), 
                 Output(id('input_datatable_sample'), 'columns')], 
@@ -238,7 +237,7 @@ def update_data_table(settings, pathname):
     
     result = get_documents(settings['name'], 5)
     df = json_normalize(result)
-    # df.insert(0, column='index', value=range(1, len(df)+1))
+    df.insert(0, column='index', value=range(1, len(df)+1))
     json_dict = df.to_dict('records')
 
     # # Convert all values to string
