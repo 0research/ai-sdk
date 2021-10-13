@@ -55,7 +55,6 @@ option_delimiter = [
 ]
 
 
-print(os.hostname())
 
 layout = html.Div([
     dcc.Store(id='dataset_setting', storage_type='session'),
