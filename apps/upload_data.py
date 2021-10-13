@@ -55,6 +55,7 @@ option_delimiter = [
 ]
 
 
+print(os.hostname())
 
 layout = html.Div([
     dcc.Store(id='dataset_setting', storage_type='session'),
@@ -318,7 +319,6 @@ def generate_profile(settings, pathname):
 # Style deleted row
 @app.callback(Output({'type':id('row'), 'index': MATCH}, 'style'), 
             [Input({'type':id('col_button_remove'), 'index': MATCH}, 'n_clicks'),
-            Input(id("tabs_content"), "value"),
             State({'type':id('row'), 'index': MATCH}, 'style')])
 def style_row(n_clicks, tab, style):
     if n_clicks is None: return no_update
