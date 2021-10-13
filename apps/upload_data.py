@@ -161,10 +161,11 @@ def generate_selected_files(filename):
 def save_settings_dataset(n_clicks, type, delimiter, index_col, checklist_settings, contents, input_name, filename, last_modified):
     if n_clicks is None: return no_update
     # If Name exist or Invalid name
+    if input_name == None or (' ' in input_name): 
+        print('Invalid File Name')
+        return no_update, html.Div('Invalid File Name', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger') 
+    
     for c in client.collections.retrieve():
-        if input_name == None or (' ' in input_name): 
-            print('Invalid File Name')
-            return no_update, html.Div('Invalid File Name', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger') 
         if c['name'] == input_name:
             print('File Name Exist')
             return no_update, html.Div('File Name Exist', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger')
@@ -184,14 +185,20 @@ def save_settings_dataset(n_clicks, type, delimiter, index_col, checklist_settin
 
         df = json_normalize(data)
 
+
     # CSV Uploaded
     elif len(filename) == 1 and filename[0].endswith('csv'):
         content_type, content_string = contents[0].split(',')
         decoded = base64.b64decode(content_string)
         df = pd.read_csv(io.StringIO(decoded.decode('utf-8')), sep=',', header=0)
 
+    # Replace null with 'None'
+    df.fillna('None', inplace=True)
+
     # Convert to jsonl
     jsonl = df.to_json(orient='records', lines=True)
+    print(jsonl)
+    # print(df.columns)
 
     # Check if exceed size
     if sys.getsizeof(jsonl) > 1000000:
@@ -204,17 +211,17 @@ def save_settings_dataset(n_clicks, type, delimiter, index_col, checklist_settin
     client.collections[input_name].documents.import_(jsonl, {'action': 'create'})
 
     # Settings
-    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-    if client.collections.collections.get(input_name) is not None:
-        if triggered == id('checklist_settings'):
-            if 'remove_space' in checklist_settings:
-                pass
-            if 'remove_header' in checklist_settings:
-                print('remove-header')
-                df = df.iloc[1: , :].reset_index(drop=True)
+    # triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+    # if client.collections.collections.get(input_name) is not None:
+    #     if triggered == id('checklist_settings'):
+    #         if 'remove_space' in checklist_settings:
+    #             pass
+    #         if 'remove_header' in checklist_settings:
+    #             print('remove-header')
+    #             df = df.iloc[1: , :].reset_index(drop=True)
+    #             # df.insert(0, column='index', value=range(1, len(df)+1))
 
-            # df.insert(0, column='index', value=range(1, len(df)+1))
-            
+    
     settings = {}
     settings['name'] = input_name
     settings['type'] = type
