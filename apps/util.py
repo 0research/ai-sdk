@@ -23,6 +23,8 @@ from pandas import json_normalize
 import pandas as pd
 
 
+import uuid
+
 mergeOptions = ['overwrite', 'objectMerge', 'version']
 flattenOptions = ['Flatten', 'Unflatten']
 
@@ -291,8 +293,11 @@ def generate_number_changes(difference_history):
 
 
 
-
-
+def whitespace_remover(df):
+    for i in df.columns:
+        if df[i].dtype == 'object':
+            df[i] = df[i].map(str.strip)
+    return df
 
 
 

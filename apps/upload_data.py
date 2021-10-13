@@ -46,10 +46,12 @@ option_data_nature = [
 ]
 
 option_delimiter = [
-    {'label': 'Comma (,)', 'value': 'comma'},
-    {'label': 'Pipe (|)', 'value': 'pipe'},
-    {'label': 'Space', 'value': 'space'},
-    {'label': 'Tab', 'value': 'tab'},
+    {'label': 'Comma (,)', 'value': ','},
+    {'label': 'Tab', 'value': r"\t"},
+    {'label': 'Space', 'value': r"\s+"},
+    {'label': 'Pipe (|)', 'value': '|'},
+    {'label': 'Semi-Colon (;)', 'value': ';'},
+    {'label': 'Colon (:)', 'value': ':'},
 ]
 
 
@@ -57,7 +59,8 @@ option_delimiter = [
 layout = html.Div([
     dcc.Store(id='dataset_setting', storage_type='session'),
     dcc.Store(id='dataset_profile', storage_type='session'),
-    
+    dcc.Store(id=id('remove_list'), storage_type='session'),
+
     generate_tabs(id('tabs_content'), tab_labels, tab_values),
     dbc.Container([], fluid=True, id=id('content')),
     html.Div(id='test1'),
@@ -80,11 +83,6 @@ def generate_tab_content(active_tab):
 
                 html.Div('Delimiter', style={'width':'20%', 'display':'inline-block', 'vertical-align':'top'}),
                 html.Div(generate_dropdown(id('dropdown_delimiter'), option_delimiter), style={'width':'80%', 'display':'inline-block'}),
-                
-                html.Div('Index Column', style={'width':'20%', 'display':'inline-block', 'vertical-align':'top'}),
-                html.Div(generate_dropdown(id('dropdown_index_column'), [
-                    {'label': 'Add New Index', 'value': 'new_index'},
-                ]), style={'width':'80%', 'display':'inline-block'}),
     
                 dbc.Checklist(options=[
                     {"label": "Remove Spaces", "value": 'remove_space'},
@@ -152,108 +150,99 @@ def generate_selected_files(filename):
                 [Input(id('button_upload'), 'n_clicks'),  
                 Input(id('dropdown_file_type'), 'value'), 
                 Input(id('dropdown_delimiter'), 'value'), 
-                Input(id('dropdown_index_column'), 'value'), 
                 Input(id('checklist_settings'), 'value'),
                 State('upload_json', 'contents'), 
                 State(id('input_name'), 'value'),
                 State('upload_json', 'filename'), 
                 State('upload_json', 'last_modified')])
-def save_settings_dataset(n_clicks, type, delimiter, index_col, checklist_settings, contents, input_name, filename, last_modified):
-    if n_clicks is None: return no_update
-    # If Name exist or Invalid name
-    if input_name == None or (' ' in input_name): 
-        print('Invalid File Name')
-        return no_update, html.Div('Invalid File Name', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger') 
-    
-    for c in client.collections.retrieve():
-        if c['name'] == input_name:
-            print('File Name Exist')
-            return no_update, html.Div('File Name Exist', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger')
+def save_settings_dataset(n_clicks, type, delimiter, checklist_settings, contents, input_name, filename, last_modified):
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
 
-    # JSON Uploaded
-    if all(f.endswith('.json') for f in filename):
-        data = []
-        try:
-            for filename, content in zip(filename, contents):
-                content_type, content_string = content.split(',')
-                decoded = base64.b64decode(content_string)
-                decoded = json.loads(decoded.decode('utf-8'))
-                decoded = flatten(decoded)
-                data.append(decoded)
-        except Exception as e:
-            print(e)
-
-        df = json_normalize(data)
-
-
-    # CSV Uploaded
-    elif len(filename) == 1 and filename[0].endswith('csv'):
-        content_type, content_string = contents[0].split(',')
-        decoded = base64.b64decode(content_string)
-        df = pd.read_csv(io.StringIO(decoded.decode('utf-8')), sep=',', header=0)
-
-    # Replace null with 'None'
-    df.fillna('None', inplace=True)
-
-    # Convert to jsonl
-    jsonl = df.to_json(orient='records', lines=True)
-    print(jsonl)
-    # print(df.columns)
-
-    # Check if exceed size
-    if sys.getsizeof(jsonl) > 1000000:
-        print('Filesize: ', sys.getsizeof(jsonl))
-        return no_update, html.Div('File size too large!', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger') 
-
-    # Upload to typesense
-    schema = generate_schema_auto(input_name)
-    client.collections.create(schema)
-    client.collections[input_name].documents.import_(jsonl, {'action': 'create'})
-
-    # Settings
-    # triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-    # if client.collections.collections.get(input_name) is not None:
-    #     if triggered == id('checklist_settings'):
-    #         if 'remove_space' in checklist_settings:
-    #             pass
-    #         if 'remove_header' in checklist_settings:
-    #             print('remove-header')
-    #             df = df.iloc[1: , :].reset_index(drop=True)
-    #             # df.insert(0, column='index', value=range(1, len(df)+1))
-
-    
+    # Save Settings
     settings = {}
     settings['name'] = input_name
     settings['type'] = type
     settings['delimiter'] = delimiter
-    settings['index'] = index_col
     settings['checklist'] = checklist_settings
 
-    return settings, html.Div('Successfully Uploaded', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-success') 
+    # If upload clicked.
+    if triggered == id('button_upload'):
+        # Check invalid names
+        if input_name == None or (' ' in input_name): 
+            print('Invalid File Name')
+            return no_update, html.Div('Invalid File Name', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger')
+        # Check if name exist
+        for c in client.collections.retrieve():
+            if c['name'] == input_name:
+                print('File Name Exist')
+                return no_update, html.Div('File Name Exist', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger')
+
+        # JSON Uploaded
+        if all(f.endswith('.json') for f in filename):
+            data = []
+            try:
+                for filename, content in zip(filename, contents):
+                    content_type, content_string = content.split(',')
+                    decoded = base64.b64decode(content_string)
+                    decoded = json.loads(decoded.decode('utf-8'))
+                    decoded = flatten(decoded)
+                    data.append(decoded)
+            except Exception as e:
+                print(e)
+
+            df = json_normalize(data)
+
+
+        # CSV Uploaded
+        elif len(filename) == 1 and filename[0].endswith('csv'):
+            content_type, content_string = contents[0].split(',')
+            decoded = base64.b64decode(content_string)
+            df = pd.read_csv(io.StringIO(decoded.decode('utf-8')), sep=delimiter, header=0)
+
+        # Replace null with 'None'
+        df.fillna('None', inplace=True)
+
+        # Convert to jsonl
+        jsonl = df.to_json(orient='records', lines=True)
+
+        # Check if exceed size
+        if sys.getsizeof(jsonl) > 1000000:
+            print('Filesize: ', sys.getsizeof(jsonl))
+            return no_update, html.Div('File size too large!', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger') 
+
+        # Upload to typesense
+        schema = generate_schema_auto(input_name)
+        client.collections.create(schema)
+        client.collections[input_name].documents.import_(jsonl, {'action': 'create'})
+
+        return settings, html.Div('Successfully Uploaded', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-success') 
+
+    else:
+        return settings, ''
 
 
 # Update Sample Datatable 
 @app.callback([Output(id('input_datatable_sample'), "data"), 
-                Output(id('input_datatable_sample'), 'columns')], 
-                Input('dataset_setting', "data"), 
-                Input('url', 'pathname'))
-def update_data_table(settings, pathname):
-    if settings == None: return [], []
-    
+                Output(id('input_datatable_sample'), 'columns'),
+                Output(id('input_datatable_sample'), 'style_data_conditional')], 
+                Input('dataset_setting', "data"))
+def update_data_table(settings):
+    if settings is None or settings['name'] is None: return no_update
+
+    # Get Data & Columns
     result = get_documents(settings['name'], 5)
     df = json_normalize(result)
     df.insert(0, column='index', value=range(1, len(df)+1))
-    json_dict = df.to_dict('records')
-
-    # # Convert all values to string
-    # for i in range(len(json_dict)):
-    #     for key, val in json_dict[i].items():
-    #         if type(json_dict[i][key]) == list:
-    #             json_dict[i][key] = str(json_dict[i][key])
-
     columns = [{"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns]
 
-    return json_dict, columns
+    # Style datatable and manipulate df upon settings change
+    style_data_conditional = []
+    if 'remove_space' in settings['checklist']:
+        df = whitespace_remover(df)
+    if 'remove_header' in settings['checklist']:
+        style_data_conditional.append({'if': {'row_index': 0}, 'backgroundColor': 'grey'})
+
+    return df.to_dict('records'), columns, style_data_conditional
 
 
 
@@ -288,10 +277,10 @@ def generate_expectations():
 @app.callback(Output(id('data_profile'), 'children'), 
             [Input('dataset_setting', 'data'),
             Input('url', 'pathname')])
-def generate_profile(dataset_settings, pathname):
-    if dataset_settings == None: return [], []
+def generate_profile(settings, pathname):
+    if settings is None or settings['name'] is None: return no_update
     
-    result = get_documents(dataset_settings['name'], 100)
+    result = get_documents(settings['name'], 100)
     df = json_normalize(result)
     columns = list(df.columns)
     detected_datatype_list = list(map(str, df.convert_dtypes().dtypes))
@@ -329,8 +318,9 @@ def generate_profile(dataset_settings, pathname):
 # Style deleted row
 @app.callback(Output({'type':id('row'), 'index': MATCH}, 'style'), 
             [Input({'type':id('col_button_remove'), 'index': MATCH}, 'n_clicks'),
+            Input(id("tabs_content"), "value"),
             State({'type':id('row'), 'index': MATCH}, 'style')])
-def style_row(n_clicks, style):
+def style_row(n_clicks, tab, style):
     if n_clicks is None: return no_update
 
     if style is None: newStyle = {'background-color':'grey'}
@@ -343,23 +333,28 @@ def style_row(n_clicks, style):
 
 # Store profile
 @app.callback(Output('dataset_profile', 'data'),
-            [Input(id("tabs_content"), "value"),
-            Input({'type':id('col_dropdown_datatype'), 'index': ALL}, 'value'),
-            Input({'type':id('col_button_remove'), 'index': ALL}, 'n_clicks'),
-            State({'type':id('col_column'), 'index': ALL}, 'children')])
-def update_output(tab, datatype, remove_list, column):
+                Output(id('remove_list'), 'data'),
+                [Input(id("tabs_content"), "value"),
+                Input({'type':id('col_dropdown_datatype'), 'index': ALL}, 'value'),
+                Input({'type':id('col_button_remove'), 'index': ALL}, 'n_clicks'),
+                State({'type':id('col_column'), 'index': ALL}, 'children')])
+def update_output(tab, datatype, remove_list_n_clicks, column):
     if tab != id('set_data_profile'): return no_update
 
     column = [c['props']['children'] for c in column]
-    remove_list = [0 if v is None else v for v in remove_list]
-    remove_list = [v%2 == 1 for v in remove_list]
 
+    # Profile
     profile = {}
-    profile['column'] = column
-    profile['datatype'] = datatype
-    profile['remove'] = remove_list
+    profile['datatype'] = dict(zip(column, datatype))
+    profile['expectation'] = {} # TODO Store expectations 
 
-    return profile
+    # Remove Column List
+    remove_list = []
+    for n_clicks, c in zip(remove_list_n_clicks, column):
+        if (n_clicks is not None) and n_clicks%2 == 1:
+            remove_list.append(c)
+
+    return profile, remove_list
 
 
 # Update Datatable in "Review Data" Tab
@@ -367,30 +362,31 @@ def update_output(tab, datatype, remove_list, column):
                 Output(id('input_datatable'), 'columns')], 
                 [Input(id("tabs_content"), "value"),
                 State('dataset_setting', "data"),
-                State('dataset_profile', "data")])
-def update_data_table(tab, setting, profile):
-    if setting is None: return no_update
+                State('dataset_profile', "data"),
+                State(id('remove_list'), "data")])
+def update_data_table(tab, settings, profile, remove_list):
+    if settings is None or settings['name'] is None: return no_update
     if tab != id('review_data'): return no_update
     
-    result = get_documents(setting['name'], 250)
+    result = get_documents(settings['name'], 250)
     df = json_normalize(result)
     df.insert(0, column='index', value=range(1, len(df)+1))
-    json_dict = df.to_dict('records')
 
-    # # Convert all values to string
-    # for i in range(len(json_dict)):
-    #     for key, val in json_dict[i].items():
-    #         if type(json_dict[i][key]) == list:
-    #             json_dict[i][key] = str(json_dict[i][key])
+    # Remove Columns
+    df.drop(remove_list, axis=1, inplace=True)
 
-    # TODO update with setting & profile
+    # Settings
+    print(settings)
+
+    # Profile
+    # print(profile['datatype'])
 
     columns = [{"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns]
+    
+    return df.to_dict('records'), columns
 
-    return json_dict, columns
 
-
-
+# Update typesense dataset with settings/profile/columns to remove
 # @app.callback(Output(id('????????'), "??????"), 
 #                 [Input(id("button_confirm"), "n_clicks"),
 #                 State('dataset_setting', "data"),
@@ -400,5 +396,9 @@ def update_data_table(tab, setting, profile):
 
 #     print(setting)
 #     print(profile)
+
+    # Update typesense dataset
+
+    # Update typesense dataset profile
 
 #     return no_update
