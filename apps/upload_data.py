@@ -27,16 +27,15 @@ from apps.typesense_client import *
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 
-
+# Initialize Variables
 id = id_factory('upload_data')
 tab_labels = ['Step 1: Upload Data', 'Step 2: Set Data Profile', 'Step 3: Review Data']
 tab_values = [id('upload_data'), id('set_data_profile'), id('review_data')]
-datatype_list = ['object', 'string', 'Int64', 'datetime64', 'boolean', 'category']
+datatype_list = ['object', 'Int64', 'float64', 'bool', 'datetime64', 'category']
 option_filetype = [
     {'label': 'JSON', 'value': 'json'},
     {'label': 'CSV', 'value': 'csv'},
 ]
-
 option_data_nature = [
     {'label': 'Numerical', 'value': 'numerical'},
     {'label': 'Categorical', 'value': 'categorical'},
@@ -44,7 +43,6 @@ option_data_nature = [
     {'label': 'Time Series', 'value': 'time_series'},
     {'label': 'Geo Spatial', 'value': 'geo_spatial'},
 ]
-
 option_delimiter = [
     {'label': 'Comma (,)', 'value': ','},
     {'label': 'Tab', 'value': r"\t"},
@@ -55,7 +53,7 @@ option_delimiter = [
 ]
 
 
-
+# Layout
 layout = html.Div([
     dcc.Store(id='dataset_setting', storage_type='session'),
     dcc.Store(id='dataset_profile', storage_type='session'),
@@ -67,7 +65,7 @@ layout = html.Div([
 ])
 
 
-
+# Tab Content
 @app.callback(Output(id("content"), "children"), [Input(id("tabs_content"), "value")])
 def generate_tab_content(active_tab):
     content = None
@@ -86,8 +84,8 @@ def generate_tab_content(active_tab):
     
                 dbc.Checklist(options=[
                     {"label": "Remove Spaces", "value": 'remove_space'},
-                    {"label": "Remove Header/First Row ", "value": 'remove_header'}
-                ], inline=False, switch=True, id=id('checklist_settings'), value=['remove_space']),
+                    {"label": "Remove Header", "value": 'remove_header'}
+                ], inline=False, switch=True, id=id('checklist_settings'), value=['remove_space'], labelStyle={'display':'block'}),
             ], width=6),
 
             dbc.Col([
@@ -126,7 +124,7 @@ def generate_tab_content(active_tab):
 
     elif active_tab == id('review_data'):
         content = dbc.Row([
-            dbc.Col(html.H5('Step 3: Review Data'), width=12),
+            dbc.Col(html.H5('Step 3: Preview Data'), width=12),
             dbc.Col(html.Div(generate_datatable(id('input_datatable'))), width=12),
             html.Br(),
             # dbc.Col(html.Div(html.Button('Upload Data', className='btn btn-primary', id=id('button_confirm')), className='text-center'), width=12),
@@ -251,15 +249,15 @@ def generate_expectations():
     datatype = None # TODO get selected dropdown datatype from arg
     expectation = html.Div()
 
-    if datatype == datatype_list[0]:    # Object
+    if datatype == datatype_list[0]:  # Object
         pass
-    elif datatype == datatype_list[1]:  # String
+    elif datatype == datatype_list[1]:  # Int64
         pass
-    elif datatype == datatype_list[2]:  # Int64
+    elif datatype == datatype_list[2]:  # float64
         pass
-    elif datatype == datatype_list[3]:  # datetime64
+    elif datatype == datatype_list[3]:  # bool
         pass
-    elif datatype == datatype_list[4]:  # boolean
+    elif datatype == datatype_list[4]:  # datetime64
         pass
     elif datatype == datatype_list[5]:  # category
         pass
@@ -319,7 +317,7 @@ def generate_profile(settings, pathname):
 @app.callback(Output({'type':id('row'), 'index': MATCH}, 'style'), 
             [Input({'type':id('col_button_remove'), 'index': MATCH}, 'n_clicks'),
             State({'type':id('row'), 'index': MATCH}, 'style')])
-def style_row(n_clicks, tab, style):
+def style_row(n_clicks, style):
     if n_clicks is None: return no_update
 
     if style is None: newStyle = {'background-color':'grey'}

@@ -93,12 +93,6 @@ def update_data_table(pathname, setting):
     df.insert(0, column='index', value=range(1, len(df)+1))
     json_dict = df.to_dict('records')
 
-    # # Convert all values to string
-    # for i in range(len(json_dict)):
-    #     for key, val in json_dict[i].items():
-    #         if type(json_dict[i][key]) == list:
-    #             json_dict[i][key] = str(json_dict[i][key])
-
     columns = [{"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns]
 
     return json_dict, columns
