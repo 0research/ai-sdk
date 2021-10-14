@@ -15,7 +15,7 @@ from apps import (upload_data, overview, merge_strategy, temporal_evolution, tem
 
 SIDEBAR_STYLE = {
     "position": "fixed",
-    "top": 0,
+    "top": 40,
     "left": 0,
     "bottom": 0,
     "width": "14rem",
@@ -39,7 +39,7 @@ GITHUB = "../assets/static/github-icon.svg"
 DOCKER = "../assets/static/docker-icon.svg"
 GITHUBACTION = "../assets/static/githubaction-icon.svg"
 
-search_bar = dbc.Row([
+navbar_right = dbc.Row([
     dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
     dbc.Col(dbc.Button("Data Explorer", href='/apps/data_explorer', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
     dbc.Col(dbc.Input(type="search", placeholder="Search")) ],
@@ -52,17 +52,22 @@ search_bar = dbc.Row([
 
 
 navbar = dbc.Navbar([
-    # Use row and col to control vertical alignment of logo / brand
     html.A(dbc.Row([dbc.Col(html.Img(src=HOMEPAGELOGO, height="30px", id="tooltip-homepagelogo"))], align="center"), href="https://0research.com"), # Link to Home Page of Website href='https://0research.com'
     html.A(dbc.Row([dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2",id="tooltip-navbarbrand"))], align="center"), href="https://ai-sdk.herokuapp.com"), # Link to App href='https://ai-sdk.herokuapp.com' 
     html.A(dbc.Row([dbc.Col(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube"))], align="center"), href="https://www.youtube.com/watch?v=ntN3xPEyy3U"), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
+    dbc.Row(html.Label('Choose Version', id="tooltip-choose-video-version", style={'color':'white'})),
+    html.A(dbc.Row(dbc.Col([dcc.Dropdown(options=[
+        {'label': 'v4', 'value': 'http://demo789.0research.com'},
+        {'label': 'v3', 'value': 'http://demo788.0research.com'},
+        {'label': 'v2', 'value': 'http://demo787.0research.com'},
+        {'label': 'v1', 'value': 'http://demo786.0research.com'}
+    ], value='http://demo789.0research.com', clearable=False)]), align="center"), style={'width':'75px'}),
     html.A(dbc.Row([dbc.Col(html.Img(src=GITHUB, height="30px",id="tooltip-github"))], align="center"),href="https://github.com/0research/ai-sdk"), # Link to href='https://github.com/0research/ai-sdk'
     html.A(dbc.Row([dbc.Col(html.Img(src=DOCKER, height="30px",id="tooltip-docker"))], align="center"), href="https://hub.docker.com/r/0research/ai-sdk"), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
     html.A(dbc.Row([dbc.Col(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction"))], align="center"), href="https://github.com/marketplace/actions/ai-sdk-action"), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
 
-    dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
-    dbc.Collapse(search_bar, id="navbar-collapse", navbar=True, is_open=False),
-    # dbc.Row(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), align='right'),
+    navbar_right,
+
     ## Href Links for each Icon
     #dbc.NavLink(target="tooltip-github", href="https://github.com/0research/ai-sdk"),
 
@@ -74,12 +79,15 @@ navbar = dbc.Navbar([
     dbc.Tooltip("Self Hosted Docker",target="tooltip-docker"),
     dbc.Tooltip("Use in GithubAction",target="tooltip-githubaction"),
     ], color="dark", dark=True,)
-
+    
 
 sidebar = html.Div([
     dbc.Nav([
-        html.Hr(),
+        html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
         dbc.NavLink("Upload Data", href="/apps/upload_data", active="exact", className="fas fa-upload"),
+        dbc.NavLink("Workflow", href="/apps/workflow", active="exact", className="fas fa-arrow-alt-circle-right"),
+        dbc.NavLink("Data Explorer", href="/apps/data_explorer", active="exact", className="fas fa-database"),
+        html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
         dbc.NavLink("Overview", href="/apps/overview", active="exact", className="fas fa-chart-pie"),
         dbc.NavLink("Merge Strategy", href="/apps/merge_strategy", active="exact", className='fas fa-chess-knight'),
         dbc.NavLink("Temporal Evolution", href="/apps/temporal_evolution", active="exact", className='far fa-clock'),
