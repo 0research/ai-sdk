@@ -12,7 +12,6 @@ from flatten_json import flatten, unflatten, unflatten_list
 from jsonmerge import Merger
 from pprint import pprint
 from genson import SchemaBuilder
-from jsondiff import diff
 import json
 from jsondiff import diff, symbols
 from apps.util import *
@@ -21,6 +20,7 @@ import pandas as pd
 from itertools import zip_longest
 from datetime import datetime
 from apps.typesense_client import *
+from pandas import json_normalize
 
 
 app.scripts.config.serve_locally = True

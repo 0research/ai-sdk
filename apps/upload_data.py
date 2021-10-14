@@ -274,8 +274,9 @@ def generate_expectations():
 
 @app.callback(Output(id('data_profile'), 'children'), 
             [Input('dataset_setting', 'data'),
+            Input(id('button_upload'), 'n_clicks'),
             Input('url', 'pathname')])
-def generate_profile(settings, pathname):
+def generate_profile(settings, n_clicks, pathname):
     if settings is None or settings['name'] is None: return no_update
     
     result = get_documents(settings['name'], 100)
