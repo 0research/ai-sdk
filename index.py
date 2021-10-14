@@ -1,8 +1,8 @@
-import dash_core_components as dcc
+from dash import dcc
 #import dash_bootstrap_components as dbc
-import dash_html_components as html
+from dash import html
 from dash.dependencies import Input, Output, State
-from pandas.io.json import json_normalize
+from pandas import json_normalize
 from apps.util import *
 from app import app
 from app import server 
@@ -10,12 +10,12 @@ from app import dbc # https://dash-bootstrap-components.opensource.faculty.ai/do
 
 from apps import (upload_data, overview, merge_strategy, temporal_evolution, temporal_merge, 
                 time_series_decomposition, impute_time_series_missing_data, remove_duplicate, data_explorer,
-                page2, page3, page4, page6, page6,page7, page8, page9, page10)
+                page2, page3, page6, page6,page7, page8, page9, page10)
 
 
 SIDEBAR_STYLE = {
     "position": "fixed",
-    "top": 0,
+    "top": 40,
     "left": 0,
     "bottom": 0,
     "width": "14rem",
@@ -39,11 +39,10 @@ GITHUB = "../assets/static/github-icon.svg"
 DOCKER = "../assets/static/docker-icon.svg"
 GITHUBACTION = "../assets/static/githubaction-icon.svg"
 
-search_bar = dbc.Row([
+navbar_right = dbc.Row([
     dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
     dbc.Col(dbc.Button("Data Explorer", href='/apps/data_explorer', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
     dbc.Col(dbc.Input(type="search", placeholder="Search")) ],
-    no_gutters=True,
     className="ml-auto flex-nowrap mt-3 mt-md-0",
     align="center",
 )
@@ -52,124 +51,43 @@ search_bar = dbc.Row([
 #     dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
 
 
-navbar = dbc.Navbar(
-    [
-        html.A(
-            # Use row and col to control vertical alignment of logo / brand
-            dbc.Row(
-                [
-                    dbc.Col(html.Img(src=HOMEPAGELOGO, height="30px", id="tooltip-homepagelogo")), # Link to Home Page of Website href='https://0research.com'
-                ],
-                align="center",
-                no_gutters=True,
-            ),
-            href="https://0research.com"
-            ), 
-       
-        html.A(
-            dbc.Row(
-                [
-                    dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2",id="tooltip-navbarbrand")), # Link to App href='https://ai-sdk.herokuapp.com' 
-                ],
-                align="center",
-                no_gutters=True,
-            ),
-            href="http://app.0research.com"
-            ), 
-            
-        html.A(
-            dbc.Row(
-                [
-                    dbc.Col(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube")), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
-                ],
-                align="center",
-                no_gutters=True,
-            ),
-            href="http://demo789.0research.com"
-            ),
+navbar = dbc.Navbar([
+    html.A(dbc.Row([dbc.Col(html.Img(src=HOMEPAGELOGO, height="30px", id="tooltip-homepagelogo"))], align="center"), href="https://0research.com"), # Link to Home Page of Website href='https://0research.com'
+    html.A(dbc.Row([dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2",id="tooltip-navbarbrand"))], align="center"), href="https://ai-sdk.herokuapp.com"), # Link to App href='https://ai-sdk.herokuapp.com' 
+    html.A(dbc.Row([dbc.Col(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube"))], align="center"), href="https://www.youtube.com/watch?v=ntN3xPEyy3U"), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
+    dbc.Row(html.Label('Choose Version', id="tooltip-choose-video-version", style={'color':'white'})),
+    html.A(dbc.Row(dbc.Col([dcc.Dropdown(options=[
+        {'label': 'v4', 'value': 'http://demo789.0research.com'},
+        {'label': 'v3', 'value': 'http://demo788.0research.com'},
+        {'label': 'v2', 'value': 'http://demo787.0research.com'},
+        {'label': 'v1', 'value': 'http://demo786.0research.com'}
+    ], value='http://demo789.0research.com', clearable=False)]), align="center"), style={'width':'75px'}),
+    html.A(dbc.Row([dbc.Col(html.Img(src=GITHUB, height="30px",id="tooltip-github"))], align="center"),href="https://github.com/0research/ai-sdk"), # Link to href='https://github.com/0research/ai-sdk'
+    html.A(dbc.Row([dbc.Col(html.Img(src=DOCKER, height="30px",id="tooltip-docker"))], align="center"), href="https://hub.docker.com/r/0research/ai-sdk"), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
+    html.A(dbc.Row([dbc.Col(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction"))], align="center"), href="https://github.com/marketplace/actions/ai-sdk-action"), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
 
-        html.A(
-            dbc.Row(
-                [
-                    dbc.Col(
-                            [
-                            # html.Label('Choose Version', height="30px",id="tooltip-choose-video-version"),
-                            dcc.Dropdown(
-                                options=[
-                                    {'label': 'v4', 'value': 'http://demo789.0research.com'},
-                                    {'label': 'v3', 'value': 'http://demo788.0research.com'},
-                                    {'label': 'v2', 'value': 'http://demo787.0research.com'},
-                                    {'label': 'v1', 'value': 'http://demo786.0research.com'}
-                                ],
-                                value='http://demo789.0research.com',      
-                            ),
-                            ]
-                            )
-                ],
-                align="center",
-                no_gutters=True,
-            ),
-            href="http://demo789.0research.com"
-            ),
+    navbar_right,
 
+    ## Href Links for each Icon
+    #dbc.NavLink(target="tooltip-github", href="https://github.com/0research/ai-sdk"),
 
-        
-        html.A(
-            dbc.Row(
-                [
-                    dbc.Col(html.Img(src=GITHUB, height="30px",id="tooltip-github")), # Link to href='https://github.com/0research/ai-sdk'
-                ],
-                align="center",
-                no_gutters=True,
-            ),
-            href="https://github.com/0research/ai-sdk"
-            ),
-        
-        html.A(
-            dbc.Row(
-                [
-                    dbc.Col(html.Img(src=DOCKER, height="30px",id="tooltip-docker")), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
-                ],
-                align="center",
-                no_gutters=True,
-            ),
-            href="https://hub.docker.com/r/0research/ai-sdk"
-            ),
-
-        html.A(
-            dbc.Row(
-                [
-                    dbc.Col(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction")), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
-                ],
-                align="center",
-                no_gutters=True,
-            ),
-            href="https://github.com/marketplace/actions/ai-sdk-action"
-            ),
-
-        dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
-        dbc.Collapse(search_bar, id="navbar-collapse", navbar=True, is_open=False),
-        
-        ## Href Links for each Icon
-        #dbc.NavLink(target="tooltip-github", href="https://github.com/0research/ai-sdk"),
-
-        ## Tool tips for each Icon
-        dbc.Tooltip("0Research Homepage",target="tooltip-homepagelogo"),
-        dbc.Tooltip("CloudApp Homepage",target="tooltip-navbarbrand"),
-        dbc.Tooltip("Demo Video",target="tooltip-youtube"),
-        dbc.Tooltip("Opensource Repo",target="tooltip-github"),
-        dbc.Tooltip("Self Hosted Docker",target="tooltip-docker"),
-        dbc.Tooltip("Use in GithubAction",target="tooltip-githubaction"),
-    ],
-    color="dark",
-    dark=True,
-)
-
+    ## Tool tips for each Icon
+    dbc.Tooltip("0Research Homepage",target="tooltip-homepagelogo"),
+    dbc.Tooltip("CloudApp Homepage",target="tooltip-navbarbrand"),
+    dbc.Tooltip("Demo Video",target="tooltip-youtube"),
+    dbc.Tooltip("Opensource Repo",target="tooltip-github"),
+    dbc.Tooltip("Self Hosted Docker",target="tooltip-docker"),
+    dbc.Tooltip("Use in GithubAction",target="tooltip-githubaction"),
+    ], color="dark", dark=True,)
+    
 
 sidebar = html.Div([
     dbc.Nav([
-        html.Hr(),
+        html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
         dbc.NavLink("Upload Data", href="/apps/upload_data", active="exact", className="fas fa-upload"),
+        dbc.NavLink("Workflow", href="/apps/workflow", active="exact", className="fas fa-arrow-alt-circle-right"),
+        dbc.NavLink("Data Explorer", href="/apps/data_explorer", active="exact", className="fas fa-database"),
+        html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
         dbc.NavLink("Overview", href="/apps/overview", active="exact", className="fas fa-chart-pie"),
         dbc.NavLink("Merge Strategy", href="/apps/merge_strategy", active="exact", className='fas fa-chess-knight'),
         dbc.NavLink("Temporal Evolution", href="/apps/temporal_evolution", active="exact", className='far fa-clock'),
@@ -179,7 +97,6 @@ sidebar = html.Div([
         # dbc.NavLink("Data Lineage", href="/apps/data_explorer", active="exact", className='fas fa-history'),
 
         # dcc.Link(' Page 3 | ', href='/apps/page3'),
-        # dcc.Link(' Page 4 | ', href='/apps/page4'),
         # dcc.Link('Page 6 | ', href='/apps/page6'),
         # dcc.Link('Merge Strategy | ', href='/apps/page7'),
         # dcc.Link('Temporal Merge | ', href='/apps/page8'),
@@ -217,7 +134,6 @@ def display_page(pathname):
     if pathname == '/apps/data_explorer': return data_explorer.layout
 
     # if pathname == '/apps/page3': return page3.layout
-    # if pathname == '/apps/page4': return page4.layout
     # if pathname == '/apps/temporal_merge': return temporal_merge.layout
     # if pathname == '/apps/page2': return page2.layout
     # if pathname == '/apps/page6': return page6.layout
@@ -245,6 +161,8 @@ def toggle_navbar_collapse(n, is_open):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+    
+
 
 
 

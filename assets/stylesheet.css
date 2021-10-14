@@ -11,3 +11,21 @@
 .facebookicon:hover ~ #onhoverfb{
     visibility: visible;
 }
+
+
+
+
+/* dbc.Checklist */
+.form-check {
+	position: relative;
+	padding-left: 1.2em;
+}
+
+.form-check-label {
+	text-align: left;
+}
+
+.form-check-input {
+	position: absolute;
+    right: 2;
+}

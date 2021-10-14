@@ -1,11 +1,11 @@
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 from dash.dependencies import Input, Output, State, ALL, MATCH
 import dash_bootstrap_components as dbc
 import plotly.express as px
 from app import app
 import dash_bootstrap_components as dbc
-import dash_table
+from dash import dash_table
 from dash import no_update, callback_context
 import json
 from flatten_json import flatten, unflatten, unflatten_list
@@ -61,12 +61,6 @@ def update_data_table(input_data, pathname):
     df = json_normalize(input_data)
     df.insert(0, column='index', value=range(1, len(df)+1))
     json_dict = df.to_dict('records')
-
-    # Convert all values to string
-    for i in range(len(json_dict)):
-        for key, val in json_dict[i].items():
-            if type(json_dict[i][key]) == list:
-                json_dict[i][key] = str(json_dict[i][key])
 
     columns = [{"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns]
 

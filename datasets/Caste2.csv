@@ -1,0 +1,259 @@
+state_name,is_state,year,gender,caste,convicts,under_trial,detenues,others
+Andhra Pradesh,1,2001,Male,SC,1236,1836,0,5
+Andhra Pradesh,1,2001,Male,ST,418,1205,0,1
+Andhra Pradesh,1,2001,Male,OBC,1526,3359,4,8
+Andhra Pradesh,1,2001,Male,Others,939,1960,0,8
+Andhra Pradesh,1,2002,Male,SC,1177,1573,2,0
+Andhra Pradesh,1,2002,Male,ST,384,962,0,0
+Andhra Pradesh,1,2002,Male,OBC,1833,2951,0,0
+Andhra Pradesh,1,2002,Male,Others,1327,2506,0,0
+Andhra Pradesh,1,2003,Male,SC,1153,1622,0,0
+Andhra Pradesh,1,2003,Male,ST,381,990,0,0
+Andhra Pradesh,1,2003,Male,OBC,2279,3476,11,0
+Andhra Pradesh,1,2003,Male,Others,1162,2290,7,0
+Andhra Pradesh,1,2004,Male,SC,918,1751,5,0
+Andhra Pradesh,1,2004,Male,ST,300,916,3,0
+Andhra Pradesh,1,2004,Male,OBC,2146,3645,18,0
+Andhra Pradesh,1,2004,Male,Others,1204,2187,3,0
+Andhra Pradesh,1,2005,Male,SC,1002,1824,2,0
+Andhra Pradesh,1,2005,Male,ST,298,899,1,0
+Andhra Pradesh,1,2005,Male,OBC,2201,3906,5,0
+Andhra Pradesh,1,2005,Male,Others,1312,2277,2,0
+Andhra Pradesh,1,2006,Male,SC,884,1970,3,8
+Andhra Pradesh,1,2006,Male,ST,376,1242,0,1
+Andhra Pradesh,1,2006,Male,OBC,2214,3638,11,14
+Andhra Pradesh,1,2006,Male,Others,1606,2595,3,11
+Andhra Pradesh,1,2007,Male,SC,906,1770,5,1
+Andhra Pradesh,1,2007,Male,ST,536,1232,1,1
+Andhra Pradesh,1,2007,Male,OBC,1867,2983,4,11
+Andhra Pradesh,1,2007,Male,Others,2018,2825,11,7
+Andhra Pradesh,1,2008,Male,SC,955,1700,3,2
+Andhra Pradesh,1,2008,Male,ST,476,1001,3,0
+Andhra Pradesh,1,2008,Male,OBC,1861,2617,5,3
+Andhra Pradesh,1,2008,Male,Others,1863,2700,10,7
+Andhra Pradesh,1,2009,Male,SC,1032,1931,9,1
+Andhra Pradesh,1,2009,Male,ST,444,1027,1,0
+Andhra Pradesh,1,2009,Male,OBC,1442,2562,19,6
+Andhra Pradesh,1,2009,Male,Others,1421,2120,9,8
+Andhra Pradesh,1,2010,Male,SC,813,1587,5,2
+Andhra Pradesh,1,2010,Male,ST,447,1019,1,0
+Andhra Pradesh,1,2010,Male,OBC,1617,2469,20,6
+Andhra Pradesh,1,2010,Male,Others,1690,2028,2,5
+Andhra Pradesh,1,2011,Male,SC,952,2025,1,1
+Andhra Pradesh,1,2011,Male,ST,462,889,1,0
+Andhra Pradesh,1,2011,Male,OBC,1475,3211,11,14
+Andhra Pradesh,1,2011,Male,Others,1488,1839,0,2
+Andhra Pradesh,1,2012,Male,SC,896,1721,0,2
+Andhra Pradesh,1,2012,Male,ST,446,979,0,0
+Andhra Pradesh,1,2012,Male,OBC,1140,3015,0,2
+Andhra Pradesh,1,2012,Male,Others,1955,2199,3,3
+Arunachal Pradesh,1,2009,Male,SC,0,4,0,0
+Arunachal Pradesh,1,2009,Male,ST,0,34,0,0
+Arunachal Pradesh,1,2009,Male,OBC,0,2,0,0
+Arunachal Pradesh,1,2009,Male,Others,2,16,0,0
+Arunachal Pradesh,1,2010,Male,SC,1,3,0,0
+Arunachal Pradesh,1,2010,Male,ST,0,25,0,0
+Arunachal Pradesh,1,2010,Male,OBC,0,5,0,0
+Arunachal Pradesh,1,2010,Male,Others,4,15,0,0
+Arunachal Pradesh,1,2011,Male,SC,1,4,0,0
+Arunachal Pradesh,1,2011,Male,ST,4,25,0,0
+Arunachal Pradesh,1,2011,Male,OBC,0,1,0,0
+Arunachal Pradesh,1,2011,Male,Others,1,14,0,0
+Arunachal Pradesh,1,2012,Male,SC,0,4,0,0
+Arunachal Pradesh,1,2012,Male,ST,3,28,0,0
+Arunachal Pradesh,1,2012,Male,OBC,0,5,0,0
+Arunachal Pradesh,1,2012,Male,Others,1,26,0,0
+Assam,1,2001,Male,SC,278,548,1,0
+Assam,1,2001,Male,ST,182,583,5,0
+Assam,1,2001,Male,OBC,546,806,3,0
+Assam,1,2001,Male,Others,1350,2001,7,1
+Assam,1,2002,Male,SC,301,512,1,0
+Assam,1,2002,Male,ST,195,516,5,0
+Assam,1,2002,Male,OBC,653,1009,2,0
+Assam,1,2002,Male,Others,1527,2169,10,0
+Assam,1,2003,Male,SC,509,661,2,0
+Assam,1,2003,Male,ST,301,555,11,0
+Assam,1,2003,Male,OBC,946,1196,8,0
+Assam,1,2003,Male,Others,1252,1974,8,3
+Assam,1,2004,Male,SC,581,561,31,1
+Assam,1,2004,Male,ST,320,512,43,0
+Assam,1,2004,Male,OBC,957,1449,83,3
+Assam,1,2004,Male,Others,1333,1642,58,3
+Assam,1,2005,Male,SC,485,875,4,0
+Assam,1,2005,Male,ST,396,615,10,0
+Assam,1,2005,Male,OBC,733,1117,10,0
+Assam,1,2005,Male,Others,1783,2260,7,4
+Assam,1,2006,Male,SC,514,928,5,1
+Assam,1,2006,Male,ST,388,658,5,0
+Assam,1,2006,Male,OBC,887,1149,8,0
+Assam,1,2006,Male,Others,1676,2066,9,1
+Assam,1,2007,Male,SC,628,801,3,0
+Assam,1,2007,Male,ST,307,669,7,0
+Assam,1,2007,Male,OBC,1093,1011,19,0
+Assam,1,2007,Male,Others,1452,2463,1,0
+Assam,1,2008,Male,SC,768,892,8,0
+Assam,1,2008,Male,ST,546,864,2,0
+Assam,1,2008,Male,OBC,1022,1282,0,0
+Assam,1,2008,Male,Others,1060,1985,0,0
+Assam,1,2009,Male,SC,695,792,3,0
+Assam,1,2009,Male,ST,487,964,4,0
+Assam,1,2009,Male,OBC,731,1272,0,0
+Assam,1,2009,Male,Others,1322,1591,0,0
+Assam,1,2010,Male,SC,668,820,2,0
+Assam,1,2010,Male,ST,473,946,1,0
+Assam,1,2010,Male,OBC,832,1098,0,0
+Assam,1,2010,Male,Others,1193,1616,0,0
+Assam,1,2011,Male,SC,648,925,0,0
+Assam,1,2011,Male,ST,452,1016,0,0
+Assam,1,2011,Male,OBC,810,1190,0,0
+Assam,1,2011,Male,Others,1136,1728,0,0
+Assam,1,2012,Male,SC,622,945,1,0
+Assam,1,2012,Male,ST,470,1040,2,0
+Assam,1,2012,Male,OBC,825,1192,0,0
+Assam,1,2012,Male,Others,1145,1738,0,0
+Bihar,1,2001,Male,SC,1455,11445,1,9
+Bihar,1,2001,Male,ST,145,735,0,4
+Bihar,1,2001,Male,OBC,2175,11195,3,7
+Bihar,1,2001,Male,Others,1212,6625,8,17
+Bihar,1,2002,Male,SC,1087,6657,6,16
+Bihar,1,2002,Male,ST,397,2329,1,3
+Bihar,1,2002,Male,OBC,1992,11808,7,41
+Bihar,1,2002,Male,Others,1483,10365,19,42
+Bihar,1,2003,Male,SC,1123,6854,0,21
+Bihar,1,2003,Male,ST,365,1832,0,2
+Bihar,1,2003,Male,OBC,1538,12178,9,46
+Bihar,1,2003,Male,Others,1948,10325,13,20
+Bihar,1,2004,Male,SC,1380,6176,7,27
+Bihar,1,2004,Male,ST,344,1072,2,1
+Bihar,1,2004,Male,OBC,1990,10798,18,50
+Bihar,1,2004,Male,Others,1676,8586,38,35
+Bihar,1,2005,Male,SC,588,4698,0,47
+Bihar,1,2005,Male,ST,237,598,0,15
+Bihar,1,2005,Male,OBC,2448,17824,0,96
+Bihar,1,2005,Male,Others,2212,15701,0,32
+Bihar,1,2006,Male,SC,1423,6777,0,46
+Bihar,1,2006,Male,ST,656,2114,0,0
+Bihar,1,2006,Male,OBC,2226,13085,0,36
+Bihar,1,2006,Male,Others,2311,14130,0,59
+Bihar,1,2007,Male,SC,1378,6294,2,8
+Bihar,1,2007,Male,ST,436,1172,0,3
+Bihar,1,2007,Male,OBC,2073,11248,10,13
+Bihar,1,2007,Male,Others,2243,13446,12,8
+Bihar,1,2008,Male,SC,1302,6203,3,13
+Bihar,1,2008,Male,ST,399,1095,0,2
+Bihar,1,2008,Male,OBC,2010,11108,9,17
+Bihar,1,2008,Male,Others,2157,12143,12,7
+Bihar,1,2009,Male,SC,1116,5786,0,2
+Bihar,1,2009,Male,ST,317,970,2,0
+Bihar,1,2009,Male,OBC,1877,9617,2,2
+Bihar,1,2009,Male,Others,2113,10873,6,2
+Bihar,1,2010,Male,SC,1021,4678,2,4
+Bihar,1,2010,Male,ST,263,879,2,0
+Bihar,1,2010,Male,OBC,1809,8165,9,7
+Bihar,1,2010,Male,Others,2073,9867,21,8
+Bihar,1,2011,Male,SC,768,4988,1,4
+Bihar,1,2011,Male,ST,240,1359,0,1
+Bihar,1,2011,Male,OBC,2178,9664,4,4
+Bihar,1,2011,Male,Others,1322,6611,3,4
+Bihar,1,2012,Male,SC,560,5187,2,2
+Bihar,1,2012,Male,ST,187,1449,0,0
+Bihar,1,2012,Male,OBC,2036,9904,14,2
+Bihar,1,2012,Male,Others,1223,7023,24,9
+Chhattisgarh,1,2012,Male,SC,1259,1856,0,5
+Chhattisgarh,1,2012,Male,ST,1800,2882,0,3
+Chhattisgarh,1,2012,Male,OBC,1991,2619,0,7
+Chhattisgarh,1,2012,Male,Others,670,987,0,2
+Chhattisgarh,1,2001,Male,SC,1244,937,2,3
+Chhattisgarh,1,2001,Male,ST,1540,1670,1,2
+Chhattisgarh,1,2001,Male,OBC,1107,1472,1,2
+Chhattisgarh,1,2001,Male,Others,657,638,0,1
+Chhattisgarh,1,2002,Male,SC,1133,1249,0,5
+Chhattisgarh,1,2002,Male,ST,1658,1567,0,1
+Chhattisgarh,1,2002,Male,OBC,1250,1314,0,2
+Chhattisgarh,1,2002,Male,Others,793,606,1,0
+Chhattisgarh,1,2003,Male,SC,963,917,0,1
+Chhattisgarh,1,2003,Male,ST,1625,1492,0,2
+Chhattisgarh,1,2003,Male,OBC,1364,1022,3,7
+Chhattisgarh,1,2003,Male,Others,569,537,0,0
+Chhattisgarh,1,2004,Male,SC,892,749,0,7
+Chhattisgarh,1,2004,Male,ST,1478,1279,0,2
+Chhattisgarh,1,2004,Male,OBC,1391,1633,0,1
+Chhattisgarh,1,2004,Male,Others,559,482,0,1
+Chhattisgarh,1,2005,Male,SC,1032,1208,0,3
+Chhattisgarh,1,2005,Male,ST,1328,1588,0,1
+Chhattisgarh,1,2005,Male,OBC,1000,1614,0,6
+Chhattisgarh,1,2005,Male,Others,748,867,2,1
+Chhattisgarh,1,2006,Male,SC,1037,1030,0,2
+Chhattisgarh,1,2006,Male,ST,1330,1969,1,1
+Chhattisgarh,1,2006,Male,OBC,1055,1956,0,8
+Chhattisgarh,1,2006,Male,Others,665,834,0,0
+Chhattisgarh,1,2007,Male,SC,1135,1145,0,4
+Chhattisgarh,1,2007,Male,ST,1293,1772,0,4
+Chhattisgarh,1,2007,Male,OBC,1149,1918,0,16
+Chhattisgarh,1,2007,Male,Others,740,811,0,3
+Chhattisgarh,1,2008,Male,SC,989,1119,0,1
+Chhattisgarh,1,2008,Male,ST,1225,2091,0,0
+Chhattisgarh,1,2008,Male,OBC,1652,2056,0,3
+Chhattisgarh,1,2008,Male,Others,707,889,0,2
+Chhattisgarh,1,2009,Male,SC,1074,1358,0,0
+Chhattisgarh,1,2009,Male,ST,1602,2619,0,8
+Chhattisgarh,1,2009,Male,OBC,1594,2201,0,2
+Chhattisgarh,1,2009,Male,Others,370,732,0,6
+Chhattisgarh,1,2010,Male,SC,1225,1253,0,10
+Chhattisgarh,1,2010,Male,ST,1729,3182,0,2
+Chhattisgarh,1,2010,Male,OBC,1444,1999,1,5
+Chhattisgarh,1,2010,Male,Others,589,890,0,2
+Chhattisgarh,1,2011,Male,SC,1281,1599,0,4
+Chhattisgarh,1,2011,Male,ST,1684,2817,0,4
+Chhattisgarh,1,2011,Male,OBC,1856,2428,0,3
+Chhattisgarh,1,2011,Male,Others,567,1039,0,2
+Goa,1,2001,Male,SC,6,23,0,0
+Goa,1,2001,Male,ST,3,9,0,0
+Goa,1,2001,Male,OBC,20,46,0,0
+Goa,1,2001,Male,Others,125,209,0,0
+Goa,1,2002,Male,SC,4,2,0,0
+Goa,1,2002,Male,ST,3,0,0,0
+Goa,1,2002,Male,OBC,8,13,0,0
+Goa,1,2002,Male,Others,130,183,0,0
+Goa,1,2003,Male,SC,14,27,0,0
+Goa,1,2003,Male,ST,11,14,0,0
+Goa,1,2003,Male,OBC,3,38,0,0
+Goa,1,2003,Male,Others,112,300,1,0
+Goa,1,2004,Male,SC,0,13,0,0
+Goa,1,2004,Male,ST,0,12,0,0
+Goa,1,2004,Male,OBC,0,38,0,0
+Goa,1,2004,Male,Others,148,205,0,0
+Goa,1,2005,Male,SC,0,4,0,0
+Goa,1,2005,Male,ST,0,10,0,0
+Goa,1,2005,Male,OBC,0,10,0,0
+Goa,1,2005,Male,Others,135,205,0,0
+Goa,1,2006,Male,SC,2,12,0,0
+Goa,1,2006,Male,ST,1,21,0,0
+Goa,1,2006,Male,OBC,8,70,0,0
+Goa,1,2006,Male,Others,131,115,0,0
+Goa,1,2007,Male,SC,2,20,0,0
+Goa,1,2007,Male,ST,1,5,0,0
+Goa,1,2007,Male,OBC,8,33,0,0
+Goa,1,2007,Male,Others,134,143,0,0
+Goa,1,2008,Male,SC,2,17,0,0
+Goa,1,2008,Male,ST,1,12,0,0
+Goa,1,2008,Male,OBC,8,58,0,0
+Goa,1,2008,Male,Others,130,150,0,0
+Goa,1,2009,Male,SC,0,4,0,0
+Goa,1,2009,Male,ST,0,1,0,0
+Goa,1,2009,Male,OBC,0,7,0,0
+Goa,1,2009,Male,Others,181,208,0,0
+Goa,1,2010,Male,SC,1,7,0,0
+Goa,1,2010,Male,ST,2,6,0,0
+Goa,1,2010,Male,OBC,2,36,0,0
+Goa,1,2010,Male,Others,164,203,0,0
+Goa,1,2011,Male,SC,5,10,0,0
+Goa,1,2011,Male,ST,5,8,0,0
+Goa,1,2011,Male,OBC,18,110,0,0
+Goa,1,2011,Male,Others,110,189,0,0
+Goa,1,2012,Male,SC,7,14,0,0
+Goa,1,2012,Male,ST,9,10,0,0
+Goa,1,2012,Male,OBC,16,92,0,0
+Goa,1,2012,Male,Others,100,196,0,0
+Gujarat,1,2001,Male,SC,628,957,51,0
+Gujarat,1,2001,Male,ST,694,949,48,0
