@@ -31,27 +31,27 @@ id = id_factory('data_explorer')
 # Object declaration
 basic_elements = [
     {
-        'data': {'id': 'one', 'label': 'Dataset 1'},
+        'data': {'id': 'one', 'label': 'Table 1'},
         'position': {'x': 50, 'y': 50}
     },
     {
-        'data': {'id': 'two', 'label': 'Dataset 2'},
+        'data': {'id': 'two', 'label': 'Table 2'},
         'position': {'x': 200, 'y': 200}
     },
     {
-        'data': {'id': 'three', 'label': 'Dataset 3'},
+        'data': {'id': 'three', 'label': 'Table 3'},
         'position': {'x': 100, 'y': 150}
     },
     {
-        'data': {'id': 'four', 'label': 'Dataset 4'},
+        'data': {'id': 'four', 'label': 'Table 4'},
         'position': {'x': 400, 'y': 50}
     },
     {
-        'data': {'id': 'five', 'label': 'Dataset 5'},
+        'data': {'id': 'five', 'label': 'Table 5'},
         'position': {'x': 250, 'y': 100}
     },
     {
-        'data': {'id': 'six', 'label': 'Dataset 6', 'parent': 'three'},
+        'data': {'id': 'six', 'label': 'Table 6', 'parent': 'three'},
         'position': {'x': 150, 'y': 150}
     },
     {
@@ -67,7 +67,8 @@ basic_elements = [
             'id': 'one-five',
             'source': 'one',
             'target': 'five',
-            'label': 'Edge from Dataset 1 to Dataset 5'
+            'label': 'Edge from Table 1 to Table 5',
+            'extra_data': 'hello'
         }
     },
     {
@@ -75,7 +76,7 @@ basic_elements = [
             'id': 'two-four',
             'source': 'two',
             'target': 'four',
-            'label': 'Edge from Dataset 2 to Dataset 4'
+            'label': 'Edge from Table 2 to Table 4'
         }
     },
     {
@@ -83,7 +84,7 @@ basic_elements = [
             'id': 'three-five',
             'source': 'three',
             'target': 'five',
-            'label': 'Edge from Dataset 3 to Dataset 5'
+            'label': 'Edge from Table 3 to Table 5'
         }
     },
     {
@@ -91,7 +92,7 @@ basic_elements = [
             'id': 'three-two',
             'source': 'three',
             'target': 'two',
-            'label': 'Edge from Dataset 3 to Dataset 2'
+            'label': 'Edge from Table 3 to Table 2'
         }
     },
     {
@@ -99,7 +100,7 @@ basic_elements = [
             'id': 'four-four',
             'source': 'four',
             'target': 'four',
-            'label': 'Edge from Dataset 4 to Dataset 4'
+            'label': 'Edge from Table 4 to Table 4'
         }
     },
     {
@@ -107,7 +108,7 @@ basic_elements = [
             'id': 'four-six',
             'source': 'four',
             'target': 'six',
-            'label': 'Edge from Dataset 4 to Dataset 6'
+            'label': 'Edge from Table 4 to Table 6'
         }
     },
     {
@@ -115,7 +116,7 @@ basic_elements = [
             'id': 'five-one',
             'source': 'five',
             'target': 'one',
-            'label': 'Edge from Dataset 5 to Dataset 1'
+            'label': 'Edge from Table 5 to Table 1'
         }
     },
 ]
@@ -130,19 +131,18 @@ styles = {
 }
 
 
-tab_labels = ['About', 'Sample Data']
-tab_values = [id('about'), id('sample_data')]
-
 
 layout = html.Div([
-
     html.Div([
-        dbc.Row(dbc.Col(html.H1('Data Explorer')), style={'text-align':'center'}),
+        # dbc.Row(dbc.Col(html.H1('Data Explorer')), style={'text-align':'center'}),
 
         dbc.Row([
             dbc.Col([
-                html.Button('Add Dataset', id('add_node')), 
-                html.Button('Remove Dataset', id('remove_node')),
+                html.H1('Data Lineage (Experiments)', style={'text-align':'center'}),
+                html.Button('Add Table', id('button_add'), className='btn btn-primary btn-lg', style={'margin-right':'3px'}), 
+                html.Button('Merge Tables', id('button_merge'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}),
+                html.Button('Remove Table', id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
+                html.H5('Selected: None', id=id('selected_table'), style={'text-align':'center', 'background-color': 'silver'}),
                 cyto.Cytoscape(id=id('data_explorer'), elements=basic_elements, 
                                 layout={'name': 'preset'},
                                 style={'height': '1000px','width': '100%'})
@@ -150,67 +150,101 @@ layout = html.Div([
 
             dbc.Col([
                 dcc.Tabs(id='tabs', children=[
-                    dcc.Tab(label='About', children=[
+                    dcc.Tab(label='Data', children=[
                         html.Div(style=styles['tab'], children=[
-                            html.P('Columns'),
-                            html.Pre(id='tap-node-json-output',style=styles['json-output']),
-                            html.P('Difference'),
-                            html.Pre(id='tap-edge-json-output', style=styles['json-output'])
+                            html.Pre(id=id('data_output'),style={'overflow-y': 'scroll', 'height':'95%'}),
                         ])
-                    ]),
+                    ], id=id('tab_1')),
 
-                    dcc.Tab(label='Sample Data', children=[
+                    dcc.Tab(label='Profile', children=[
                         html.Div(style=styles['tab'], children=[
                             html.P('Data'),
-                            html.Pre(id='tap-node-data-json-output',style={'overflow-y': 'scroll', 'height':'95%'}),
+                            html.Pre(id=id('profile_output'),style={'overflow-y': 'scroll', 'height':'95%'}),
                         ])
                     ]),
                 ]),
+
             ], width=4),
         ]),
     ], style={'width':'100%'}),
 ])
 
 
-@app.callback(Output('tap-node-json-output', 'children'),
-              [Input(id('data_explorer'), 'tapNode')])
-def displayTapNode(data):
-    return json.dumps(data, indent=2)
+# Display Selected Table Name
+@app.callback(Output(id('selected_table'), 'children'), 
+                Input(id('data_explorer'), 'selectedNodeData'))
+def display_selected_table(selected_node_list):
+    if selected_node_list is None or len(selected_node_list) == 0: return 'Selected: None'
+    node_list = [node['label'] for node in selected_node_list]
+    return 'Selected: ' + ', '.join(node_list)
 
 
-@app.callback(Output('tap-edge-json-output', 'children'),
-              [Input(id('data_explorer'), 'tapEdge')])
-def displayTapEdge(data):
-    return json.dumps(data, indent=2)
+# Display Table Data & Difference
+@app.callback(Output(id('tab_1'), 'label'),
+                Output(id('data_output'), 'children'),
+                [Input(id('data_explorer'), 'tapNodeData'),
+                Input(id('data_explorer'), 'selectedNodeData'),
+                Input(id('data_explorer'), 'tapEdgeData')])
+def displayTapNode(node_data, selectedNodeData, edge_data):
+    triggered = callback_context.triggered[0]['prop_id']
+    if triggered == '.': return no_update
+    triggered = triggered.rsplit('.', 1)[1]
+
+    if triggered == 'tapNodeData':
+        label = 'Table Data'
+        data = node_data
+
+    elif triggered == 'selectedNodeData':
+        label = '?'
+        data = selectedNodeData
+
+    elif triggered == 'tapEdgeData':
+        label = 'Difference'
+        data = edge_data
+
+    print(triggered)
+
+    return triggered, json.dumps(data, indent=2)
 
 
-@app.callback(Output('tap-node-data-json-output', 'children'),
-              [Input(id('data_explorer'), 'tapNodeData')])
-def displayTapNodeData(data):
-    return json.dumps(data, indent=2)
+# @app.callback(Output(id('profile_output'), 'children'),
+#               [Input(id('data_explorer'), 'tapNodeData')])
+# def displayTapNodeData(data):
+#     return json.dumps(data, indent=2)
 
 
+
+
+
+# Add & TODO Delete & Merge Tables
 @app.callback(Output(id('data_explorer'), 'elements'), 
-            [Input(id('add_node'), 'n_clicks'), 
-            State(id('data_explorer'), 'tapNodeData'),
-            State(id('data_explorer'), 'elements'),
-            ])
-def add_node(n_clicks, tapNodeData, elements):
+                [Input(id('button_add'), 'n_clicks'), 
+                State(id('data_explorer'), 'tapNodeData'),
+                State(id('data_explorer'), 'elements'),
+                ])
+def add_table(n_clicks, tapNodeData, elements):
     if n_clicks is None: return no_update
-    pprint(tapNodeData['id'])
-    # pprint(elements)
+    if tapNodeData is None: return no_update
+
+    # triggered = callback_context.triggered[0]['prop_id']
+    # if triggered == '.': return no_update
+    # triggered = triggered.rsplit('.', 1)[1]
+
+    new_table_id = str(len(elements)//2)
     elements += [
         {
-        'data': {'id': 'seven', 'label': 'Node 7'},
-        'position': {'x': 150, 'y': 150}
+        'data': {'id': new_table_id, 'label': 'Table '+str(new_table_id)},
+        # 'position': {'x': 150, 'y': 150}
         },
         {
             'data': {
-                'id': tapNodeData['id'] + '-' + 'seven',
+                'id': tapNodeData['id'] + '_' + new_table_id,
                 'source': tapNodeData['id'],
-                'target': 'seven',
-                'label': 'Edge from Node1 to Node2'
+                'target': new_table_id,
+                'label': 'Edge from ' + str(tapNodeData['id']) + ' to ' + str(new_table_id)
             }
         }
     ]
     return elements
+
+

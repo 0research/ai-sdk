@@ -41,7 +41,7 @@ GITHUBACTION = "../assets/static/githubaction-icon.svg"
 
 navbar_right = dbc.Row([
     dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
-    dbc.Col(dbc.Button("Data Explorer", href='/apps/data_explorer', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
+    dbc.Col(dbc.Button("Data Lineage", href='/apps/data_explorer', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
     dbc.Col(dbc.Input(type="search", placeholder="Search")) ],
     className="ml-auto flex-nowrap mt-3 mt-md-0",
     align="center",
@@ -65,6 +65,16 @@ navbar = dbc.Navbar([
     html.A(dbc.Row([dbc.Col(html.Img(src=GITHUB, height="30px",id="tooltip-github"))], align="center"),href="https://github.com/0research/ai-sdk"), # Link to href='https://github.com/0research/ai-sdk'
     html.A(dbc.Row([dbc.Col(html.Img(src=DOCKER, height="30px",id="tooltip-docker"))], align="center"), href="https://hub.docker.com/r/0research/ai-sdk"), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
     html.A(dbc.Row([dbc.Col(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction"))], align="center"), href="https://github.com/marketplace/actions/ai-sdk-action"), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
+    dbc.Row(html.Label('Choose Dataset', style={'color':'white'})),
+    html.Div(dbc.Row(dbc.Col([dcc.Dropdown(options=[
+        {'label': 'Dataset_1', 'value': 'd1'},
+        {'label': 'Dataset_2', 'value': 'd2'},
+        {'label': 'Dataset_3', 'value': 'd3'},
+        {'label': 'Dataset_4', 'value': 'd4'},
+        # TODO Add #DropdownMenu addons https://dbc-v1.herokuapp.com/docs/components/input_group/
+    ], value='d1', clearable=False)]), align="center"), style={'width':'100px'}),
+    
+
 
     navbar_right,
 
@@ -86,7 +96,7 @@ sidebar = html.Div([
         html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
         dbc.NavLink("Upload Data", href="/apps/upload_data", active="exact", className="fas fa-upload"),
         dbc.NavLink("Workflow", href="/apps/workflow", active="exact", className="fas fa-arrow-alt-circle-right"),
-        dbc.NavLink("Data Explorer", href="/apps/data_explorer", active="exact", className="fas fa-database"),
+        dbc.NavLink("Data Lineage", href="/apps/data_explorer", active="exact", className="fas fa-database"),
         html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
         dbc.NavLink("Overview", href="/apps/overview", active="exact", className="fas fa-chart-pie"),
         dbc.NavLink("Merge Strategy", href="/apps/merge_strategy", active="exact", className='fas fa-chess-knight'),

@@ -343,7 +343,9 @@ def update_output(tab, datatype, remove_list_n_clicks, column):
     # Profile
     profile = {}
     profile['datatype'] = dict(zip(column, datatype))
+    profile['index'] = '' # TODO Store index field 
     profile['expectation'] = {} # TODO Store expectations 
+    
 
     # Remove Column List
     remove_list = []
