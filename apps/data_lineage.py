@@ -31,27 +31,27 @@ id = id_factory('data_explorer')
 # Object declaration
 basic_elements = [
     {
-        'data': {'id': 'one', 'label': 'Table 1'},
+        'data': {'id': 'one', 'label': 'Version 1'},
         'position': {'x': 50, 'y': 50}
     },
     {
-        'data': {'id': 'two', 'label': 'Table 2'},
+        'data': {'id': 'two', 'label': 'Version 2'},
         'position': {'x': 200, 'y': 200}
     },
     {
-        'data': {'id': 'three', 'label': 'Table 3'},
+        'data': {'id': 'three', 'label': 'Version 3'},
         'position': {'x': 100, 'y': 150}
     },
     {
-        'data': {'id': 'four', 'label': 'Table 4'},
+        'data': {'id': 'four', 'label': 'Version 4'},
         'position': {'x': 400, 'y': 50}
     },
     {
-        'data': {'id': 'five', 'label': 'Table 5'},
+        'data': {'id': 'five', 'label': 'Version 5'},
         'position': {'x': 250, 'y': 100}
     },
     {
-        'data': {'id': 'six', 'label': 'Table 6', 'parent': 'three'},
+        'data': {'id': 'six', 'label': 'Version 6', 'parent': 'three'},
         'position': {'x': 150, 'y': 150}
     },
     {
@@ -67,7 +67,7 @@ basic_elements = [
             'id': 'one-five',
             'source': 'one',
             'target': 'five',
-            'label': 'Edge from Table 1 to Table 5',
+            'label': 'Edge from Version 1 to Version 5',
             'extra_data': 'hello'
         }
     },
@@ -76,7 +76,7 @@ basic_elements = [
             'id': 'two-four',
             'source': 'two',
             'target': 'four',
-            'label': 'Edge from Table 2 to Table 4'
+            'label': 'Edge from Version 2 to Version 4'
         }
     },
     {
@@ -84,7 +84,7 @@ basic_elements = [
             'id': 'three-five',
             'source': 'three',
             'target': 'five',
-            'label': 'Edge from Table 3 to Table 5'
+            'label': 'Edge from Version 3 to Version 5'
         }
     },
     {
@@ -92,7 +92,7 @@ basic_elements = [
             'id': 'three-two',
             'source': 'three',
             'target': 'two',
-            'label': 'Edge from Table 3 to Table 2'
+            'label': 'Edge from Version 3 to Version 2'
         }
     },
     {
@@ -100,7 +100,7 @@ basic_elements = [
             'id': 'four-four',
             'source': 'four',
             'target': 'four',
-            'label': 'Edge from Table 4 to Table 4'
+            'label': 'Edge from Version 4 to Version 4'
         }
     },
     {
@@ -108,7 +108,7 @@ basic_elements = [
             'id': 'four-six',
             'source': 'four',
             'target': 'six',
-            'label': 'Edge from Table 4 to Table 6'
+            'label': 'Edge from Version 4 to Version 6'
         }
     },
     {
@@ -116,7 +116,7 @@ basic_elements = [
             'id': 'five-one',
             'source': 'five',
             'target': 'one',
-            'label': 'Edge from Table 5 to Table 1'
+            'label': 'Edge from Version 5 to Version 1'
         }
     },
 ]
@@ -139,10 +139,10 @@ layout = html.Div([
         dbc.Row([
             dbc.Col([
                 html.H1('Data Lineage (Experiments)', style={'text-align':'center'}),
-                html.Button('Add Table', id('button_add'), className='btn btn-primary btn-lg', style={'margin-right':'3px'}), 
-                html.Button('Merge Tables', id('button_merge'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}),
-                html.Button('Remove Table', id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
-                html.H5('Selected: None', id=id('selected_table'), style={'text-align':'center', 'background-color': 'silver'}),
+                html.Button('Add Version', id('button_add'), className='btn btn-primary btn-lg', style={'margin-right':'3px'}), 
+                html.Button('Merge Versions', id('button_merge'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}),
+                html.Button('Remove Version', id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
+                html.H5('Selected: None', id=id('selected_version'), style={'text-align':'center', 'background-color': 'silver'}),
                 cyto.Cytoscape(id=id('data_explorer'), elements=basic_elements, 
                                 layout={'name': 'preset'},
                                 style={'height': '1000px','width': '100%'})
@@ -170,16 +170,16 @@ layout = html.Div([
 ])
 
 
-# Display Selected Table Name
-@app.callback(Output(id('selected_table'), 'children'), 
+# Display Selected Version Name
+@app.callback(Output(id('selected_version'), 'children'), 
                 Input(id('data_explorer'), 'selectedNodeData'))
-def display_selected_table(selected_node_list):
+def display_selected_version(selected_node_list):
     if selected_node_list is None or len(selected_node_list) == 0: return 'Selected: None'
     node_list = [node['label'] for node in selected_node_list]
     return 'Selected: ' + ', '.join(node_list)
 
 
-# Display Table Data & Difference
+# Display Version Data & Difference
 @app.callback(Output(id('tab_1'), 'label'),
                 Output(id('data_output'), 'children'),
                 [Input(id('data_explorer'), 'tapNodeData'),
@@ -191,7 +191,7 @@ def displayTapNode(node_data, selectedNodeData, edge_data):
     triggered = triggered.rsplit('.', 1)[1]
 
     if triggered == 'tapNodeData':
-        label = 'Table Data'
+        label = 'Version Data'
         data = node_data
 
     elif triggered == 'selectedNodeData':
@@ -216,13 +216,13 @@ def displayTapNode(node_data, selectedNodeData, edge_data):
 
 
 
-# Add & TODO Delete & Merge Tables
+# Add & TODO Delete & Merge Versions
 @app.callback(Output(id('data_explorer'), 'elements'), 
                 [Input(id('button_add'), 'n_clicks'), 
                 State(id('data_explorer'), 'tapNodeData'),
                 State(id('data_explorer'), 'elements'),
                 ])
-def add_table(n_clicks, tapNodeData, elements):
+def add_version(n_clicks, tapNodeData, elements):
     if n_clicks is None: return no_update
     if tapNodeData is None: return no_update
 
@@ -230,18 +230,18 @@ def add_table(n_clicks, tapNodeData, elements):
     # if triggered == '.': return no_update
     # triggered = triggered.rsplit('.', 1)[1]
 
-    new_table_id = str(len(elements)//2)
+    new_version_id = str(len(elements)//2)
     elements += [
         {
-        'data': {'id': new_table_id, 'label': 'Table '+str(new_table_id)},
+        'data': {'id': new_version_id, 'label': 'Version '+str(new_version_id)},
         # 'position': {'x': 150, 'y': 150}
         },
         {
             'data': {
-                'id': tapNodeData['id'] + '_' + new_table_id,
+                'id': tapNodeData['id'] + '_' + new_version_id,
                 'source': tapNodeData['id'],
-                'target': new_table_id,
-                'label': 'Edge from ' + str(tapNodeData['id']) + ' to ' + str(new_table_id)
+                'target': new_version_id,
+                'label': 'Edge from ' + str(tapNodeData['id']) + ' to ' + str(new_version_id)
             }
         }
     ]

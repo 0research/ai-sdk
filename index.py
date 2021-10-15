@@ -9,7 +9,7 @@ from app import server
 from app import dbc # https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
 
 from apps import (upload_data, overview, merge_strategy, temporal_evolution, temporal_merge, 
-                time_series_decomposition, impute_time_series_missing_data, remove_duplicate, data_explorer,
+                time_series_decomposition, impute_time_series_missing_data, remove_duplicate, data_lineage,
                 page2, page3, page6, page6,page7, page8, page9, page10)
 
 
@@ -41,7 +41,7 @@ GITHUBACTION = "../assets/static/githubaction-icon.svg"
 
 navbar_right = dbc.Row([
     dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
-    dbc.Col(dbc.Button("Data Lineage", href='/apps/data_explorer', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
+    dbc.Col(dbc.Button("Data Lineage", href='/apps/data_lineage', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
     dbc.Col(dbc.Input(type="search", placeholder="Search")) ],
     className="ml-auto flex-nowrap mt-3 mt-md-0",
     align="center",
@@ -96,7 +96,7 @@ sidebar = html.Div([
         html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
         dbc.NavLink("Upload Data", href="/apps/upload_data", active="exact", className="fas fa-upload"),
         dbc.NavLink("Workflow", href="/apps/workflow", active="exact", className="fas fa-arrow-alt-circle-right"),
-        dbc.NavLink("Data Lineage", href="/apps/data_explorer", active="exact", className="fas fa-database"),
+        dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
         html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
         dbc.NavLink("Overview", href="/apps/overview", active="exact", className="fas fa-chart-pie"),
         dbc.NavLink("Merge Strategy", href="/apps/merge_strategy", active="exact", className='fas fa-chess-knight'),
@@ -104,7 +104,7 @@ sidebar = html.Div([
         dbc.NavLink("Impute Missing Data", href="/apps/impute_time_series_missing_data", active="exact", className='fas fa-search-plus'),
         dbc.NavLink("Remove Duplicate", href="/apps/remove_duplicate", active="exact", className='far fa-copy'),
         dbc.NavLink("Time Series Decomposition", href="/apps/time_series_decomposition", active="exact", className='fas fa-recycle'),
-        # dbc.NavLink("Data Lineage", href="/apps/data_explorer", active="exact", className='fas fa-history'),
+        # dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className='fas fa-history'),
 
         # dcc.Link(' Page 3 | ', href='/apps/page3'),
         # dcc.Link('Page 6 | ', href='/apps/page6'),
@@ -141,7 +141,7 @@ def display_page(pathname):
     if pathname == '/apps/impute_time_series_missing_data': return impute_time_series_missing_data.layout
     if pathname == '/apps/remove_duplicate': return remove_duplicate.layout
 
-    if pathname == '/apps/data_explorer': return data_explorer.layout
+    if pathname == '/apps/data_lineage': return data_lineage.layout
 
     # if pathname == '/apps/page3': return page3.layout
     # if pathname == '/apps/temporal_merge': return temporal_merge.layout
