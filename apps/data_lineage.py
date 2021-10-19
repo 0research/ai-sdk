@@ -138,7 +138,7 @@ layout = html.Div([
 
         dbc.Row([
             dbc.Col([
-                html.H1('Data Lineage (Experiments)', style={'text-align':'center'}),
+                html.H1('Data Lineage (Data Flow Experiments)', style={'text-align':'center'}),
                 html.Button('Add Version', id('button_add'), className='btn btn-primary btn-lg', style={'margin-right':'3px'}), 
                 html.Button('Merge Versions', id('button_merge'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}),
                 html.Button('Remove Version', id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),

@@ -31,7 +31,7 @@ id = id_factory('merge_strategy')
 
 # Layout
 layout = html.Div([
-    dcc.Store(id='dataset_setting', storage_type='session'),
+    dcc.Store(id='dataset_metadata', storage_type='session'),
     dcc.Store(id=id('slider_store'), storage_type='session'),
     dcc.Store(id=id('selection_list_store'), storage_type='session'),
     dcc.Store(id=id('merge_strategy_store'), storage_type='session'),
@@ -84,7 +84,7 @@ layout = html.Div([
 @app.callback([Output(id('input_datatable'), "data"), 
                 Output(id('input_datatable'), 'columns')], 
                 [Input('url', 'pathname'),
-                State('dataset_setting', "data")])
+                State('dataset_metadata', "data")])
 def update_data_table(pathname, setting):
     if setting is None: return no_update
     
@@ -177,7 +177,7 @@ for x in range(1, 3):
                     [Input(id('button_json_')+str(x), 'n_clicks'),
                     State(id('selection_list_store'), 'data'), 
                     State(id('merge_strategy_store'), 'data'), 
-                    State('dataset_setting', 'data'), 
+                    State('dataset_metadata', 'data'), 
                     State(id('input_datatable'), 'data')])
     def save_json(n_clicks, selected_list, merge_strategy, setting, data):
         if selected_list is None or len(selected_list) == 0: return []

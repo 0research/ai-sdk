@@ -20,8 +20,25 @@ from itertools import zip_longest
 from datetime import datetime
 from pandas import json_normalize
 from pathlib import Path
-
 from apps.typesense_client import *
+import time
+
+from pathlib import Path
+import uuid
+import dash_uploader as du
+
+
+UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"
+du.configure_upload(app, UPLOAD_FOLDER_ROOT)
+
+def get_upload_component(id):
+    return du.Upload(
+        id=id,
+        max_file_size=1,  # 1 Mb
+        filetypes=['csv', 'json', 'jsonl'],
+        upload_id=uuid.uuid1(),  # Unique session id
+        max_files=100,
+    )
 
 
 app.scripts.config.serve_locally = True
@@ -55,7 +72,8 @@ option_delimiter = [
 
 # Layout
 layout = html.Div([
-    dcc.Store(id='dataset_setting', storage_type='session'),
+    dcc.Store(id=id('api_list'), storage_type='memory'),
+    dcc.Store(id='dataset_metadata', storage_type='session'),
     dcc.Store(id='dataset_profile', storage_type='session'),
     dcc.Store(id=id('remove_list'), storage_type='session'),
 
@@ -90,9 +108,9 @@ def generate_tab_content(active_tab):
 
             dbc.Col([
                 html.H5('Step 1.2: Upload Data (Smaller than 1MB)'),
-                html.Div(id='callback-output'),
-                generate_upload('upload_json', "Drag and Drop or Click Here to Select Files"),
-                html.Div(id=id('upload_text')),
+                get_upload_component(id=id('upload')),
+                # generate_upload('upload_json', "Drag and Drop or Click Here to Select Files"),
+                html.Div(id=id('upload_select_div'), children=[]),
                 html.Button('Upload', id=id('button_upload'), className='btn btn-primary btn-block', style={'margin':'20px 0px 0px 0px', 'font-size': '13px', 'font-weight': 'bold'}),
             ], className='text-center', width=6),
 
@@ -132,36 +150,71 @@ def generate_tab_content(active_tab):
 
     return content
 
-@app.callback(Output(id('upload_text'), 'children'),
-                Input('upload_json', 'filename'))
-def generate_selected_files(filename):
-    if filename is None: return no_update
-    if len(str(filename)) > 80:
-        filename =str(filename)
-        filename = filename[:20] + " ... " + filename[-20:]
-    return filename
 
-
-# Save Uploaded data & Settings
-@app.callback([Output('dataset_setting', 'data'), 
-                Output(id('upload_error'), 'children')],
-                [Input(id('button_upload'), 'n_clicks'),  
-                Input(id('dropdown_file_type'), 'value'), 
-                Input(id('dropdown_delimiter'), 'value'), 
-                Input(id('checklist_settings'), 'value'),
-                State('upload_json', 'contents'), 
-                State(id('input_name'), 'value'),
-                State('upload_json', 'filename'), 
-                State('upload_json', 'last_modified')])
-def save_settings_dataset(n_clicks, type, delimiter, checklist_settings, contents, input_name, filename, last_modified):
+# Handles files being staged for uploading
+@app.callback([Output(id('api_list'), 'data'),
+                Output(id('upload_select_div'), 'children')],
+                [Input(id('upload'), 'isCompleted'),
+                Input({'type': id('upload_select_list'), 'index': ALL }, 'value')],
+                [State(id('api_list'), 'data'),
+                State(id('upload'), 'fileNames'),
+                State(id('upload'), 'upload_id'),
+                State(id('upload_select_div'), 'children')])
+def process_upload(iscompleted, selection_list, api_list_store, filenames, upload_id, upload_select_div):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
 
-    # Save Settings
-    settings = {}
-    settings['name'] = input_name
-    settings['type'] = type
-    settings['delimiter'] = delimiter
-    settings['checklist'] = checklist_settings
+    # Initalize Variables
+    num_uploads = len(upload_select_div)
+    api_list = []
+    if api_list_store is None: api_list_store = []
+    out = []
+    root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
+    time.sleep(0.5)
+    # If Upload Triggered
+    if triggered == id('upload'):
+        if not iscompleted: return no_update
+
+        api_list = [(root_folder / filename).as_posix() for filename in os.listdir(root_folder)]    # Filenames uploaded in server
+        flat_api_list_store = [val for sublist in api_list_store for val in sublist]        # Filenames stored in local memory
+        files_to_add = list(set(api_list) - set(flat_api_list_store))
+        
+        if len(files_to_add) > 0:
+            api_list_store.append(files_to_add)
+            options = [{'label': filename.rsplit('/', 1)[1], 'value': filename} for filename in files_to_add]
+            new = dcc.Dropdown(options=options, value=files_to_add, multi=True, clearable=True, id={'type': id('upload_select_list'), 'index': num_uploads})
+            out = upload_select_div + [new]
+            return api_list_store, out
+        else:
+            return no_update
+    # If remove from dropdown triggered
+    else:
+        for uploads, selection in zip(api_list_store, selection_list):
+            files_to_remove = set(uploads) - set(selection)
+            try:
+                for filename in os.listdir(root_folder):
+                    file = (root_folder/filename).as_posix()
+                    if file in files_to_remove:
+                        os.remove(file)
+            except Exception as e:
+                print(e)
+
+        upload_select_div = list(filter(lambda x: len(x['props']['value']) != 0, upload_select_div))
+        return selection_list, upload_select_div
+
+
+# Upload Button
+@app.callback([Output('dataset_metadata', 'data'),
+                Output(id('upload_error'), 'children')], 
+                [Input(id('button_upload'), 'n_clicks'),
+                Input(id('dropdown_file_type'), 'value'),
+                Input(id('dropdown_delimiter'), 'value'), 
+                Input(id('checklist_settings'), 'value'),
+                State(id('input_name'), 'value'),
+                State(id('api_list'), 'data')])
+def upload(n_clicks, type, delimiter, checklist_settings, input_name, api_list):
+    if n_clicks is None: return no_update
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+    metadata_name = 'dataset_' + input_name + '_metadata'
 
     # If upload clicked.
     if triggered == id('button_upload'):
@@ -171,59 +224,53 @@ def save_settings_dataset(n_clicks, type, delimiter, checklist_settings, content
             return no_update, html.Div('Invalid File Name', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger')
         # Check if name exist
         for c in client.collections.retrieve():
-            if c['name'] == input_name:
+            if c['name'] == metadata_name:
                 print('File Name Exist')
                 return no_update, html.Div('File Name Exist', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger')
+    
+    # Store & Upload Metadata
+    metadata = {}
+    metadata['api'] = ['api_' + str(num) for num in list(range(len(api_list)))]
+    metadata['blob'] = []
+    metadata['index'] = []
+    metadata['datatype'] = {}
+    metadata['expectation'] = []
+    metadata['setting'] = {'type': type, 'delimiter': delimiter, 'checklist': checklist_settings}
 
-        # JSON Uploaded
-        if all(f.endswith('.json') for f in filename):
-            data = []
-            try:
-                for filename, content in zip(filename, contents):
-                    content_type, content_string = content.split(',')
-                    decoded = base64.b64decode(content_string)
-                    decoded = json.loads(decoded.decode('utf-8'))
-                    decoded = flatten(decoded)
-                    data.append(decoded)
-            except Exception as e:
-                print(e)
+    client.collections.create(generate_schema_auto(metadata_name))
+    result = client.collections[metadata_name].documents.create(metadata)
+    print('result: ', result)
 
+    # Read Files
+    for file_list in api_list:
+        data = []
+        if all(f.endswith('.json') for f in file_list): # JSON Uploaded
+            for file in file_list:
+                with open(file, 'r') as f:
+                    json_file = json.load(f)
+                json_file = flatten(json_file)
+                data.append(json_file)
             df = json_normalize(data)
 
+        elif all(f.endswith('.csv') for f in file_list):
+            df = pd.read_csv(file_list[0]) # Assume only 1 CSV uploaded
 
-        # CSV Uploaded
-        elif len(filename) == 1 and filename[0].endswith('csv'):
-            content_type, content_string = contents[0].split(',')
-            decoded = base64.b64decode(content_string)
-            df = pd.read_csv(io.StringIO(decoded.decode('utf-8')), sep=delimiter, header=0)
+        df.fillna('None', inplace=True) # Replace null with 'None
+        jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+        
+        
+        # return metadata, html.Div('Successfully Uploaded', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-success') 
 
-        # Replace null with 'None'
-        df.fillna('None', inplace=True)
-
-        # Convert to jsonl
-        jsonl = df.to_json(orient='records', lines=True)
-
-        # Check if exceed size
-        if sys.getsizeof(jsonl) > 1000000:
-            print('Filesize: ', sys.getsizeof(jsonl))
-            return no_update, html.Div('File size too large!', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger') 
-
-        # Upload to typesense
-        schema = generate_schema_auto(input_name)
-        client.collections.create(schema)
-        client.collections[input_name].documents.import_(jsonl, {'action': 'create'})
-
-        return settings, html.Div('Successfully Uploaded', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-success') 
-
-    else:
-        return settings, ''
+    # # CSV Uploaded
+    
+        
 
 
 # Update Sample Datatable 
 @app.callback([Output(id('input_datatable_sample'), "data"), 
                 Output(id('input_datatable_sample'), 'columns'),
-                Output(id('input_datatable_sample'), 'style_data_conditional')], 
-                Input('dataset_setting', "data"))
+                Output(id('input_datatable_sample'), 'style_data_conditional')],
+                [Input('dataset_metadata', "data")])
 def update_data_table(settings):
     if settings is None or settings['name'] is None: return no_update
 
@@ -240,7 +287,12 @@ def update_data_table(settings):
     if 'remove_header' in settings['checklist']:
         style_data_conditional.append({'if': {'row_index': 0}, 'backgroundColor': 'grey'})
 
-    return df.to_dict('records'), columns, style_data_conditional
+    # if len(str(filename)) > 80:
+    #     filename =str(filename)
+    #     filename = filename[:20] + " ... " + filename[-20:]
+    # options.append({'label': filename, 'value': })
+
+    return df.to_dict('records'), columns, style_data_conditional, no_update
 
 
 
@@ -273,7 +325,7 @@ def generate_expectations():
     
 
 @app.callback(Output(id('data_profile'), 'children'), 
-            [Input('dataset_setting', 'data'),
+            [Input('dataset_metadata', 'data'),
             Input('url', 'pathname')])
 def generate_profile(settings, pathname):
     if settings is None or settings['name'] is None: return no_update
@@ -360,7 +412,7 @@ def update_output(tab, datatype, remove_list_n_clicks, column):
 @app.callback([Output(id('input_datatable'), "data"), 
                 Output(id('input_datatable'), 'columns')], 
                 [Input(id("tabs_content"), "value"),
-                State('dataset_setting', "data"),
+                State('dataset_metadata', "data"),
                 State('dataset_profile', "data"),
                 State(id('remove_list'), "data")])
 def update_data_table(tab, settings, profile, remove_list):
@@ -388,7 +440,7 @@ def update_data_table(tab, settings, profile, remove_list):
 # Update typesense dataset with settings/profile/columns to remove
 # @app.callback(Output(id('????????'), "??????"), 
 #                 [Input(id("button_confirm"), "n_clicks"),
-#                 State('dataset_setting', "data"),
+#                 State('dataset_metadata', "data"),
 #                 State('dataset_profile', "data")])
 # def upload_data(n_clicks, setting, profile):
 #     if n_clicks is None: return no_update

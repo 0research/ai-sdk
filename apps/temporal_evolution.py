@@ -15,7 +15,7 @@ id = id_factory('temporal_evolution')
 
 # Layout
 layout = html.Div([
-    dcc.Store(id='dataset_setting', storage_type='session'),
+    dcc.Store(id='dataset_metadata', storage_type='session'),
     dcc.Store(id=id('selection_list_store'), storage_type='session'),
     dcc.Store(id=id('json_store_1'), storage_type='session'),
     dcc.Store(id=id('json_store_2'), storage_type='session'),
@@ -63,7 +63,7 @@ layout = html.Div([
 @app.callback([Output(id('input_datatable'), "data"), 
                 Output(id('input_datatable'), 'columns')], 
                 [Input('url', 'pathname'),
-                State('dataset_setting', "data")])
+                State('dataset_metadata', "data")])
 def update_data_table(pathname, setting):
     if setting is None: return no_update
     
@@ -114,7 +114,7 @@ for x in range(1, 3):
     @app.callback(Output(id('json_store_')+str(x), 'data'), 
                 [Input(id('button_json_')+str(x), 'n_clicks'),
                 State(id('selection_list_store'), 'data'), 
-                State('dataset_setting', 'data'), 
+                State('dataset_metadata', 'data'), 
                 State(id('input_datatable'), 'data')])
     def save_json(n_clicks, selected_list, setting, data):
         if n_clicks is None: return no_update
@@ -149,7 +149,7 @@ for x in range(3, 6):
     @app.callback(Output(id('json_store_')+str(x), 'data'), 
                 [Input(id('button_json_')+str(x), 'n_clicks'),
                 State(id('selection_list_store'), 'data'), 
-                State('dataset_setting', 'data'), 
+                State('dataset_metadata', 'data'), 
                 State(id('input_datatable'), 'data')])
     def save_json(n_clicks, selected_list, setting, data):
         if n_clicks is None: return no_update

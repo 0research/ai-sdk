@@ -223,13 +223,13 @@ def generate_datatable(component_id, df=None, height='450px'):
     ),
 
 
-def generate_radio(id, options, label, default_value=0):
-
+def generate_radio(id, options, label, default_value=0, inline=False):
     return (dbc.Label(label),
             dbc.RadioItems(
                 options=[{'label': o, 'value': o} for o in options],                 
                 value=options[default_value],
                 id=id,
+                inline=inline,
             )
     )
 
@@ -289,9 +289,6 @@ def generate_number_changes(difference_history):
             else:
                 num_changes[key] = 1
     return num_changes
-
-
-
 
 def whitespace_remover(df):
     for i in df.columns:

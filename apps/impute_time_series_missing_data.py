@@ -50,7 +50,7 @@ option_graph = [
 
 # Layout
 layout = html.Div([
-    dcc.Store(id='dataset_setting', storage_type='session'),
+    dcc.Store(id='dataset_metadata', storage_type='session'),
     dcc.Store(id='dataset_profile', storage_type='session'),
     dcc.Store(id='input_data_store', storage_type='session'),
     dcc.Store(id='input_datatype_store', storage_type='session'),
@@ -115,7 +115,7 @@ layout = html.Div([
 # Left Bar Graph
 @app.callback(Output(id('left_panel_graph'), 'figure'), 
                 [Input('url', 'pathname'), 
-                Input('dataset_setting', 'data')])
+                Input('dataset_metadata', 'data')])
 def generate_left_bar_graph(pathname, settings):
     if settings is None or settings['name'] is None: return no_update
     
@@ -154,7 +154,7 @@ def generate_selected_column(selected_columns):
 # Right Bar Graph
 @app.callback(Output(id('right_panel_graph'), 'figure'), 
                 [Input(id('selection_list_store'), 'data'),
-                State('dataset_setting', 'data')])
+                State('dataset_metadata', 'data')])
 def generate_right_bar_graph(selected_column, settings):
     if settings is None or settings['name'] is None: return no_update
     if selected_column == None: return no_update
@@ -198,7 +198,7 @@ def perform_action(df, action, fillna=0):
                 [Input(id('selection_list_store'), 'data'),
                 Input(id('dropdown_select_graph'), 'value'),  
                 Input(id('dropdown_select_action'), 'value'),
-                State('dataset_setting', 'data')])
+                State('dataset_metadata', 'data')])
 def generate_select_graph(selected_columns, selected_graph, action, settings):
     if selected_columns == None: return no_update
     if settings is None or settings['name'] is None: return no_update
@@ -241,7 +241,7 @@ def generate_select_graph(selected_columns, selected_graph, action, settings):
                 [Input(id('button_confirm'), 'n_clicks'),
                 State(id('selection_list_store'), 'data'),
                 State(id('dropdown_select_action'), 'value'),
-                State('dataset_setting', 'data')])
+                State('dataset_metadata', 'data')])
 def confirm_action(n_clicks, selected_columns, action, settings):
     if n_clicks is None: return no_update
     if selected_columns == None: return no_update
@@ -275,7 +275,7 @@ def confirm_action(n_clicks, selected_columns, action, settings):
 # @app.callback([Output(id('input_datatable'), "data"), 
 #                 Output(id('input_datatable'), 'columns'), 
 #                 Output(id('input_datatable'), 'dropdown_data')], 
-#                 Input('dataset_setting', "data"), 
+#                 Input('dataset_metadata', "data"), 
 #                 Input('dataset_profile', 'data'), 
 #                 Input('url', 'pathname'))
 # def update_data_table(setting, profile, pathname):
