@@ -8,8 +8,8 @@ from app import app
 from app import server 
 from app import dbc # https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
 
-from apps import (upload_data, overview, merge_strategy, temporal_evolution, temporal_merge, 
-                time_series_decomposition, impute_time_series_missing_data, remove_duplicate, data_lineage,
+from apps import (upload_data, overview, profile, merge_strategy, temporal_evolution, temporal_merge, 
+                decomposition, impute_data, remove_duplicate, data_lineage,
                 page2, page3, page6, page6,page7, page8, page9, page10)
 
 
@@ -52,36 +52,31 @@ navbar_right = dbc.Row([
 
 
 navbar = dbc.Navbar([
-    html.A(dbc.Row([dbc.Col(html.Img(src=HOMEPAGELOGO, height="30px", id="tooltip-homepagelogo"))], align="center"), href="https://0research.com"), # Link to Home Page of Website href='https://0research.com'
-    html.A(dbc.Row([dbc.Col(dbc.NavbarBrand("AI-SDK", className="ml-2",id="tooltip-navbarbrand"))], align="center"), href="https://ai-sdk.herokuapp.com"), # Link to App href='https://ai-sdk.herokuapp.com' 
-    html.A(dbc.Row([dbc.Col(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube"))], align="center"), href="https://www.youtube.com/watch?v=ntN3xPEyy3U"), # Link to Demo Youtuve Video href='https://www.youtube.com/watch?v=ntN3xPEyy3U'
-    dbc.Row(html.Label('Choose Version', id="tooltip-choose-video-version", style={'color':'white'})),
-    html.A(dbc.Row(dbc.Col([dcc.Dropdown(options=[
-        {'label': 'v4', 'value': 'http://demo789.0research.com'},
-        {'label': 'v3', 'value': 'http://demo788.0research.com'},
-        {'label': 'v2', 'value': 'http://demo787.0research.com'},
-        {'label': 'v1', 'value': 'http://demo786.0research.com'}
-    ], value='http://demo789.0research.com', clearable=False)]), align="center"), style={'width':'75px'}),
-    html.A(dbc.Row([dbc.Col(html.Img(src=GITHUB, height="30px",id="tooltip-github"))], align="center"),href="https://github.com/0research/ai-sdk"), # Link to href='https://github.com/0research/ai-sdk'
-    html.A(dbc.Row([dbc.Col(html.Img(src=DOCKER, height="30px",id="tooltip-docker"))], align="center"), href="https://hub.docker.com/r/0research/ai-sdk"), # Link to href='https://hub.docker.com/r/0research/ai-sdk'
-    html.A(dbc.Row([dbc.Col(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction"))], align="center"), href="https://github.com/marketplace/actions/ai-sdk-action"), # Link to href='https://github.com/marketplace/actions/ai-sdk-action'
-    dbc.Row(html.Label('Choose Dataset', style={'color':'white'})),
-    html.Div(dbc.Row(dbc.Col([dcc.Dropdown(options=[
-        {'label': 'Dataset_1', 'value': 'd1'},
-        {'label': 'Dataset_2', 'value': 'd2'},
-        {'label': 'Dataset_3', 'value': 'd3'},
-        {'label': 'Dataset_4', 'value': 'd4'},
-        # TODO Add #DropdownMenu addons https://dbc-v1.herokuapp.com/docs/components/input_group/
-    ], value='d1', clearable=False)]), align="center"), style={'width':'100px'}),
-    
+    dbc.Row([
+        dbc.Col(html.A(html.Img(src=HOMEPAGELOGO, height="30px", id="tooltip-homepagelogo"), href="https://0research.com"),  width={'size':1, "order": "1"}),
+        dbc.Col(html.A(dbc.NavbarBrand("AI-SDK", className='font-weight-bold', id="tooltip-navbarbrand"), href="https://ai-sdk.herokuapp.com"),  width={'size':1, "order": "1"}),
+        dbc.Col(html.A(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube"), href="https://www.youtube.com/watch?v=ntN3xPEyy3U"),  width={'size':1, "order": "1"}),
+        dbc.Col(dbc.DropdownMenu([
+            dbc.DropdownMenuItem('v4', href="http://demo789.0research.com"),
+            dbc.DropdownMenuItem('v3', href="http://demo788.0research.com"),
+            dbc.DropdownMenuItem('v2', href='http://demo787.0research.com'),
+            dbc.DropdownMenuItem('v1', href='http://demo786.0research.com'),
+        ], label="Choose Version"), width={"size": 1, "order": "1"}),
 
+        dbc.Col(html.A(html.Img(src=GITHUB, height="30px",id="tooltip-github"), href="https://github.com/0research/ai-sdk"), width={"size": 1, "order": "1"}),
+        dbc.Col(html.A(html.Img(src=DOCKER, height="30px",id="tooltip-docker"), href="https://hub.docker.com/r/0research/ai-sdk"), width={"size": 1, "order": "1"}),
+        dbc.Col(html.A(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction"), href="https://github.com/marketplace/actions/ai-sdk-action"), width={"size": 1, "order": "1"}),
+        dbc.Col(dbc.InputGroup([
+            dbc.InputGroupText("Choose Dataset"),
+            dbc.Select(options=[], style={'min-width':'120px'}),
+        ]), width={"size": 2, "order": "4", 'offset': 4}, style={'margin-right':'30px'}),
 
-    navbar_right,
+        # dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "4", 'offset':3}),
+        # dbc.Col(dbc.Button("Data Lineage", href='/apps/data_lineage', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "5", 'offset':0}),
+        dbc.Col(dbc.Input(type="search", placeholder="Search...", style={'text-align':'center'}), width={"size": 3, "order": "5", 'offset':0})
+    ], className='g-0', style={'width':'100%'}),
 
-    ## Href Links for each Icon
-    #dbc.NavLink(target="tooltip-github", href="https://github.com/0research/ai-sdk"),
-
-    ## Tool tips for each Icon
+    # Tool tips for each Icon
     dbc.Tooltip("0Research Homepage",target="tooltip-homepagelogo"),
     dbc.Tooltip("CloudApp Homepage",target="tooltip-navbarbrand"),
     dbc.Tooltip("Demo Video",target="tooltip-youtube"),
@@ -94,17 +89,27 @@ navbar = dbc.Navbar([
 sidebar = html.Div([
     dbc.Nav([
         html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
+
         dbc.NavLink("Upload Data", href="/apps/upload_data", active="exact", className="fas fa-upload"),
-        dbc.NavLink("Workflow", href="/apps/workflow", active="exact", className="fas fa-arrow-alt-circle-right"),
         dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
-        html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
         dbc.NavLink("Overview", href="/apps/overview", active="exact", className="fas fa-chart-pie"),
+        
+        html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
+
+        dbc.NavLink("Profile", href="/apps/profile", active="exact", className='fas fa-chess-knight'),
         dbc.NavLink("Merge Strategy", href="/apps/merge_strategy", active="exact", className='fas fa-chess-knight'),
         dbc.NavLink("Temporal Evolution", href="/apps/temporal_evolution", active="exact", className='far fa-clock'),
-        dbc.NavLink("Impute Missing Data", href="/apps/impute_time_series_missing_data", active="exact", className='fas fa-search-plus'),
+        dbc.NavLink("Impute Data", href="/apps/impute_data", active="exact", className='fas fa-search-plus'),
+
+        html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
+
+        dbc.NavLink("Workflow", href="/apps/workflow", active="exact", className="fas fa-arrow-alt-circle-right"),
         dbc.NavLink("Remove Duplicate", href="/apps/remove_duplicate", active="exact", className='far fa-copy'),
-        dbc.NavLink("Time Series Decomposition", href="/apps/time_series_decomposition", active="exact", className='fas fa-recycle'),
-        # dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className='fas fa-history'),
+        dbc.NavLink("Decomposition", href="/apps/decomposition", active="exact", className='fas fa-recycle'),
+        dbc.NavLink("Balance Dataset", href="/apps/balance_dataset", active="exact", className='fas fa-chess-knight'),
+        dbc.NavLink("Anomaly Detection", href="/apps/anomaly_detection", active="exact", className='fas fa-chess-knight'),
+        dbc.NavLink("Split Dataset", href="/apps/split_dataset", active="exact", className='fas fa-recycle'),
+        dbc.NavLink("Model Evaluation", href="/apps/model_evaluation", active="exact", className='fas fa-recycle'),
 
         # dcc.Link(' Page 3 | ', href='/apps/page3'),
         # dcc.Link('Page 6 | ', href='/apps/page6'),
@@ -135,12 +140,12 @@ app.layout = serve_layout
 def display_page(pathname):
     if pathname == '/apps/upload_data': return upload_data.layout
     if pathname == '/apps/overview': return overview.layout
+    if pathname == '/apps/profile': return profile.layout
     if pathname == '/apps/merge_strategy': return merge_strategy.layout
     if pathname == '/apps/temporal_evolution': return temporal_evolution.layout
-    if pathname == '/apps/time_series_decomposition': return time_series_decomposition.layout
-    if pathname == '/apps/impute_time_series_missing_data': return impute_time_series_missing_data.layout
+    if pathname == '/apps/decomposition': return decomposition.layout
+    if pathname == '/apps/impute_data': return impute_data.layout
     if pathname == '/apps/remove_duplicate': return remove_duplicate.layout
-
     if pathname == '/apps/data_lineage': return data_lineage.layout
 
     # if pathname == '/apps/page3': return page3.layout

@@ -27,10 +27,7 @@ from pathlib import Path
 import uuid
 import dash_uploader as du
 
-id = id_factory((__file__).rsplit("\\", 1)[1].split('.')[0]) # Prepend filename to id
 
-UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"
-du.configure_upload(app, UPLOAD_FOLDER_ROOT)
 
 def get_upload_component(id):
     return du.Upload(
@@ -46,8 +43,10 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 
 # Initialize Variables
-# id = id_factory('upload_data')
-tab_labels = ['Step 1: Create/Modify Dataset', 'Step 2: Upload API', 'Step 2: Set API Profile', 'Step 3: Review API']
+UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"
+du.configure_upload(app, UPLOAD_FOLDER_ROOT)
+id = id_factory((__file__).rsplit("\\", 1)[1].split('.')[0]) # Prepend filename to id
+tab_labels = ['Step 1: Create or Load Dataset', 'Step 2: Upload API', 'Step 2: Set API Profile', 'Step 3: Review API']
 tab_values = [id('create_load_dataset'), id('upload_api'), id('set_data_profile'), id('review_data')]
 datatype_list = ['object', 'Int64', 'float64', 'bool', 'datetime64', 'category']
 
@@ -60,8 +59,8 @@ dataset_type = [
 ]
 option_delimiter = [
     {'label': 'Comma (,)', 'value': ','},
-    {'label': 'Tab', 'value': r"\t"},
-    {'label': 'Space', 'value': r"\s+"},
+    {'label': 'Tab', 'value': "\\t"},
+    {'label': 'Space', 'value': "\\s+"},
     {'label': 'Pipe (|)', 'value': '|'},
     {'label': 'Semi-Colon (;)', 'value': ';'},
     {'label': 'Colon (:)', 'value': ':'},
@@ -89,9 +88,8 @@ dropdown_menu_items = [
 ]
 
 # Tab Content
-@app.callback(Output(id("content"), "children"), [Input(id("tabs_content"), "value")])
-def generate_tab_content(active_tab):
-    print(active_tab)
+@app.callback(Output(id("content"), "children"), [Input('url', 'pathname'), Input(id("tabs_content"), "value")])
+def generate_tab_content(pathname, active_tab):
     content = None
     if active_tab == id('create_load_dataset'):
         content = html.Div([
@@ -107,14 +105,21 @@ def generate_tab_content(active_tab):
 
     if active_tab == id('upload_api'):
         content = html.Div([
+            # Datatable
             dbc.Row([
                 dbc.Col([
-                    html.H5('Step 1.1: Dataset Settings'),
+                    dbc.Col(html.H5('API Data', style={'text-align':'center'})),
+                    dbc.Col(html.Div(generate_datatable(id('input_datatable_sample'), height='500px')), width=12),
+                    html.Br(),
+                ], width=12),
+            ], className='bg-white text-dark'),
+
+            # Settings & Drag and Drop
+            dbc.Row([
+                dbc.Col([
+                    html.H5('Step 1.1: API Settings'),
                     html.Div('Name', style={'width':'20%', 'display':'inline-block', 'vertical-align':'top'}),
                     html.Div(dbc.Input(id=id('input_name'), placeholder="Enter Name of Dataset", type="text"), style={'width':'80%', 'display':'inline-block', 'margin':'0px 0px 2px 0px'}),
-
-                    # html.Div('Type', style={'width':'20%', 'display':'inline-block', 'vertical-align':'top'}),
-                    # html.Div(generate_dropdown(id('dropdown_file_type'), dataset_type), style={'width':'80%', 'display':'inline-block'}),
 
                     html.Div('Delimiter', style={'width':'20%', 'display':'inline-block', 'vertical-align':'top'}),
                     html.Div(generate_dropdown(id('dropdown_delimiter'), option_delimiter), style={'width':'80%', 'display':'inline-block'}),
@@ -123,38 +128,29 @@ def generate_tab_content(active_tab):
                         {"label": "Remove Spaces", "value": 'remove_space'},
                         {"label": "Remove Header", "value": 'remove_header'}
                     ], inline=False, switch=True, id=id('checklist_settings'), value=['remove_space'], labelStyle={'display':'block'}),
-                ], width=6),
+                ], width=6, className='rounded bg-info text-dark'),
                 
                 dbc.Col([
                     html.H5('Step 1.2: Upload Data (Smaller than 1MB)'),
                     get_upload_component(id=id('upload')),
                     # generate_upload('upload_json', "Drag and Drop or Click Here to Select Files"),
-                ], className='text-center', width=6),
+                ], className='text-center rounded bg-info text-dark', width=6),
 
-            ], className='text-center', style={'margin': '3px'}),
+            ], className='text-center', style={'margin': '1px'}),
 
+            # List of Files in API
             dbc.Row([
-                dbc.Col(html.Hr(), width=12),
-                dbc.Col(id=id('upload_api_list_options'), children=[], width=4),
-                dbc.Col(id=id('upload_api_list'), children=[], width=7),
+                dbc.Col(html.H5('Files to be Uploaded'), width=12),
+                dbc.Col(dcc.Dropdown(options=[], value=[], id=id('upload_api_list'), multi=True, clearable=True, placeholder=None), width=12),
+            ], style={'text-align':'center'}),
+
+            # Upload Button & Error Messages
+            dbc.Row([
                 dbc.Col([html.Button('Upload', id=id('button_upload'), className='btn btn-primary btn-block', style={'margin':'20px 0px 0px 0px', 'font-size': '13px', 'font-weight': 'bold'}),], width=12),
                 dbc.Col(html.Hr(), width=12),
-            ]),
-
-            dbc.Row([
-                dbc.Col([
-                    dbc.Col(html.H5('Sample Data', style={'text-align':'center'})),
-                    dbc.Col(html.Div(generate_datatable(id('input_datatable_sample'), height='300px')), width=12),
-                    html.Br(),
-                ], width=12),
                 dbc.Col(id=id('upload_error'), width=12),
-                dbc.Col([
-                    html.Br(),
-                    # html.Div(html.Button('Next Step', className='btn btn-primary', id=id('next_button_1')), className='text-center'),
-                ]),
-            ])
+            ]),
         ]),
-
 
     elif active_tab == id('set_data_profile'):
         content = html.Div([
@@ -205,11 +201,10 @@ def check_if_dataset_name_exist(value):
                 State(id('input_dataset_name'), "value"),
                 State(id('dropdown_file_type'), 'value')])
 def on_create_load_dataset(n_clicks, name, dataset_type):
-    print('haa'*100)
     if n_clicks is None: return no_update
 
     active_tab = no_update
-    dataset_metadata = no_update
+    metadata = no_update
     invalid = False
     borderStyle = {}
 
@@ -223,78 +218,35 @@ def on_create_load_dataset(n_clicks, name, dataset_type):
     if (name is not None) and (name.isalnum()) and (dataset_type is not None):
         list_of_collections = [c['name'] for c in client.collections.retrieve()]
         name = "dataset_" + name
+        active_tab = id('upload_api')
+        metadata = {
+            'name': name,               # Str
+            'type': dataset_type,       # Str
+            'node': [],                 # List of Str (Node Names)
+        }
+
+        # Upload Metadata
         if name not in list_of_collections: 
             client.collections.create(generate_schema_auto(name))
 
-        active_tab = id('upload_api')
-        dataset_metadata = {'name': name, 'type': dataset_type}
+    print('Metadata: ' + str(metadata))
 
-    print(dataset_metadata)
-
-    return active_tab, dataset_metadata, invalid, borderStyle
+    return active_tab, metadata, invalid, borderStyle
     
 
+# Drag and Drop Callback
+@du.callback(output=[Output(id('upload_api_list'), 'options'),
+                    Output(id('upload_api_list'), 'value')],
+                id=id('upload'))
+def get_a_list(filename):
+    time.sleep(0.5)
+    upload_id = filename[0].rsplit("\\", 2)[1]
+    root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
+    file_name_list = os.listdir(root_folder)
+    file_name_list_full = [(root_folder / filename).as_posix() for filename in os.listdir(root_folder)]
+    options = [{'label': filename, 'value': filename_full} for filename, filename_full in zip(file_name_list, file_name_list_full)]
 
-
-
-
-
-
-
-
-# # Handles files being staged for uploading
-# @app.callback([Output(id('api_list'), 'data'),
-#                 Output(id('upload_api_list_options'), 'children'),
-#                 Output(id('upload_api_list'), 'children')],
-#                 [Input(id('upload'), 'isCompleted'),
-#                 Input({'type': id('upload_select_list'), 'index': ALL }, 'value')],
-#                 [State(id('api_list'), 'data'),
-#                 State(id('upload'), 'fileNames'),
-#                 State(id('upload'), 'upload_id'),
-#                 State(id('upload_api_list_options'), 'children'),
-#                 State(id('upload_api_list'), 'children')])
-# def process_upload(iscompleted, selection_list, api_list_store, filenames, upload_id, upload_api_list_options, upload_api_list):
-#     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-
-#     # Initalize Variables
-#     num_uploads = len(upload_api_list)
-#     api_list = []
-#     if api_list_store is None: api_list_store = []
-#     out = []
-#     root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
-#     api_options = html.Div()
-
-#     time.sleep(0.5)
-#     # If Upload Triggered
-#     if triggered == id('upload'):
-#         if not iscompleted: return no_update
-
-#         api_list = [(root_folder / filename).as_posix() for filename in os.listdir(root_folder)]    # Filenames uploaded in server
-#         flat_api_list_store = [val for sublist in api_list_store for val in sublist]        # Filenames stored in local memory
-#         files_to_add = list(set(api_list) - set(flat_api_list_store))
-        
-#         if len(files_to_add) > 0:
-#             api_list_store.append(files_to_add)
-#             options = [{'label': filename.rsplit('/', 1)[1], 'value': filename} for filename in files_to_add]
-#             new = dcc.Dropdown(options=options, value=files_to_add, multi=True, clearable=True, id={'type': id('upload_select_list'), 'index': num_uploads})
-#             out = upload_api_list + [new]
-#             return api_list_store, out
-#         else:
-#             return no_update
-#     # If remove from dropdown triggered
-#     else:
-#         for uploads, selection in zip(api_list_store, selection_list):
-#             files_to_remove = set(uploads) - set(selection)
-#             try:
-#                 for filename in os.listdir(root_folder):
-#                     file = (root_folder/filename).as_posix()
-#                     if file in files_to_remove:
-#                         os.remove(file)
-#             except Exception as e:
-#                 print(e)
-
-#         upload_api_list = list(filter(lambda x: len(x['props']['value']) != 0, upload_api_list))
-#         return selection_list, upload_api_list
+    return options, file_name_list_full
 
 
 # # Upload Button
@@ -314,30 +266,29 @@ def on_create_load_dataset(n_clicks, name, dataset_type):
 #     # If upload clicked
 #     if triggered == id('button_upload'):
 #         # Check invalid names
-#         if input_name == None or (' ' in input_name): 
-#             print('Invalid File Name')
-#             return no_update, html.Div('Invalid File Name', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger')
+#         # if (name is None) or (not name.isalnum()):
+#         #     print('Invalid File Name')
+#         #     return no_update, html.Div('Invalid File Name', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger')
 #         # Check if name exist
-#         for c in client.collections.retrieve():
-#             if c['name'] == dataset_name:
-#                 print('File Name Exist')
-#                 return no_update, html.Div('File Name Exist', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger')
+#         if dataset_name in [c['name'] for c in client.collections.retrieve()]:
+#             print('File Name Exist')
+#             return no_update, html.Div('File Name Exist', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger')
     
-#     # Upload Metadata
-#     metadata = {}
-#     metadata['name'] = input_name
-#     metadata['api'] = [dataset_name+'_api_'+str(num) for num in list(range(1, len(api_list)+1))]
-#     metadata['blob'] = []
-#     metadata['index'] = []
-#     metadata['datatype'] = {}
-#     metadata['expectation'] = []
-#     metadata['cytoscape_elements'] = []
-#     metadata['setting'] = {'type': type, 'delimiter': delimiter, 'checklist': checklist_settings}
-#     metadata2 = metadata.copy()
-#     for k, v in metadata2.items():
-#         metadata2[k] = str(metadata2[k])
-#     client.collections.create(generate_schema_auto(dataset_name))
-#     client.collections[dataset_name].documents.create(metadata2)
+#     # # Upload Metadata
+#     # metadata = {}
+#     # metadata['name'] = input_name
+#     # metadata['api'] = [dataset_name+'_api_'+str(num) for num in list(range(1, len(api_list)+1))]
+#     # metadata['blob'] = []
+#     # metadata['index'] = []
+#     # metadata['datatype'] = {}
+#     # metadata['expectation'] = []
+#     # metadata['cytoscape_elements'] = []
+#     # metadata['setting'] = {'type': type, 'delimiter': delimiter, 'checklist': checklist_settings}
+#     # metadata2 = metadata.copy()
+#     # for k, v in metadata2.items():
+#     #     metadata2[k] = str(metadata2[k])
+#     # client.collections.create(generate_schema_auto(dataset_name))
+#     # client.collections[dataset_name].documents.create(metadata2)
 
 #     # Upload File contents
 #     for i, file_list in enumerate(api_list):
