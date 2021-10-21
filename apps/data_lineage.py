@@ -32,27 +32,33 @@ id = id_factory('data_explorer')
 basic_elements = [
     {
         'data': {'id': 'one', 'label': 'Version 1'},
-        'position': {'x': 50, 'y': 50}
+        'position': {'x': 50, 'y': 50},
+        'classes':'api',
     },
     {
         'data': {'id': 'two', 'label': 'Version 2'},
-        'position': {'x': 200, 'y': 200}
+        'position': {'x': 200, 'y': 200},
+        'classes':'api',
     },
     {
         'data': {'id': 'three', 'label': 'Version 3'},
-        'position': {'x': 100, 'y': 150}
+        'position': {'x': 100, 'y': 150},
+        'classes':'csv',
     },
     {
         'data': {'id': 'four', 'label': 'Version 4'},
-        'position': {'x': 400, 'y': 50}
+        'position': {'x': 400, 'y': 50},
+        'classes':'csv',
     },
     {
         'data': {'id': 'five', 'label': 'Version 5'},
-        'position': {'x': 250, 'y': 100}
+        'position': {'x': 250, 'y': 100},
+        'classes':'blob',
     },
     {
-        'data': {'id': 'six', 'label': 'Version 6', 'parent': 'three'},
-        'position': {'x': 150, 'y': 150}
+        'data': {'id': 'six', 'label': 'Version 6'},
+        'position': {'x': 150, 'y': 150},
+        'classes':'blob',
     },
     {
         'data': {
@@ -131,8 +137,70 @@ styles = {
 }
 
 
+# Creating styles
+stylesheet = [
+    # Node
+    {
+        'selector': 'node',
+        'style': {
+            'label': 'data(id)',
+            'background-color': 'white',
+        }
+    },
+    # Edge
+    {
+        'selector': 'edge',
+        'style': {
+            'label': 'data(id)',
+            'source-arrow-shape': 'triangle',
+        }
+    },
+    # API Node
+    {
+        'selector': '.api',
+        'style': {
+            'width': 25,
+            'height': 25,
+            'background-fit': 'cover',
+            'background-image': "/assets/static/api.png"
+        }
+    },
+    # CSV Node
+    {
+        'selector': '.csv',
+        'style': {
+            'width': 25,
+            'height': 25,
+            'background-fit': 'cover',
+            'background-image': "/assets/static/csv.png"
+        }
+    },
+    # JSON Node
+    {
+        'selector': '.json',
+        'style': {
+            'width': 25,
+            'height': 25,
+            'background-fit': 'cover',
+            'background-image': "/assets/static/json.JPG"
+        }
+    },
+
+    # BLOB Node
+    {
+        'selector': '.blob',
+        'style': {
+            'width': 30,
+            'height': 30,
+            'background-fit': 'cover',
+            'background-image': "/assets/static/database.png"
+        }
+    },
+]
+
 
 layout = html.Div([
+    dcc.Store(id='dataset_metadata', storage_type='session'),
     html.Div([
         # dbc.Row(dbc.Col(html.H1('Data Explorer')), style={'text-align':'center'}),
 
@@ -145,7 +213,8 @@ layout = html.Div([
                 html.H5('Selected: None', id=id('selected_version'), style={'text-align':'center', 'background-color': 'silver'}),
                 cyto.Cytoscape(id=id('data_explorer'), elements=basic_elements, 
                                 layout={'name': 'preset'},
-                                style={'height': '1000px','width': '100%'})
+                                style={'height': '1000px','width': '100%'},
+                                stylesheet=stylesheet)
             ], width=8),
 
             dbc.Col([
@@ -168,6 +237,7 @@ layout = html.Div([
         ]),
     ], style={'width':'100%'}),
 ])
+
 
 
 # Display Selected Version Name
@@ -216,35 +286,47 @@ def displayTapNode(node_data, selectedNodeData, edge_data):
 
 
 
-# Add & TODO Delete & Merge Versions
+# Load, Add, Delete, Merge
 @app.callback(Output(id('data_explorer'), 'elements'), 
-                [Input(id('button_add'), 'n_clicks'), 
+                [Input('url', 'pathname'),
+                Input(id('button_add'), 'n_clicks'), 
                 State(id('data_explorer'), 'tapNodeData'),
                 State(id('data_explorer'), 'elements'),
-                ])
-def add_version(n_clicks, tapNodeData, elements):
+                State('dataset_metadata', 'data'),])
+def add_version(pathname, n_clicks, tapNodeData, elements, metadata):
+    triggered = callback_context.triggered[0]['prop_id']
+
+     # On Page Load
+    if triggered == '.':
+        data = []
+        for api in metadata['api']:
+            pass
+       
     if n_clicks is None: return no_update
     if tapNodeData is None: return no_update
 
-    # triggered = callback_context.triggered[0]['prop_id']
-    # if triggered == '.': return no_update
-    # triggered = triggered.rsplit('.', 1)[1]
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
 
-    new_version_id = str(len(elements)//2)
-    elements += [
-        {
-        'data': {'id': new_version_id, 'label': 'Version '+str(new_version_id)},
-        # 'position': {'x': 150, 'y': 150}
-        },
-        {
-            'data': {
-                'id': tapNodeData['id'] + '_' + new_version_id,
-                'source': tapNodeData['id'],
-                'target': new_version_id,
-                'label': 'Edge from ' + str(tapNodeData['id']) + ' to ' + str(new_version_id)
+    if triggered == id('button_add'):
+        new_version_id = str(len(elements)//2)
+        elements += [
+            {
+            'data': {'id': new_version_id, 'label': 'Version '+str(new_version_id)},
+            # 'position': {'x': 150, 'y': 150}
+            },
+            {
+                'data': {
+                    'id': tapNodeData['id'] + '_' + new_version_id,
+                    'source': tapNodeData['id'],
+                    'target': new_version_id,
+                    'label': 'Edge from ' + str(tapNodeData['id']) + ' to ' + str(new_version_id)
+                },
+                # 'classes': 'blob'
             }
-        }
-    ]
+        ]
+    elif triggered == id('button_remove'):
+        pass
+
     return elements
 
 

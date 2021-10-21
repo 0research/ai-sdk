@@ -174,7 +174,7 @@ def json_merge(base, new, merge_strategy):
 
 
 def generate_dropdown(component_id, options, value=None, placeholder='Select...'):
-    if value == None: value = options[0]['value']
+    # if value == None: value = options[0]['value']
     return dcc.Dropdown(
         id=component_id,
         options=options,
