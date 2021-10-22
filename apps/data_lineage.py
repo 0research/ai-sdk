@@ -207,9 +207,18 @@ layout = html.Div([
         dbc.Row([
             dbc.Col([
                 html.H1('Data Lineage (Data Flow Experiments)', style={'text-align':'center'}),
-                html.Button('Add Version', id('button_add'), className='btn btn-primary btn-lg', style={'margin-right':'3px'}), 
-                html.Button('Merge Versions', id('button_merge'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}),
-                html.Button('Remove Version', id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
+                html.Button('Add API', id('button_add_api'), className='btn btn-success btn-lg', style={'margin-right':'3px'}), 
+                html.Button('Inspect', id('inspect'), className='btn btn-info btn-lg', style={'margin-right':'3px'}), 
+                html.Button('Modify Profile', id('modify_profile'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}), 
+                html.Button('Remove Node', id('remove_node'), className='btn btn-danger btn-lg', style={'margin-right':'10px'}),
+                # html.Button('Merge Versions', id('button_merge'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}),
+                # html.Button('Remove Version', id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
+                dbc.Col(dbc.DropdownMenu([
+                    dbc.DropdownMenuItem('One', id('one')),
+                    dbc.DropdownMenuItem('Two', id('two')),
+                    dbc.DropdownMenuItem('Three', id('three')),
+                ], label="Choose Version"), width={"size": 1, "order": "1"}, style={'float':'right'}),
+
                 html.H5('Selected: None', id=id('selected_version'), style={'text-align':'center', 'background-color': 'silver'}),
                 cyto.Cytoscape(id=id('data_explorer'), elements=basic_elements, 
                                 layout={'name': 'preset'},
@@ -289,7 +298,7 @@ def displayTapNode(node_data, selectedNodeData, edge_data):
 # Load, Add, Delete, Merge
 @app.callback(Output(id('data_explorer'), 'elements'), 
                 [Input('url', 'pathname'),
-                Input(id('button_add'), 'n_clicks'), 
+                Input(id('button_add_api'), 'n_clicks'), 
                 State(id('data_explorer'), 'tapNodeData'),
                 State(id('data_explorer'), 'elements'),
                 State('dataset_metadata', 'data'),])
@@ -307,7 +316,7 @@ def add_version(pathname, n_clicks, tapNodeData, elements, metadata):
 
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
 
-    if triggered == id('button_add'):
+    if triggered == id('button_add_api'):
         new_version_id = str(len(elements)//2)
         elements += [
             {

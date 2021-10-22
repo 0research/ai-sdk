@@ -7,8 +7,8 @@ from apps.util import *
 from app import app
 from app import server 
 from app import dbc # https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
-
-from apps import (upload_data, overview, profile, merge_strategy, temporal_evolution, temporal_merge, 
+from apps.typesense_client import *
+from apps import (upload, overview, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage,
                 page2, page3, page6, page6,page7, page8, page9, page10)
 
@@ -39,18 +39,6 @@ GITHUB = "../assets/static/github-icon.svg"
 DOCKER = "../assets/static/docker-icon.svg"
 GITHUBACTION = "../assets/static/githubaction-icon.svg"
 
-navbar_right = dbc.Row([
-    dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
-    dbc.Col(dbc.Button("Data Lineage", href='/apps/data_lineage', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
-    dbc.Col(dbc.Input(type="search", placeholder="Search")) ],
-    className="ml-auto flex-nowrap mt-3 mt-md-0",
-    align="center",
-)
-
-# imp_links = dbc.Row([
-#     dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'})),
-
-
 navbar = dbc.Navbar([
     dbc.Row([
         dbc.Col(html.A(html.Img(src=HOMEPAGELOGO, height="30px", id="tooltip-homepagelogo"), href="https://0research.com"),  width={'size':1, "order": "1"}),
@@ -68,8 +56,13 @@ navbar = dbc.Navbar([
         dbc.Col(html.A(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction"), href="https://github.com/marketplace/actions/ai-sdk-action"), width={"size": 1, "order": "1"}),
         dbc.Col(dbc.InputGroup([
             dbc.InputGroupText("Choose Dataset"),
-            dbc.Select(options=[], style={'min-width':'120px'}),
-        ]), width={"size": 2, "order": "4", 'offset': 4}, style={'margin-right':'30px'}),
+            dbc.Select(options=[], id='dropdown_current_dataset', style={'min-width':'120px'}),
+        ]), width={"size": 2, "order": "4", 'offset': 3}),
+
+        dbc.Col(dbc.InputGroup([
+            dbc.InputGroupText("Node"),
+            dbc.Input(id='display_current_node', disabled=True, style={'text-align':'center'})
+        ]), width={"size": 1, "order": "4", 'offset': 0}, style={'margin-right':'30px', 'height':'100%'}),
 
         # dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "4", 'offset':3}),
         # dbc.Col(dbc.Button("Data Lineage", href='/apps/data_lineage', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "5", 'offset':0}),
@@ -90,7 +83,7 @@ sidebar = html.Div([
     dbc.Nav([
         html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
 
-        dbc.NavLink("Upload Data", href="/apps/upload_data", active="exact", className="fas fa-upload"),
+        dbc.NavLink("Upload", href="/apps/upload", active="exact", className="fas fa-upload"),
         dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
         dbc.NavLink("Overview", href="/apps/overview", active="exact", className="fas fa-chart-pie"),
         
@@ -110,7 +103,7 @@ sidebar = html.Div([
         dbc.NavLink("Anomaly Detection", href="/apps/anomaly_detection", active="exact", className='fas fa-chess-knight'),
         dbc.NavLink("Split Dataset", href="/apps/split_dataset", active="exact", className='fas fa-recycle'),
         dbc.NavLink("Model Evaluation", href="/apps/model_evaluation", active="exact", className='fas fa-recycle'),
-
+        
         # dcc.Link(' Page 3 | ', href='/apps/page3'),
         # dcc.Link('Page 6 | ', href='/apps/page6'),
         # dcc.Link('Merge Strategy | ', href='/apps/page7'),
@@ -124,7 +117,8 @@ sidebar = html.Div([
 def serve_layout():
     return html.Div([
         dcc.Location(id='url', refresh=False),
-        dcc.Store(id='input_data_store', storage_type='session'),
+        dcc.Store(id='current_dataset', storage_type='session'),
+        dcc.Store(id='current_node', storage_type='session'),
         sidebar,
         navbar,
         html.Div(id='page-content', style=CONTENT_STYLE),
@@ -138,7 +132,7 @@ app.layout = serve_layout
 
 @app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
 def display_page(pathname):
-    if pathname == '/apps/upload_data': return upload_data.layout
+    if pathname == '/apps/upload': return upload.layout
     if pathname == '/apps/overview': return overview.layout
     if pathname == '/apps/profile': return profile.layout
     if pathname == '/apps/merge_strategy': return merge_strategy.layout
@@ -156,22 +150,43 @@ def display_page(pathname):
     # if pathname == '/apps/page8': return page8.layout
     # if pathname == '/apps/page9': return page9.layout
     # if pathname == '/apps/page10': return page10.layout
-    
-
     # if pathname == '/apps/git_graph': return git_graph.layout
     else: return merge_strategy.layout
 
 
-# add callback for toggling the collapse on small screens
-@app.callback(
-    Output("navbar-collapse", "is_open"),
-    [Input("navbar-toggler", "n_clicks")],
-    [State("navbar-collapse", "is_open")],
-)
-def toggle_navbar_collapse(n, is_open):
-    if n:
-        return not is_open
-    return is_open
+
+# Load Current/Selected Dataset
+# @app.callback([Output('dropdown_current_dataset', 'value'),
+#                 Output('dropdown_current_dataset', 'options'),
+#                 Output('current_dataset', 'data')],
+#                 [Input('current_dataset', 'data'),
+#                 Input('dropdown_current_dataset', 'value')])
+# def current_dataset(current_dataset, selected):
+#     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+
+#     dataset_name_list = [c['name'] for c in client.collections.retrieve()]
+#     current_dataset = dataset_name_list[0]  # By Default take first dataset in typesense
+#     options = no_update
+#     if selected is None: selected = current_dataset
+    
+    
+#     if triggered == 'current_dataset':
+#         options = [{'label':name, 'value':name} for name in dataset_name_list]
+#     elif triggered == 'dropdown_current_dataset':
+#         pass
+
+#     return selected, options, selected
+
+# # Display_selected_node
+# @app.callback(Output('current_node_id', "value"),
+#                 [Input('current_dataset', "data"),
+#                 Input('current_node', 'data'),])
+# def generate_load_node_id(metadata, selected_node):
+#     # If New Dataset, Generate random Node number
+#     if (metadata['node']) == 0:
+#         return 123
+#     else:
+#         return selected_node
 
 
 if __name__ == '__main__':
