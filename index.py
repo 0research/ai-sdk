@@ -156,26 +156,26 @@ def display_page(pathname):
 
 
 # Load Current/Selected Dataset
-# @app.callback([Output('dropdown_current_dataset', 'value'),
-#                 Output('dropdown_current_dataset', 'options'),
-#                 Output('current_dataset', 'data')],
-#                 [Input('current_dataset', 'data'),
-#                 Input('dropdown_current_dataset', 'value')])
-# def current_dataset(current_dataset, selected):
-#     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+@app.callback([Output('dropdown_current_dataset', 'value'),
+                Output('dropdown_current_dataset', 'options'),
+                Output('current_dataset', 'data')],
+                [Input('current_dataset', 'data'),
+                Input('dropdown_current_dataset', 'value')])
+def current_dataset(current_dataset, selected):
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
 
-#     dataset_name_list = [c['name'] for c in client.collections.retrieve()]
-#     current_dataset = dataset_name_list[0]  # By Default take first dataset in typesense
-#     options = no_update
-#     if selected is None: selected = current_dataset
+    dataset_name_list = [c['name'] for c in client.collections.retrieve()]
+    current_dataset = dataset_name_list[0]  # By Default take first dataset in typesense
+    options = no_update
+    if selected is None: selected = current_dataset
     
     
-#     if triggered == 'current_dataset':
-#         options = [{'label':name, 'value':name} for name in dataset_name_list]
-#     elif triggered == 'dropdown_current_dataset':
-#         pass
+    if triggered == 'current_dataset':
+        options = [{'label':name, 'value':name} for name in dataset_name_list]
+    elif triggered == 'dropdown_current_dataset':
+        pass
 
-#     return selected, options, selected
+    return selected, options, selected
 
 # # Display_selected_node
 # @app.callback(Output('current_node_id', "value"),

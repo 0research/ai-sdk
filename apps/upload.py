@@ -315,15 +315,31 @@ def browse_drag_drop_files(isCompleted, files_selected, dropdown_delimiter, chec
 
 
 # Upload Button
-# @app.callback([Output(id('current_dataset'), 'data'),
-#                 Output(id('current_node'), 'data')],
-#                 [Input(id('button_upload'), 'n_clicks'),
-#                 State(id('dropdown_delimiter'), 'value'),
-#                 State(id('checklist_settings'), 'value'),
-#                 State(id('datatable'), 'data')])
-# def upload(n_clicks, dropdown_delimiter, checklist_settings, datatable_data):
-#     if n_clicks is None: return no_update
+@app.callback([Output(id('current_dataset'), 'data'),
+                Output(id('current_node'), 'data')],
+                [Input(id('button_upload'), 'n_clicks'),
+                State(id('current_dataset'), 'data'),
+                State(id('node_id'), 'value'),
+                State(id('node_description'), 'value'),
+                State(id('dropdown_delimiter'), 'value'),
+                State(id('checklist_settings'), 'value'),
+                State(id('datatable'), 'data')])
+def upload(n_clicks, current_dataset, node_id, node_description, dropdown_delimiter, checklist_settings, datatable_data):
+    if n_clicks is None: return no_update
 
+    pprint(datatable_data)
+
+    if 'remove_space' in checklist_settings:
+        pass
+    if 'remove_header' in checklist_settings:
+        pass
+
+    df = json_normalize(datatable_data)
+    # df.fillna('None', inplace=True) # Replace null with 'None
+    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+    client.collections[current_dataset].documents.import_(jsonl, {'action': 'create'})
+
+    return no_update
 
 
 # # Upload Button
