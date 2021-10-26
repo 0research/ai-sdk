@@ -43,13 +43,14 @@ client = initialize_typesense()
 
 
 
-def get_documents(dataset_name, per_page):
+def get_documents(collection_id, per_page):
     search_parameters = {
         'q': '*',
         'per_page': per_page,
     }
-    result = client.collections[dataset_name].documents.search(search_parameters)
+    result = client.collections[collection_id].documents.search(search_parameters)
     return [d['document'] for d in result['hits']]
+
 
 
 # collection_name = 'dataset'

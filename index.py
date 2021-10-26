@@ -58,12 +58,12 @@ navbar = dbc.Navbar([
         dbc.Col(dbc.InputGroup([
             dbc.InputGroupText("Choose Dataset"),
             dbc.Select(options=[], id='dropdown_current_dataset', style={'min-width':'120px'}, persistence_type='session', persistence=True),
-        ]), width={"size": 2, "order": "4", 'offset': 3}),
+        ]), width={"size": 2, "order": "4", 'offset': 2}),
 
         dbc.Col(dbc.InputGroup([
             dbc.InputGroupText("Node"),
             dbc.Input(id='display_current_node', disabled=True, style={'text-align':'center'})
-        ]), width={"size": 1, "order": "4", 'offset': 0}, style={'margin-right':'30px', 'height':'100%'}),
+        ]), width={"size": 2, "order": "4", 'offset': 0}, style={'margin-right':'30px', 'height':'100%'}),
 
         # dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "4", 'offset':3}),
         # dbc.Col(dbc.Button("Data Lineage", href='/apps/data_lineage', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "5", 'offset':0}),
@@ -165,10 +165,26 @@ def load_dataset_dropdown(pathname):
     return options
 
 
+# Load Last Node ID if change Selected Dataset
+@app.callback([Output('display_current_node', 'value')],
+                [Input('current_dataset', 'data')])
+def load_nodeID(dataset_id):
+    if dataset_id is None: return no_update
+    dataset = client.collections['dataset'].documents[dataset_id].retrieve()
+    node_list = ast.literal_eval(dataset['node'])
+    if len(node_list) == 0: return ''
+    else: return node_list[-1]
+
+
+# Save Current Dataset/Node IDs to store
 @app.callback([Output('current_dataset', 'data')],
                 Input('dropdown_current_dataset', 'value'),)
 def load_dataset_dropdown(dataset_id):
     return dataset_id
+@app.callback([Output('current_node', 'data')],
+                Input('display_current_node', 'value'),)
+def load_dataset_dropdown(node_id):
+    return node_id
 
 
 # Selected Dataset

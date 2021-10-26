@@ -26,7 +26,6 @@ import ast
 from pathlib import Path
 import uuid
 import dash_uploader as du
-from apps import data_lineage
 
 
 
@@ -340,7 +339,8 @@ def browse_drag_drop_files(isCompleted, files_selected, dropdown_delimiter, chec
 
 
 # Upload Button
-@app.callback([Output('url', 'pathname')],
+@app.callback([Output('display_current_node', 'value'), 
+                Output('url', 'pathname')],
                 [Input(id('button_upload'), 'n_clicks'),
                 State('current_dataset', 'data'),
                 State(id('node_id'), 'value'),
@@ -355,7 +355,7 @@ def upload(n_clicks, current_dataset, node_id, node_description, dropdown_delimi
     if 'remove_space' in checklist_settings: remove_space = True
     if 'remove_header' in checklist_settings: remove_header = False
 
-    # Update Dataset Metadata Document
+    # Retrieve and Update Dataset Metadata Document
     dataset = client.collections['dataset'].documents[current_dataset].retrieve()
     node_list = ast.literal_eval(dataset['node'])
     node_list.append(node_id)
@@ -370,9 +370,9 @@ def upload(n_clicks, current_dataset, node_id, node_description, dropdown_delimi
         'remove_space': remove_space,
         'remove_header': remove_header,
         'type': 'api', 
-        'datatype': [], 
+        'datatype': [],  # TODO detect here remove from profile page
         'expectation': [], 
-        'cytoscape': [], 
+        'cytoscape': [], # TODO append upon upload
         'index': [], 
         'target': [],
     }
@@ -388,4 +388,4 @@ def upload(n_clicks, current_dataset, node_id, node_description, dropdown_delimi
     client.collections.create(generate_schema_auto(node_id))
     client.collections[node_id].documents.import_(jsonl, {'action': 'create'})
     
-    return '/apps/data_lineage'
+    return node_id, '/apps/data_lineage'
