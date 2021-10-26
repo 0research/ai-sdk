@@ -22,10 +22,11 @@ from pandas import json_normalize
 from pathlib import Path
 from apps.typesense_client import *
 import time
-
+import ast
 from pathlib import Path
 import uuid
 import dash_uploader as du
+from apps import data_lineage
 
 
 
@@ -46,16 +47,16 @@ app.css.config.serve_locally = True
 # Initialize Variables
 UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"
 du.configure_upload(app, UPLOAD_FOLDER_ROOT)
-id = id_factory((__file__).rsplit("\\", 1)[1].split('.')[0]) # Prepend filename to id
+id = id_factory('upload')
 tab_labels = ['Step 1: Create or Load Dataset', 'Step 2: Upload API']
 tab_values = [id('create_load_dataset'), id('upload_api')]
+tab_disabled = [False, True]
 datatype_list = ['object', 'Int64', 'float64', 'bool', 'datetime64', 'category']
 
 dataset_type = [
-    {'label': 'Numerical', 'value': 'numerical'},
     {'label': 'Categorical', 'value': 'categorical'},
-    {'label': 'Hybrid', 'value': 'hybrid'},
     {'label': 'Time Series', 'value': 'time_series'},
+    {'label': 'Hybrid', 'value': 'hybrid'},
     {'label': 'Geo Spatial', 'value': 'geo_spatial'},
 ]
 option_delimiter = [
@@ -70,13 +71,13 @@ option_delimiter = [
 
 # Layout
 layout = html.Div([
-    dcc.Store(id='current_dataset', storage_type='session'),
-    dcc.Store(id='current_node', storage_type='session'),
+    # dcc.Store(id='current_dataset', storage_type='session'),
+    # dcc.Store(id='current_node', storage_type='session'),
     # dcc.Store(id=id('api_list'), storage_type='memory'),    
     # dcc.Store(id='dataset_profile', storage_type='session'),
     # dcc.Store(id=id('remove_list'), storage_type='session'),
 
-    generate_tabs(id('tabs_content'), tab_labels, tab_values),
+    generate_tabs(id('tabs_content'), tab_labels, tab_values, tab_disabled),
     dbc.Container([], fluid=True, id=id('content')),
     html.Div(id='test1'),
 ])
@@ -99,7 +100,7 @@ def generate_tab_content(pathname, active_tab):
             dbc.Row([
                 dbc.Col([
                     dbc.Input(id=id('input_dataset_name'), placeholder="Enter Dataset Name", size="lg", style={'text-align':'center'}),
-                    html.Div(generate_dropdown(id('dropdown_dataset_type'), dataset_type, placeholder='Select Type of Dataset'), style={'width':'100%', 'display':'inline-block'}),
+                    html.Div(generate_dropdown(id('dropdown_dataset_type'), dataset_type, value=dataset_type[0]['value'], placeholder='Select Type of Dataset'), style={'width':'100%', 'display':'inline-block'}),
                     dbc.Button("Create Dataset", id=id('button_create_load_dataset'), size="lg"),
                 ], width={"size": 6, "offset": 3})
             ], align="center", style={'height':'700px', 'text-align':'center'})
@@ -111,6 +112,10 @@ def generate_tab_content(pathname, active_tab):
             dbc.Row([
                 dbc.Col([
                     html.H5('Step 1.1: API Description'),
+                    dbc.InputGroup([
+                        dbc.InputGroupText("Dataset ID", style={'width':'120px', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'30px'}), 
+                        dbc.Input(id=id('dataset_id'), disabled=True, style={'font-size': '12px', 'text-align':'center'})
+                    ], className="mb-3 lg"),
                     dbc.InputGroup([
                         dbc.InputGroupText("Node ID", style={'width':'120px', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'30px'}), 
                         dbc.Input(id=id('node_id'), disabled=True, style={'font-size': '12px', 'text-align':'center'})
@@ -149,7 +154,7 @@ def generate_tab_content(pathname, active_tab):
             # Datatable
             dbc.Row([
                 dbc.Col([
-                    dbc.Col(html.H5('API Data', style={'text-align':'center'})),
+                    dbc.Col(html.H5('Review & Upload Data', style={'text-align':'center'})),
                     dbc.Col(html.Div(generate_datatable(id('datatable'), height='500px')), width=12),
                     html.Br(),
                 ], width=12),
@@ -181,14 +186,13 @@ def generate_tab_content(pathname, active_tab):
                 Output(id('button_create_load_dataset'), "color"),
                 Output(id('dropdown_dataset_type'), "disabled")],
                 [Input(id('input_dataset_name'), "value")])
-def check_if_dataset_name_exist(value):
-    if value is None: return no_update
-
-    list_of_collections = [c['name'] for c in client.collections.retrieve()]
-    dataset_name = "dataset_" + value
+def check_if_dataset_name_exist(dataset_id):
+    if dataset_id is None: return no_update
+    
+    list_of_dataset_id = [d['id'] for d in get_documents('dataset', 250)]
     isDisabled = False
 
-    if dataset_name in list_of_collections: 
+    if dataset_id in list_of_dataset_id:
         button_name = "Load Dataset"
         color = "success"
         isDisabled = True
@@ -201,44 +205,62 @@ def check_if_dataset_name_exist(value):
 
 
 @app.callback([Output(id('tabs_content'), "value"), 
-                Output('current_dataset', "data"),
+                Output('dropdown_current_dataset', "value"),
+                Output('dropdown_current_dataset', "options"),
                 Output(id('input_dataset_name'), "invalid"),
                 Output(id('dropdown_dataset_type'), "style")],
                 [Input(id('button_create_load_dataset'), "n_clicks"),
                 State(id('input_dataset_name'), "value"),
                 State(id('dropdown_dataset_type'), 'value')])
-def on_create_load_dataset(n_clicks, name, dataset_type):
+def button_create_load_dataset(n_clicks, dataset_id, dataset_type):
     if n_clicks is None: return no_update
 
     active_tab = no_update
-    metadata = no_update
     invalid = False
     borderStyle = {}
 
-    if (name is None) or (not name.isalnum()):
+    # Invalid Name or Datatype
+    if (dataset_id is None) or (not dataset_id.isalnum()):
         print('Invalid File Name')
         invalid = True
-    if dataset_type is None:
-        print('Invalid Dataset Type')
-        borderStyle = {'border': '1px solid red'}
+    # if dataset_type is None:
+    #     print('Invalid Dataset Type')
+    #     borderStyle = {'border': '1px solid red'}
 
-    if (name is not None) and (name.isalnum()) and (dataset_type is not None):
-        list_of_collections = [c['name'] for c in client.collections.retrieve()]
-        name = "dataset_" + name
-        active_tab = id('upload_api')
-        metadata = {
-            'name': name,               # Str
-            'type': dataset_type,       # Str
-            'node': [],                 # List of Str (Node Names)
-        }
-        # Upload Metadata
-        if name not in list_of_collections: 
-            client.collections.create(generate_schema_auto(name))
-
-    print('Metadata: ' + str(metadata))
-
-    return active_tab, metadata, invalid, borderStyle
+    # Get Existing Datasets & Initialize new dataset object
+    dataset_list = get_documents('dataset', 250)
+    dataset_options = [{'label': d['id'], 'value': d['id']} for d in dataset_list]
     
+    # If valid Dataset ID
+    if (dataset_id is not None) and (dataset_id.isalnum()):
+        active_tab = id('upload_api')
+        
+        # Load Dataset
+        if dataset_id in [d['id'] for d in dataset_list]:
+            for dataset in dataset_list:
+                if dataset_id == dataset['id']:
+                    selected = dataset['id']
+        # Create Dataset
+        else:
+            document = {'id': dataset_id, 'type': dataset_type, 'node': str([]) }
+            client.collections['dataset'].documents.create(document)
+            dataset_options.append({'label':document['id'], 'value': document['id']})
+            selected = document['id']
+
+    return active_tab, selected, dataset_options, invalid, borderStyle
+
+
+# Load Dataset ID and Node ID
+@app.callback([Output(id('dataset_id'), 'value'),
+                Output(id('node_id'), 'value')],
+                [Input(id('tabs_content'), "value"),
+                State('current_dataset', 'data')])
+def load_nodeID_datasetID(tab, dataset_id):
+    if tab != id('upload_api'): return no_update
+    return dataset_id, str(uuid.uuid1())
+
+
+
 
 # Browse Drag&Drop Files, Display File Selection, Settings, Update Datatable 
 @app.callback([Output(id('files_selected'), 'value'),
@@ -300,6 +322,9 @@ def browse_drag_drop_files(isCompleted, files_selected, dropdown_delimiter, chec
             elif file.endswith('.csv'):
                 df = pd.read_csv(file_name_list_full[0], sep=dropdown_delimiter['value']) # Assume only 1 CSV uploaded, TODO combine if CSV and JSON uploaded together?
 
+        # Remove Null with 'None'
+        df.fillna('None', inplace=True)
+
         datatable_data = df.to_dict('records')
         datatable_columns = [{"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns]
 
@@ -315,10 +340,9 @@ def browse_drag_drop_files(isCompleted, files_selected, dropdown_delimiter, chec
 
 
 # Upload Button
-@app.callback([Output(id('current_dataset'), 'data'),
-                Output(id('current_node'), 'data')],
+@app.callback([Output('url', 'pathname')],
                 [Input(id('button_upload'), 'n_clicks'),
-                State(id('current_dataset'), 'data'),
+                State('current_dataset', 'data'),
                 State(id('node_id'), 'value'),
                 State(id('node_description'), 'value'),
                 State(id('dropdown_delimiter'), 'value'),
@@ -327,85 +351,41 @@ def browse_drag_drop_files(isCompleted, files_selected, dropdown_delimiter, chec
 def upload(n_clicks, current_dataset, node_id, node_description, dropdown_delimiter, checklist_settings, datatable_data):
     if n_clicks is None: return no_update
 
-    pprint(datatable_data)
+    remove_space, remove_header = False, False
+    if 'remove_space' in checklist_settings: remove_space = True
+    if 'remove_header' in checklist_settings: remove_header = False
 
-    if 'remove_space' in checklist_settings:
-        pass
-    if 'remove_header' in checklist_settings:
-        pass
+    # Update Dataset Metadata Document
+    dataset = client.collections['dataset'].documents[current_dataset].retrieve()
+    node_list = ast.literal_eval(dataset['node'])
+    node_list.append(node_id)
+    dataset['node'] = str(node_list)
 
+    # Create Node Metadata Document
+    node = {
+        'id': node_id,
+        'description': node_description, 
+        'source': [], # TODO add filename uploaded?
+        'delimiter': dropdown_delimiter, 
+        'remove_space': remove_space,
+        'remove_header': remove_header,
+        'type': 'api', 
+        'datatype': [], 
+        'expectation': [], 
+        'cytoscape': [], 
+        'index': [], 
+        'target': [],
+    }
+    node = {'id': node_id, 'data':str(node)}
+
+    # Form Node Data Collection
     df = json_normalize(datatable_data)
-    # df.fillna('None', inplace=True) # Replace null with 'None
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-    client.collections[current_dataset].documents.import_(jsonl, {'action': 'create'})
 
-    return no_update
-
-
-# # Upload Button
-# @app.callback([Output('dataset_metadata', 'data'),
-#                 Output(id('upload_error'), 'children')], 
-#                 [Input(id('button_upload'), 'n_clicks'),
-#                 Input(id('dropdown_dataset_type'), 'value'),
-#                 Input(id('dropdown_delimiter'), 'value'), 
-#                 Input(id('checklist_settings'), 'value'),
-#                 State(id('input_name'), 'value'),
-#                 State(id('api_list'), 'data')])
-# def upload(n_clicks, type, delimiter, checklist_settings, input_name, api_list):
-#     if n_clicks is None: return no_update
-#     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-#     dataset_name = 'dataset_' + input_name
-
-#     # If upload clicked
-#     if triggered == id('button_upload'):
-#         # Check invalid names
-#         # if (name is None) or (not name.isalnum()):
-#         #     print('Invalid File Name')
-#         #     return no_update, html.Div('Invalid File Name', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger')
-#         # Check if name exist
-#         if dataset_name in [c['name'] for c in client.collections.retrieve()]:
-#             print('File Name Exist')
-#             return no_update, html.Div('File Name Exist', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-danger')
+    # Upload to Typesense
+    client.collections['dataset'].documents.upsert(dataset)
+    client.collections['node'].documents.upsert(node)
+    client.collections.create(generate_schema_auto(node_id))
+    client.collections[node_id].documents.import_(jsonl, {'action': 'create'})
     
-#     # # Upload Metadata
-#     # metadata = {}
-#     # metadata['name'] = input_name
-#     # metadata['api'] = [dataset_name+'_api_'+str(num) for num in list(range(1, len(api_list)+1))]
-#     # metadata['blob'] = []
-#     # metadata['index'] = []
-#     # metadata['datatype'] = {}
-#     # metadata['expectation'] = []
-#     # metadata['cytoscape_elements'] = []
-#     # metadata['setting'] = {'type': type, 'delimiter': delimiter, 'checklist': checklist_settings}
-#     # metadata2 = metadata.copy()
-#     # for k, v in metadata2.items():
-#     #     metadata2[k] = str(metadata2[k])
-#     # client.collections.create(generate_schema_auto(dataset_name))
-#     # client.collections[dataset_name].documents.create(metadata2)
-
-#     # Upload File contents
-#     for i, file_list in enumerate(api_list):
-#         data = []
-#         if all(f.endswith('.json') for f in file_list): # JSON Uploaded
-#             for file in file_list:
-#                 with open(file, 'r') as f:
-#                     json_file = json.load(f)
-#                 json_file = flatten(json_file)
-#                 data.append(json_file)
-#             df = json_normalize(data)
-
-#         elif all(f.endswith('.csv') for f in file_list):
-#             df = pd.read_csv(file_list[0]) # TODO for now Assume only 1 CSV uploaded
-
-#         df.fillna('None', inplace=True) # Replace null with 'None
-#         jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-
-#         client.collections.create(generate_schema_auto(metadata['api'][i]))
-#         client.collections[metadata['api'][i]].documents.import_(jsonl, {'action': 'create'})
-        
-#     return metadata, html.Div('Successfully Uploaded', style={'text-align':'center', 'width':'100%', 'color':'white'}, className='bg-success') 
-        
-
-
-
-
+    return '/apps/data_lineage'

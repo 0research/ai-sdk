@@ -11,6 +11,7 @@ from apps.typesense_client import *
 from apps import (upload, overview, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage,
                 page2, page3, page6, page6,page7, page8, page9, page10)
+import ast
 
 
 SIDEBAR_STYLE = {
@@ -56,7 +57,7 @@ navbar = dbc.Navbar([
         dbc.Col(html.A(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction"), href="https://github.com/marketplace/actions/ai-sdk-action"), width={"size": 1, "order": "1"}),
         dbc.Col(dbc.InputGroup([
             dbc.InputGroupText("Choose Dataset"),
-            dbc.Select(options=[], id='dropdown_current_dataset', style={'min-width':'120px'}),
+            dbc.Select(options=[], id='dropdown_current_dataset', style={'min-width':'120px'}, persistence_type='session', persistence=True),
         ]), width={"size": 2, "order": "4", 'offset': 3}),
 
         dbc.Col(dbc.InputGroup([
@@ -155,27 +156,48 @@ def display_page(pathname):
 
 
 
-# Load Current/Selected Dataset
-@app.callback([Output('dropdown_current_dataset', 'value'),
-                Output('dropdown_current_dataset', 'options'),
-                Output('current_dataset', 'data')],
-                [Input('current_dataset', 'data'),
-                Input('dropdown_current_dataset', 'value')])
-def current_dataset(current_dataset, selected):
-    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+# Load Datasets in dropdown
+@app.callback([Output('dropdown_current_dataset', 'options')],
+                Input('url', 'pathname'),)
+def load_dataset_dropdown(pathname):
+    dataset_list = get_documents('dataset', 250)
+    options = [{'label': d['id'], 'value': d['id']} for d in dataset_list]
+    return options
 
-    dataset_name_list = [c['name'] for c in client.collections.retrieve()]
-    current_dataset = dataset_name_list[0]  # By Default take first dataset in typesense
-    options = no_update
-    if selected is None: selected = current_dataset
-    
-    
-    if triggered == 'current_dataset':
-        options = [{'label':name, 'value':name} for name in dataset_name_list]
-    elif triggered == 'dropdown_current_dataset':
-        pass
 
-    return selected, options, selected
+@app.callback([Output('current_dataset', 'data')],
+                Input('dropdown_current_dataset', 'value'),)
+def load_dataset_dropdown(dataset_id):
+    return dataset_id
+
+
+# Selected Dataset
+# @app.callback([Output('dropdown_current_dataset', 'options'),
+#                 Output('current_dataset', 'data')],
+#                 [Input('current_dataset', 'data'),
+#                 Input('dropdown_current_dataset', 'value')])
+# def current_dataset(current_dataset, selected):
+#     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+
+#     options = no_update
+#     dataset_name_list = [c['name'] for c in client.collections.retrieve()]
+#     if len(dataset_name_list) == 0: current_dataset = None # If no dataset exist
+#     else: current_dataset = dataset_name_list[0]   # By Default take first dataset in typesense
+
+#     if selected is None: selected = current_dataset
+    
+#     if triggered == 'current_dataset':
+#         options = [{'label':name, 'value':name} for name in dataset_name_list]
+#     elif triggered == 'dropdown_current_dataset':
+#         pass
+    
+#     return options, selected
+
+# @app.callback(Output('current_dataset', 'data'), Input('url', 'pathname'))
+# def doSomething(pathname):
+#     print('aaaa')
+#     return {'abc':'123'}
+
 
 # # Display_selected_node
 # @app.callback(Output('current_node_id', "value"),

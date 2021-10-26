@@ -28,7 +28,7 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 
 # Initialize Variables
-id = id_factory((__file__).rsplit("\\", 1)[1].split('.')[0])
+id = id_factory('profile')
 
 datatype_list = ['object', 'Int64', 'float64', 'bool', 'datetime64', 'category']
 option_filetype = [
@@ -54,18 +54,33 @@ option_delimiter = [
 
 # Layout
 layout = html.Div([
-    dcc.Store(id=id('api_list'), storage_type='memory'),
-    dcc.Store(id='dataset_metadata', storage_type='session'),
-    dcc.Store(id='dataset_profile', storage_type='session'),
-    dcc.Store(id=id('remove_list'), storage_type='session'),
+    dcc.Store(id='current_dataset', storage_type='session'),
+    dcc.Store(id='current_node', storage_type='session'),
+    dcc.Store(id=id('test'), storage_type='session'),
 
     dbc.Row(dbc.Col(html.H5('Set Data Profile'), width=12)),
     # TODO node_id, description, 
     dbc.Row(dbc.Col(html.Div(id=id('data_profile'), style={'overflow-y': 'auto', 'overflow-x': 'hidden', 'height':'800px'}), width=12)),
     # html.Div(id=id('data_profile')),
     # html.Div(html.Button('Next Step', className='btn btn-primary', id=id('next_button_2')), className='text-center'),
-
+    html.P('hello', id='test1'),
+    html.Div(id='nothing'),
+    html.Button('one', id='button1'),
+    html.Button('two', id='button2'),
 ])
+
+@app.callback(Output('test1', 'children'), Input('button1', 'n_clicks'))
+def one(n_clicks):
+    return 'ONE'
+
+@app.callback(Output('test1', 'children'), Input('button2', 'n_clicks'))
+def one(n_clicks):
+    return 'TWO'
+
+# @app.callback(Output('nothing', 'children'), Input('button3', 'n_clicks'), State('current_dataset', 'data'))
+# def one(n_clicks, current_dataset):
+#     print(current_dataset)
+#     return no_update
 
 
 # def generate_expectations():

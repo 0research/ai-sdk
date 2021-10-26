@@ -17,7 +17,7 @@ from apps.typesense_client import *
 from missingpy import MissForest, KNNImputer
 
 
-id = id_factory((__file__).rsplit("\\", 1)[1].split('.')[0]) # Prepend filename to id
+id = id_factory('impute_data')
 
 
 def get_col_dtype(col):

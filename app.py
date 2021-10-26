@@ -12,7 +12,8 @@ FA = {
 external_stylesheets = [dbc.themes.BOOTSTRAP, FA]
 
 
-app = DashProxy(__name__, suppress_callback_exceptions=True,
+app = DashProxy(__name__, 
+                suppress_callback_exceptions=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=external_stylesheets,
                 meta_tags=[{'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'}],

@@ -35,12 +35,12 @@ def id_factory(page: str):
     return func
 
 
-def generate_tabs(tabs_id, tab_labels, tab_values):
+def generate_tabs(tabs_id, tab_labels, tab_values, tab_disabled):
     return dcc.Tabs(
         id=tabs_id,
         value=tab_values[0],
         children=[
-            dcc.Tab(label=label, value=value) for label, value in zip(tab_labels, tab_values)
+            dcc.Tab(label=label, value=value, disabled=disabled) for label, value, disabled in zip(tab_labels, tab_values, tab_disabled)
         ],
     )
 

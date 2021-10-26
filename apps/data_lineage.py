@@ -207,24 +207,25 @@ layout = html.Div([
         dbc.Row([
             dbc.Col([
                 html.H1('Data Lineage (Data Flow Experiments)', style={'text-align':'center'}),
+
+                dbc.Col(dbc.DropdownMenu([
+                    dbc.DropdownMenuItem('One', id('one')),
+                    dbc.DropdownMenuItem('Two', id('two')),
+                    dbc.DropdownMenuItem('Three', id('three')),
+                ], label="Action"), width={"size": 1, "order": "1"}, style={'float':'right'}),
                 html.Button('Add API', id('button_add_api'), className='btn btn-success btn-lg', style={'margin-right':'3px'}), 
                 html.Button('Inspect', id('inspect'), className='btn btn-info btn-lg', style={'margin-right':'3px'}), 
                 html.Button('Modify Profile', id('modify_profile'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}), 
                 html.Button('Remove Node', id('remove_node'), className='btn btn-danger btn-lg', style={'margin-right':'10px'}),
                 # html.Button('Merge Versions', id('button_merge'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}),
                 # html.Button('Remove Version', id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
-                dbc.Col(dbc.DropdownMenu([
-                    dbc.DropdownMenuItem('One', id('one')),
-                    dbc.DropdownMenuItem('Two', id('two')),
-                    dbc.DropdownMenuItem('Three', id('three')),
-                ], label="Choose Version"), width={"size": 1, "order": "1"}, style={'float':'right'}),
 
                 html.H5('Selected: None', id=id('selected_version'), style={'text-align':'center', 'background-color': 'silver'}),
                 cyto.Cytoscape(id=id('data_explorer'), elements=basic_elements, 
                                 layout={'name': 'preset'},
                                 style={'height': '1000px','width': '100%'},
                                 stylesheet=stylesheet)
-            ], width=8),
+            ], width=9),
 
             dbc.Col([
                 dcc.Tabs(id='tabs', children=[
@@ -242,7 +243,7 @@ layout = html.Div([
                     ]),
                 ]),
 
-            ], width=4),
+            ], width=3),
         ]),
     ], style={'width':'100%'}),
 ])
@@ -308,8 +309,8 @@ def add_version(pathname, n_clicks, tapNodeData, elements, metadata):
      # On Page Load
     if triggered == '.':
         data = []
-        for api in metadata['api']:
-            pass
+        # for api in metadata['api']:
+        #     pass
        
     if n_clicks is None: return no_update
     if tapNodeData is None: return no_update
