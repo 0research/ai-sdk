@@ -14,6 +14,8 @@ from apps import (upload, overview, profile, merge_strategy, temporal_evolution,
 import ast
 
 
+id = id_factory('index')
+
 SIDEBAR_STYLE = {
     "position": "fixed",
     "top": 40,
@@ -40,6 +42,8 @@ GITHUB = "../assets/static/github-icon.svg"
 DOCKER = "../assets/static/docker-icon.svg"
 GITHUBACTION = "../assets/static/githubaction-icon.svg"
 
+
+# Top Navbar
 navbar = dbc.Navbar([
     dbc.Row([
         dbc.Col(html.A(html.Img(src=HOMEPAGELOGO, height="30px", id="tooltip-homepagelogo"), href="https://0research.com"),  width={'size':1, "order": "1"}),
@@ -80,30 +84,32 @@ navbar = dbc.Navbar([
     ], color="dark", dark=True,)
     
 
+
+# Sidebar
+sidebar_1 = [
+    dbc.NavLink("Upload", href="/apps/upload", id=id('nav_upload'), active="exact", className="fas fa-upload"),
+    dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
+    dbc.NavLink("Overview", href="/apps/overview", active="exact", className="fas fa-chart-pie"),
+]
+sidebar_2 = [dbc.NavLink(nav['label'], href=nav['pathname'], active='exact', className=nav['className']) for nav in sidebar_2_list]
+sidebar_3 = [
+    dbc.NavLink("Workflow", href="/apps/workflow", active="exact", className="fas fa-arrow-alt-circle-right"),
+    dbc.NavLink("Remove Duplicate", href="/apps/remove_duplicate", active="exact", className='far fa-copy'),
+    dbc.NavLink("Decomposition", href="/apps/decomposition", active="exact", className='fas fa-recycle'),
+    dbc.NavLink("Balance Dataset", href="/apps/balance_dataset", active="exact", className='fas fa-chess-knight'),
+    dbc.NavLink("Anomaly Detection", href="/apps/anomaly_detection", active="exact", className='fas fa-chess-knight'),
+    dbc.NavLink("Split Dataset", href="/apps/split_dataset", active="exact", className='fas fa-recycle'),
+    dbc.NavLink("Model Evaluation", href="/apps/model_evaluation", active="exact", className='fas fa-recycle'),
+]
 sidebar = html.Div([
-    dbc.Nav([
-        html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
-
-        dbc.NavLink("Upload", href="/apps/upload", active="exact", className="fas fa-upload"),
-        dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
-        dbc.NavLink("Overview", href="/apps/overview", active="exact", className="fas fa-chart-pie"),
-        
-        html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
-
-        dbc.NavLink("Profile", href="/apps/profile", active="exact", className='fas fa-chess-knight'),
-        dbc.NavLink("Merge Strategy", href="/apps/merge_strategy", active="exact", className='fas fa-chess-knight'),
-        dbc.NavLink("Temporal Evolution", href="/apps/temporal_evolution", active="exact", className='far fa-clock'),
-        dbc.NavLink("Impute Data", href="/apps/impute_data", active="exact", className='fas fa-search-plus'),
-
-        html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'}),
-
-        dbc.NavLink("Workflow", href="/apps/workflow", active="exact", className="fas fa-arrow-alt-circle-right"),
-        dbc.NavLink("Remove Duplicate", href="/apps/remove_duplicate", active="exact", className='far fa-copy'),
-        dbc.NavLink("Decomposition", href="/apps/decomposition", active="exact", className='fas fa-recycle'),
-        dbc.NavLink("Balance Dataset", href="/apps/balance_dataset", active="exact", className='fas fa-chess-knight'),
-        dbc.NavLink("Anomaly Detection", href="/apps/anomaly_detection", active="exact", className='fas fa-chess-knight'),
-        dbc.NavLink("Split Dataset", href="/apps/split_dataset", active="exact", className='fas fa-recycle'),
-        dbc.NavLink("Model Evaluation", href="/apps/model_evaluation", active="exact", className='fas fa-recycle'),
+    dbc.Nav(
+        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
+        sidebar_1 +
+        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
+        sidebar_2 +
+        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
+        sidebar_3 +
+        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})]
         
         # dcc.Link(' Page 3 | ', href='/apps/page3'),
         # dcc.Link('Page 6 | ', href='/apps/page6'),
@@ -111,10 +117,13 @@ sidebar = html.Div([
         # dcc.Link('Temporal Merge | ', href='/apps/page8'),
         # dcc.Link('Temporal Evolution | ', href='/apps/page9'),
         # dcc.Link('Page 10 | ', href='/apps/page10'),
-    ], vertical=True, pills=True),
+    , vertical=True, pills=True),
 ], style=SIDEBAR_STYLE)
 
 
+
+
+# Layout
 def serve_layout():
     return html.Div([
         dcc.Location(id='url', refresh=False),
@@ -125,23 +134,20 @@ def serve_layout():
         html.Div(id='page-content', style=CONTENT_STYLE),
         #dbc.Container(dbc.Alert("Wrangle Data!", color="success"),className="p-5") #Added by Sagun
     ])
-
-
-
 app.layout = serve_layout
 
 
 @app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
 def display_page(pathname):
-    if pathname == '/apps/upload': return upload.layout
-    if pathname == '/apps/overview': return overview.layout
-    if pathname == '/apps/profile': return profile.layout
-    if pathname == '/apps/merge_strategy': return merge_strategy.layout
-    if pathname == '/apps/temporal_evolution': return temporal_evolution.layout
-    if pathname == '/apps/decomposition': return decomposition.layout
-    if pathname == '/apps/impute_data': return impute_data.layout
-    if pathname == '/apps/remove_duplicate': return remove_duplicate.layout
-    if pathname == '/apps/data_lineage': return data_lineage.layout
+    if pathname.startswith('/apps/upload'): return upload.layout
+    if pathname.startswith('/apps/overview'): return overview.layout
+    if pathname.startswith('/apps/profile'): return profile.layout
+    if pathname.startswith('/apps/merge_strategy'): return merge_strategy.layout
+    if pathname.startswith('/apps/temporal_evolution'): return temporal_evolution.layout
+    if pathname.startswith('/apps/decomposition'): return decomposition.layout
+    if pathname.startswith('/apps/impute_data'): return impute_data.layout
+    if pathname.startswith('/apps/remove_duplicate'): return remove_duplicate.layout
+    if pathname.startswith('/apps/data_lineage'): return data_lineage.layout
 
     # if pathname == '/apps/page3': return page3.layout
     # if pathname == '/apps/temporal_merge': return temporal_merge.layout
@@ -153,6 +159,16 @@ def display_page(pathname):
     # if pathname == '/apps/page10': return page10.layout
     # if pathname == '/apps/git_graph': return git_graph.layout
     else: return merge_strategy.layout
+
+
+
+# # If Click Upload, remove Current Dataset/Node
+# @app.callback(Output('dropdown_current_dataset', 'value'),
+#                 Output('display_current_node', 'value'),
+#                 Input(id('nav_upload'), 'n_clicks'))
+# def load_dataset_dropdown(n_clicks):
+#     if n_clicks is None: return no_update
+#     return '', ''
 
 
 

@@ -123,11 +123,28 @@ stylesheet = [
     },
 ]
 
+# Action Dropdown Options
+option_list = []
+# [ for nav in sidebar_2_list]
+dropdown_merge_strategy = dbc.DropdownMenu(label='Merge Strategy', children=[
+        dbc.DropdownMenuItem("First"),
+        dbc.DropdownMenuItem(divider=True),
+        dbc.DropdownMenuItem("Second"),
+], direction='end')
+
+for nav in sidebar_2_list:
+    if nav['label'] == 'Merge Strategy':
+        option_list.append(dbc.DropdownMenuItem(dropdown_merge_strategy, id=id(nav['label'])))
+    else:
+        option_list.append(dbc.DropdownMenuItem(nav['label'], id=id(nav['label'])))
 
 
 layout = html.Div([
     dcc.Store(id='current_dataset', storage_type='session'),
     dcc.Store(id='current_node', storage_type='session'),
+    dcc.Store(id='isUploadAPI', storage_type='memory'),
+    dcc.Interval(id=id('interval'), interval=1000, n_intervals=0),
+
     html.Div([
         # dbc.Row(dbc.Col(html.H1('Data Explorer')), style={'text-align':'center'}),
 
@@ -135,19 +152,16 @@ layout = html.Div([
             dbc.Col([
                 html.H1('Data Lineage (Data Flow Experiments)', style={'text-align':'center'}),
 
-                dbc.Col(dbc.DropdownMenu([
-                    dbc.DropdownMenuItem('One', id('one')),
-                    dbc.DropdownMenuItem('Two', id('two')),
-                    dbc.DropdownMenuItem('Three', id('three')),
-                ], label="Action"), width={"size": 1, "order": "1"}, style={'float':'right'}),
-                html.Button('Add API', id=id('button_add_api'), className='btn btn-success btn-lg', style={'margin-right':'3px'}), 
-                html.Button('Inspect', id=id('inspect'), className='btn btn-info btn-lg', style={'margin-right':'3px'}), 
-                html.Button('Modify Profile', id=id('modify_profile'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}), 
-                html.Button('Remove Node', id=id('remove_node'), className='btn btn-danger btn-lg', style={'margin-right':'10px'}),
+                dbc.Col(dbc.DropdownMenu(option_list, label="Action", style={'float':'left', 'width': '200px'}), width={"size": 2, "order": "1"}),
+    
+                dbc.Col(html.Button('Modify Profile', id=id('modify_profile'), className='btn btn-warning btn-lg'), style={'float':'right', 'margin-right':'3px'}), 
+                dbc.Col(html.Button('Remove Node', id=id('remove_node'), className='btn btn-danger btn-lg'), style={'float':'right', 'margin-right':'3px'}),
+                dbc.Col(html.Button('Inspect', id=id('inspect'), className='btn btn-info btn-lg'), style={'float':'right', 'margin-right':'3px'}), 
+                dbc.Col(html.Button('Add API', id=id('button_add_api'), className='btn btn-success btn-lg'), style={'float':'right', 'margin-right':'3px'}), 
                 # html.Button('Merge Versions', id('button_merge'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}),
                 # html.Button('Remove Version', id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
 
-                html.H5('Selected: None', id=id('selected_version'), style={'text-align':'center', 'background-color': 'silver'}),
+                dbc.Col(html.H5('Selected(temporary): None', id=id('selected_version')), style={'text-align':'center', 'background-color': 'silver'}),
                 cyto.Cytoscape(id=id('data_explorer'), elements=[], 
                                 layout={'name': 'preset'},
                                 style={'height': '1000px','width': '100%'},
@@ -155,20 +169,25 @@ layout = html.Div([
             ], width=9),
 
             dbc.Col([
-                dcc.Tabs(id='tabs', children=[
-                    dcc.Tab(label='Data', children=[
-                        html.Div(style=styles['tab'], children=[
-                            html.Pre(id=id('data_output'),style={'overflow-y': 'scroll', 'height':'95%'}),
-                        ])
-                    ], id=id('tab_1')),
-
-                    dcc.Tab(label='Profile', children=[
-                        html.Div(style=styles['tab'], children=[
-                            html.P('Data'),
-                            html.Pre(id=id('profile_output'),style={'overflow-y': 'scroll', 'height':'95%'}),
-                        ])
-                    ]),
+                html.Div([
+                    html.H5('Experiments', style={'text-align':'center'}),
+                    html.Div(id=id('experiments')),
+                    
                 ]),
+                # dcc.Tabs(id='tabs', children=[
+                #     dcc.Tab(label='Data', children=[
+                #         html.Div(style=styles['tab'], children=[
+                #             html.Pre(id=id('data_output'),style={'overflow-y': 'scroll', 'height':'95%'}),
+                #         ])
+                #     ], id=id('tab_1')),
+
+                #     dcc.Tab(label='Profile', children=[
+                #         html.Div(style=styles['tab'], children=[
+                #             html.P('Data'),
+                #             html.Pre(id=id('profile_output'),style={'overflow-y': 'scroll', 'height':'95%'}),
+                #         ])
+                #     ]),
+                # ]),
 
             ], width=3),
         ]),
@@ -177,61 +196,42 @@ layout = html.Div([
 
 
 @app.callback(Output(id('data_explorer'), 'elements'), 
-                [Input('current_dataset', 'data'),
-                Input('url', 'pathname')])
-def generate_cytoscape(dataset_id, pathname):
+                Input(id('interval'), 'n_intervals'),
+                State('current_dataset', 'data'))
+def generate_cytoscape(n_intervals, dataset_id):
     if dataset_id is None or dataset_id == '': return no_update
-    print('CYTOSCape')
     dataset = get_document('dataset', dataset_id)
-    pprint(dataset)
+    # print('start NODE', n_intervals)
+    # pprint(dataset['cytoscape_node'])
+    # print('start EDGE')
+    # pprint(dataset['cytoscape_edge'])
     return (dataset['cytoscape_node'] + dataset['cytoscape_edge'])
 
 
+# @app.callback(Output(id('experiments'), 'children'),
+#                 Input('url', 'pathname'),
+#                 State('current_dataset', 'data'))
+# def generate_experiments(pathname, dataset_id):
+#     if dataset_id is None or dataset_id == '': return no_update
+#     dataset = get_document('dataset', dataset_id)
 
-# Display Selected Version Name
-@app.callback(Output(id('selected_version'), 'children'), 
-                Input(id('data_explorer'), 'selectedNodeData'))
-def display_selected_version(selected_node_list):
-    if selected_node_list is None or len(selected_node_list) == 0: return 'Selected: None'
-    node_list = [node['label'] for node in selected_node_list]
-    return 'Selected: ' + ', '.join(node_list)
-
-
-# Display Version Data & Difference
-@app.callback(Output(id('tab_1'), 'label'),
-                Output(id('data_output'), 'children'),
-                [Input(id('data_explorer'), 'tapNodeData'),
-                Input(id('data_explorer'), 'selectedNodeData'),
-                Input(id('data_explorer'), 'tapEdgeData')])
-def displayTapNode(node_data, selectedNodeData, edge_data):
-    triggered = callback_context.triggered[0]['prop_id']
-    if triggered == '.': return no_update
-    triggered = triggered.rsplit('.', 1)[1]
-
-    if triggered == 'tapNodeData':
-        label = 'Version Data'
-        data = node_data
-
-    elif triggered == 'selectedNodeData':
-        label = '?'
-        data = selectedNodeData
-
-    elif triggered == 'tapEdgeData':
-        label = 'Difference'
-        data = edge_data
-
-    print(triggered)
-
-    return triggered, json.dumps(data, indent=2)
+#     return [dbc.Card(children=(dbc.CardHeader(experiment['name']), dbc.CardBody(experiment['description'])), color="info", inverse=True) for experiment in dataset['experiment']]
 
 
-# @app.callback(Output(id('profile_output'), 'children'),
-#               [Input(id('data_explorer'), 'tapNodeData')])
-# def displayTapNodeData(data):
-#     return json.dumps(data, indent=2)
+# Select API
+@app.callback(Output('display_current_node', 'value'), 
+                Input(id('data_explorer'), 'tapNodeData'))
+def add_api(tapNodeData):
+    if tapNodeData is None: return no_update
+    pprint(tapNodeData)
+    return no_update
 
-
-
+# Add API
+@app.callback(Output('url', 'pathname'),
+                Input(id('button_add_api'), 'n_clicks'))
+def add_api(n_clicks):
+    if n_clicks is None: return no_update
+    return '/apps/upload/step=2'
 
 
 # Load, Add, Delete, Merge
@@ -278,3 +278,45 @@ def displayTapNode(node_data, selectedNodeData, edge_data):
 #     return elements
 
 
+
+# # Display Selected Version Name
+# @app.callback(Output(id('selected_version'), 'children'), 
+#                 Input(id('data_explorer'), 'selectedNodeData'))
+# def display_selected_version(selected_node_list):
+#     if selected_node_list is None or len(selected_node_list) == 0: return 'Selected: None'
+#     node_list = [node['label'] for node in selected_node_list]
+#     return 'Selected(temporary): ' + ', '.join(node_list)
+
+
+# # Display Version Data & Difference
+# @app.callback(Output(id('tab_1'), 'label'),
+#                 Output(id('data_output'), 'children'),
+#                 [Input(id('data_explorer'), 'tapNodeData'),
+#                 Input(id('data_explorer'), 'selectedNodeData'),
+#                 Input(id('data_explorer'), 'tapEdgeData')])
+# def displayTapNode(node_data, selectedNodeData, edge_data):
+#     triggered = callback_context.triggered[0]['prop_id']
+#     if triggered == '.': return no_update
+#     triggered = triggered.rsplit('.', 1)[1]
+
+#     if triggered == 'tapNodeData':
+#         label = 'Version Data'
+#         data = node_data
+
+#     elif triggered == 'selectedNodeData':
+#         label = '?'
+#         data = selectedNodeData
+
+#     elif triggered == 'tapEdgeData':
+#         label = 'Difference'
+#         data = edge_data
+
+#     print(triggered)
+
+#     return triggered, json.dumps(data, indent=2)
+
+
+# @app.callback(Output(id('profile_output'), 'children'),
+#               [Input(id('data_explorer'), 'tapNodeData')])
+# def displayTapNodeData(data):
+#     return json.dumps(data, indent=2)

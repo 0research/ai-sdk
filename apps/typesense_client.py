@@ -43,6 +43,9 @@ def initialize_typesense():
 client = initialize_typesense()
 
 
+# def get_collection(collection_id):
+#   client.collections[collection_id].retrieve()
+
 
 def search_documents(collection_id, per_page):
     search_parameters = {
@@ -51,8 +54,6 @@ def search_documents(collection_id, per_page):
     }
     result = client.collections[collection_id].documents.search(search_parameters)
     return [d['document'] for d in result['hits']]
-
-
 
 
 def get_document(collection_id, document_id):
@@ -70,3 +71,21 @@ def upsert(collection_id, document):
   document = {k:str(v) for k, v in document.items()}
   client.collections[collection_id].documents.upsert(document)
 
+
+
+
+def add_node(document_id, node, edge):
+  dataset = client.collections['dataset'].documents[document_id].retrieve()
+  print('document: ---------------')
+  print(dataset)
+  dataset['cytoscape_node'].append(node)
+  dataset['cytoscape_edge'].append(edge)
+  upsert('dataset', dataset)
+
+
+def merge_nodes(document_id, node, edge_list):
+  dataset = client.collections['dataset'].documents[document_id].retrieve()
+  dataset['cytoscape_node'].append(node)
+  for edge in edge_list:
+    dataset['cytoscape_edge'].append(edge)
+  upsert('dataset', dataset)

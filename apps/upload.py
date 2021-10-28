@@ -72,6 +72,7 @@ option_delimiter = [
 layout = html.Div([
     dcc.Store(id='current_dataset', storage_type='session'),
     dcc.Store(id='current_node', storage_type='session'),
+    dcc.Store(id='isUploadAPI', storage_type='memory'),
 
     generate_tabs(id('tabs_content'), tab_labels, tab_values, tab_disabled),
     dbc.Container([], fluid=True, id=id('content')),
@@ -165,6 +166,15 @@ def generate_tab_content(pathname, active_tab):
     return content
 
 
+# If url endswith 'upload_api' go to 2nd tab
+@app.callback(Output(id('tabs_content'), 'value'),
+                Input('url', 'pathname'))
+def load_dataset_dropdown(pathname):
+    # print(pathname, pathname.endswith('step=2'))
+    if pathname.endswith('step=2'):
+        print('Load: step2')
+        return id('upload_api')
+
 # Generate New Node ID or Load Node ID
 # @app.callback(Output(id('node_id'), "value"),
 #                 [Input('current_dataset', "data"),
@@ -209,7 +219,9 @@ def check_if_dataset_name_exist(dataset_id):
                 State(id('input_dataset_name'), "value"),
                 State(id('dropdown_dataset_type'), 'value')])
 def button_create_load_dataset(n_clicks, dataset_id, dataset_type):
+    print('load0')
     if n_clicks is None: return no_update
+    print('load1')
 
     active_tab = no_update
     invalid = False

@@ -17,17 +17,20 @@ from jsonmerge import Merger
 from pprint import pprint
 from genson import SchemaBuilder
 from jsondiff import diff
-
 import os
 from pandas import json_normalize
 import pandas as pd
-
-
 import uuid
+
 
 mergeOptions = ['overwrite', 'objectMerge', 'version']
 flattenOptions = ['Flatten', 'Unflatten']
-
+sidebar_2_list = [
+    {'label': 'Profile', 'pathname': '/apps/profile', 'className': 'fas fa-chess-knight'},
+    {'label': 'Merge Strategy', 'pathname': '/apps/merge_strategy', 'className': 'fas fa-chess-knight'},
+    {'label': 'Temporal Evolution', 'pathname': '/apps/temporal_evolution', 'className': 'fas fa-clock'},
+    {'label': 'Impute Data', 'pathname': '/apps/impute_data', 'className': 'fas fa-search-plus'},
+]
 
 def id_factory(page: str):
     def func(_id: str):
