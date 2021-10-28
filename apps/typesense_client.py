@@ -1,6 +1,7 @@
 import typesense
 import os
 import socket
+import ast
 
 def typesense_client(host, port, protocol, api_key, timeout=2):
   return typesense.Client({
@@ -43,7 +44,7 @@ client = initialize_typesense()
 
 
 
-def get_documents(collection_id, per_page):
+def search_documents(collection_id, per_page):
     search_parameters = {
         'q': '*',
         'per_page': per_page,
@@ -53,28 +54,19 @@ def get_documents(collection_id, per_page):
 
 
 
-# collection_name = 'dataset'
-# schema = {
-#     "name": collection_name,  
-#     "fields": [{"name": ".*", "type": "auto" }]
-# }
 
-# for collection in client.collections.retrieve():
-#     if collection['name'] == collection_name:
-#         client.collections[collection_name].delete()
-# client.collections.create(schema)
+def get_document(collection_id, document_id):
+  doc = client.collections[collection_id].documents[document_id].retrieve()
+  for k, v in doc.items():
+    if (v[0] == '[' and v[-1] == ']') or (v[0] == '{' and v[-1] == '}'):
+      try: 
+        doc[k] = ast.literal_eval(v)
+      except Exception as e: 
+        print(e)
+  return doc
 
-# # Insert Data to Collection
-# books_dir = "C:/0research/Project/ai-sdk/datasets/books.jsonl"
-# size = os.path.getsize(books_dir)
-# if size < 1000000:
-#     print(size)
-# else:
-#     print('large')
-# with open(books_dir) as infile:
-#     for i, json_line in enumerate(infile):
-#         book_document = json.loads(json_line)
-#         client.collections[collection_name].documents.create(book_document)
 
-#         if i > 100:
-#             break
+def upsert(collection_id, document):
+  document = {k:str(v) for k, v in document.items()}
+  client.collections[collection_id].documents.upsert(document)
+

@@ -22,11 +22,12 @@ from pandas import json_normalize
 from itertools import zip_longest
 from datetime import datetime
 import dash_cytoscape as cyto
+from apps.typesense_client import *
 
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 
-id = id_factory('data_explorer')
+id = id_factory('data_lineage')
 
 # Object declaration
 basic_elements = [
@@ -41,34 +42,6 @@ basic_elements = [
         'classes':'api',
     },
     {
-        'data': {'id': 'three', 'label': 'Version 3'},
-        'position': {'x': 100, 'y': 150},
-        'classes':'csv',
-    },
-    {
-        'data': {'id': 'four', 'label': 'Version 4'},
-        'position': {'x': 400, 'y': 50},
-        'classes':'csv',
-    },
-    {
-        'data': {'id': 'five', 'label': 'Version 5'},
-        'position': {'x': 250, 'y': 100},
-        'classes':'blob',
-    },
-    {
-        'data': {'id': 'six', 'label': 'Version 6'},
-        'position': {'x': 150, 'y': 150},
-        'classes':'blob',
-    },
-    {
-        'data': {
-            'id': 'one-two',
-            'source': 'one',
-            'target': 'two',
-            'label': 'Edge from Dataset1 to Dataset2'
-        }
-    },
-    {
         'data': {
             'id': 'one-five',
             'source': 'one',
@@ -76,55 +49,7 @@ basic_elements = [
             'label': 'Edge from Version 1 to Version 5',
             'extra_data': 'hello'
         }
-    },
-    {
-        'data': {
-            'id': 'two-four',
-            'source': 'two',
-            'target': 'four',
-            'label': 'Edge from Version 2 to Version 4'
-        }
-    },
-    {
-        'data': {
-            'id': 'three-five',
-            'source': 'three',
-            'target': 'five',
-            'label': 'Edge from Version 3 to Version 5'
-        }
-    },
-    {
-        'data': {
-            'id': 'three-two',
-            'source': 'three',
-            'target': 'two',
-            'label': 'Edge from Version 3 to Version 2'
-        }
-    },
-    {
-        'data': {
-            'id': 'four-four',
-            'source': 'four',
-            'target': 'four',
-            'label': 'Edge from Version 4 to Version 4'
-        }
-    },
-    {
-        'data': {
-            'id': 'four-six',
-            'source': 'four',
-            'target': 'six',
-            'label': 'Edge from Version 4 to Version 6'
-        }
-    },
-    {
-        'data': {
-            'id': 'five-one',
-            'source': 'five',
-            'target': 'one',
-            'label': 'Edge from Version 5 to Version 1'
-        }
-    },
+    }
 ]
 
 styles = {
@@ -199,8 +124,10 @@ stylesheet = [
 ]
 
 
+
 layout = html.Div([
-    dcc.Store(id='dataset_metadata', storage_type='session'),
+    dcc.Store(id='current_dataset', storage_type='session'),
+    dcc.Store(id='current_node', storage_type='session'),
     html.Div([
         # dbc.Row(dbc.Col(html.H1('Data Explorer')), style={'text-align':'center'}),
 
@@ -213,15 +140,15 @@ layout = html.Div([
                     dbc.DropdownMenuItem('Two', id('two')),
                     dbc.DropdownMenuItem('Three', id('three')),
                 ], label="Action"), width={"size": 1, "order": "1"}, style={'float':'right'}),
-                html.Button('Add API', id('button_add_api'), className='btn btn-success btn-lg', style={'margin-right':'3px'}), 
-                html.Button('Inspect', id('inspect'), className='btn btn-info btn-lg', style={'margin-right':'3px'}), 
-                html.Button('Modify Profile', id('modify_profile'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}), 
-                html.Button('Remove Node', id('remove_node'), className='btn btn-danger btn-lg', style={'margin-right':'10px'}),
+                html.Button('Add API', id=id('button_add_api'), className='btn btn-success btn-lg', style={'margin-right':'3px'}), 
+                html.Button('Inspect', id=id('inspect'), className='btn btn-info btn-lg', style={'margin-right':'3px'}), 
+                html.Button('Modify Profile', id=id('modify_profile'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}), 
+                html.Button('Remove Node', id=id('remove_node'), className='btn btn-danger btn-lg', style={'margin-right':'10px'}),
                 # html.Button('Merge Versions', id('button_merge'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}),
                 # html.Button('Remove Version', id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
 
                 html.H5('Selected: None', id=id('selected_version'), style={'text-align':'center', 'background-color': 'silver'}),
-                cyto.Cytoscape(id=id('data_explorer'), elements=basic_elements, 
+                cyto.Cytoscape(id=id('data_explorer'), elements=[], 
                                 layout={'name': 'preset'},
                                 style={'height': '1000px','width': '100%'},
                                 stylesheet=stylesheet)
@@ -247,6 +174,17 @@ layout = html.Div([
         ]),
     ], style={'width':'100%'}),
 ])
+
+
+@app.callback(Output(id('data_explorer'), 'elements'), 
+                [Input('current_dataset', 'data'),
+                Input('url', 'pathname')])
+def generate_cytoscape(dataset_id, pathname):
+    if dataset_id is None or dataset_id == '': return no_update
+    print('CYTOSCape')
+    dataset = get_document('dataset', dataset_id)
+    pprint(dataset)
+    return (dataset['cytoscape_node'] + dataset['cytoscape_edge'])
 
 
 
@@ -297,46 +235,46 @@ def displayTapNode(node_data, selectedNodeData, edge_data):
 
 
 # Load, Add, Delete, Merge
-@app.callback(Output(id('data_explorer'), 'elements'), 
-                [Input('url', 'pathname'),
-                Input(id('button_add_api'), 'n_clicks'), 
-                State(id('data_explorer'), 'tapNodeData'),
-                State(id('data_explorer'), 'elements'),
-                State('dataset_metadata', 'data'),])
-def add_version(pathname, n_clicks, tapNodeData, elements, metadata):
-    triggered = callback_context.triggered[0]['prop_id']
+# @app.callback(Output(id('data_explorer'), 'elements'), 
+#                 [Input('url', 'pathname'),
+#                 Input(id('button_add_api'), 'n_clicks'), 
+#                 State(id('data_explorer'), 'tapNodeData'),
+#                 State(id('data_explorer'), 'elements'),
+#                 State('dataset_metadata', 'data'),])
+# def add_version(pathname, n_clicks, tapNodeData, elements, metadata):
+#     triggered = callback_context.triggered[0]['prop_id']
 
-     # On Page Load
-    if triggered == '.':
-        data = []
-        # for api in metadata['api']:
-        #     pass
+#      # On Page Load
+#     if triggered == '.':
+#         data = []
+#         # for api in metadata['api']:
+#         #     pass
        
-    if n_clicks is None: return no_update
-    if tapNodeData is None: return no_update
+#     if n_clicks is None: return no_update
+#     if tapNodeData is None: return no_update
 
-    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+#     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
 
-    if triggered == id('button_add_api'):
-        new_version_id = str(len(elements)//2)
-        elements += [
-            {
-            'data': {'id': new_version_id, 'label': 'Version '+str(new_version_id)},
-            # 'position': {'x': 150, 'y': 150}
-            },
-            {
-                'data': {
-                    'id': tapNodeData['id'] + '_' + new_version_id,
-                    'source': tapNodeData['id'],
-                    'target': new_version_id,
-                    'label': 'Edge from ' + str(tapNodeData['id']) + ' to ' + str(new_version_id)
-                },
-                # 'classes': 'blob'
-            }
-        ]
-    elif triggered == id('button_remove'):
-        pass
+#     if triggered == id('button_add_api'):
+#         new_version_id = str(len(elements)//2)
+#         elements += [
+#             {
+#             'data': {'id': new_version_id, 'label': 'Version '+str(new_version_id)},
+#             # 'position': {'x': 150, 'y': 150}
+#             },
+#             {
+#                 'data': {
+#                     'id': tapNodeData['id'] + '_' + new_version_id,
+#                     'source': tapNodeData['id'],
+#                     'target': new_version_id,
+#                     'label': 'Edge from ' + str(tapNodeData['id']) + ' to ' + str(new_version_id)
+#                 },
+#                 # 'classes': 'blob'
+#             }
+#         ]
+#     elif triggered == id('button_remove'):
+#         pass
 
-    return elements
+#     return elements
 
 

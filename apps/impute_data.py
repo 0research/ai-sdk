@@ -119,7 +119,7 @@ layout = html.Div([
 def generate_left_bar_graph(pathname, settings):
     if settings is None or settings['name'] is None: return no_update
     
-    result = get_documents(settings['name'], 250)
+    result = search_documents(settings['name'], 250)
     df = json_normalize(result)
     
     # stack_types = ['Valid', 'Missing', 'Invalid'] # TODO add Invalid
@@ -159,7 +159,7 @@ def generate_right_bar_graph(selected_column, settings):
     if settings is None or settings['name'] is None: return no_update
     if selected_column == None: return no_update
     
-    result = get_documents(settings['name'], 250)
+    result = search_documents(settings['name'], 250)
     data = json_normalize(result)[selected_column].value_counts(dropna=False)
 
     # TODO add invalid as diff colored bars
@@ -204,7 +204,7 @@ def generate_select_graph(selected_columns, selected_graph, action, settings):
     if settings is None or settings['name'] is None: return no_update
 
     # Get Data
-    result = get_documents(settings['name'], 250)
+    result = search_documents(settings['name'], 250)
     df = json_normalize(result)
     df.insert(0, column='index', value=range(1, len(df)+1))
 
@@ -248,7 +248,7 @@ def confirm_action(n_clicks, selected_columns, action, settings):
     if settings is None or settings['name'] is None: return no_update
 
     # Get Data
-    result = get_documents(settings['name'], 250)
+    result = search_documents(settings['name'], 250)
     df = json_normalize(result)
     df[selected_columns] = perform_action(df[selected_columns], action)
     
@@ -283,7 +283,7 @@ def confirm_action(n_clicks, selected_columns, action, settings):
 #     if profile == None: return no_update
     
 #     # Convert data & Convert all values to string
-#     result = get_documents(setting['name'], 250)
+#     result = search_documents(setting['name'], 250)
 #     df = json_normalize(result)
 #     df.insert(0, column='index', value=range(1, len(df)+1))
 

@@ -70,11 +70,8 @@ option_delimiter = [
 
 # Layout
 layout = html.Div([
-    # dcc.Store(id='current_dataset', storage_type='session'),
-    # dcc.Store(id='current_node', storage_type='session'),
-    # dcc.Store(id=id('api_list'), storage_type='memory'),    
-    # dcc.Store(id='dataset_profile', storage_type='session'),
-    # dcc.Store(id=id('remove_list'), storage_type='session'),
+    dcc.Store(id='current_dataset', storage_type='session'),
+    dcc.Store(id='current_node', storage_type='session'),
 
     generate_tabs(id('tabs_content'), tab_labels, tab_values, tab_disabled),
     dbc.Container([], fluid=True, id=id('content')),
@@ -188,7 +185,7 @@ def generate_tab_content(pathname, active_tab):
 def check_if_dataset_name_exist(dataset_id):
     if dataset_id is None: return no_update
     
-    list_of_dataset_id = [d['id'] for d in get_documents('dataset', 250)]
+    list_of_dataset_id = [d['id'] for d in search_documents('dataset', 250)]
     isDisabled = False
 
     if dataset_id in list_of_dataset_id:
@@ -227,13 +224,13 @@ def button_create_load_dataset(n_clicks, dataset_id, dataset_type):
     #     borderStyle = {'border': '1px solid red'}
 
     # Get Existing Datasets & Initialize new dataset object
-    dataset_list = get_documents('dataset', 250)
+    dataset_list = search_documents('dataset', 250)
     dataset_options = [{'label': d['id'], 'value': d['id']} for d in dataset_list]
+    
     
     # If valid Dataset ID
     if (dataset_id is not None) and (dataset_id.isalnum()):
         active_tab = id('upload_api')
-        
         # Load Dataset
         if dataset_id in [d['id'] for d in dataset_list]:
             for dataset in dataset_list:
@@ -241,7 +238,13 @@ def button_create_load_dataset(n_clicks, dataset_id, dataset_type):
                     selected = dataset['id']
         # Create Dataset
         else:
-            document = {'id': dataset_id, 'type': dataset_type, 'node': str([]) }
+            document = {
+                'id': dataset_id, 
+                'type': dataset_type, 
+                'node': str([]),
+                'cytoscape_node': str([]),
+                'cytoscape_edge': str([])
+            }
             client.collections['dataset'].documents.create(document)
             dataset_options.append({'label':document['id'], 'value': document['id']})
             selected = document['id']
@@ -355,11 +358,19 @@ def upload(n_clicks, current_dataset, node_id, node_description, dropdown_delimi
     if 'remove_space' in checklist_settings: remove_space = True
     if 'remove_header' in checklist_settings: remove_header = False
 
-    # Retrieve and Update Dataset Metadata Document
-    dataset = client.collections['dataset'].documents[current_dataset].retrieve()
-    node_list = ast.literal_eval(dataset['node'])
-    node_list.append(node_id)
-    dataset['node'] = str(node_list)
+    # Retrieve and Append Dataset Metadata Document
+    dataset = get_document('dataset', current_dataset)
+    dataset['node'].append(node_id)
+    from random import randint
+    dataset['cytoscape_node'].append({
+        'data': {'id': node_id, 'label': node_id},
+        'position': {'x': randint(1, 100), 'y': randint(1, 100)},
+        'classes': 'api',
+    })
+
+    # Form Node Data Collection
+    df = json_normalize(datatable_data)
+    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
 
     # Create Node Metadata Document
     node = {
@@ -370,21 +381,16 @@ def upload(n_clicks, current_dataset, node_id, node_description, dropdown_delimi
         'remove_space': remove_space,
         'remove_header': remove_header,
         'type': 'api', 
-        'datatype': [],  # TODO detect here remove from profile page
-        'expectation': [], 
-        'cytoscape': [], # TODO append upon upload
+        'datatype': {col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
+        'isDeletedStatus': {col:False for col in df.columns},
+        'expectation': {col:None for col in df.columns},
         'index': [], 
         'target': [],
     }
-    node = {'id': node_id, 'data':str(node)}
-
-    # Form Node Data Collection
-    df = json_normalize(datatable_data)
-    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-
+    
     # Upload to Typesense
-    client.collections['dataset'].documents.upsert(dataset)
-    client.collections['node'].documents.upsert(node)
+    upsert('dataset', dataset)
+    upsert('node', node)
     client.collections.create(generate_schema_auto(node_id))
     client.collections[node_id].documents.import_(jsonl, {'action': 'create'})
     

@@ -160,9 +160,11 @@ def display_page(pathname):
 @app.callback([Output('dropdown_current_dataset', 'options')],
                 Input('url', 'pathname'),)
 def load_dataset_dropdown(pathname):
-    dataset_list = get_documents('dataset', 250)
+    dataset_list = search_documents('dataset', 250)
     options = [{'label': d['id'], 'value': d['id']} for d in dataset_list]
     return options
+
+
 
 
 # Load Last Node ID if change Selected Dataset

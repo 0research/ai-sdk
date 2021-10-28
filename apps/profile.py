@@ -45,7 +45,8 @@ option_datatype = [
 layout = html.Div([
     dcc.Store(id='current_dataset', storage_type='session'),
     dcc.Store(id='current_node', storage_type='session'),
-    dcc.Store(id=id('tmp'), storage_type='session'),
+    dcc.Store(id=id('index_col'), storage_type='session'),
+    dcc.Store(id=id('target_col'), storage_type='session'),
 
     dbc.Row(dbc.Col(html.H2('Set Profile'), width=12), style={'text-align':'center'}),
     # TODO node_id, description, 
@@ -84,16 +85,18 @@ def generate_expectations():
     
 
 @app.callback(Output(id('data_profile'), 'children'), 
-            [Input('current_node', 'data'),
-            Input('url', 'pathname')])
+                [Input('current_node', 'data'),
+                Input('url', 'pathname')])
 def generate_profile(node_id, pathname):
-    if node_id is None: return no_update
+    if node_id is None or node_id is '': return no_update
 
-    node = client.collections['node'].documents[node_id].retrieve()
-    node_data = get_documents(node['id'], 250)
-    df = json_normalize(node_data)
-    columns = list(df.columns)
-    detected_datatype_list = list(map(str, df.convert_dtypes().dtypes))
+    node = get_document('node', node_id)
+    deleted_columns = [col for col, status in node['isDeletedStatus'].items() if status == True]
+    datatype = node['datatype']
+    for col in deleted_columns:
+        datatype.remove(col)
+        print('Delete: ', col)
+        
 
     return (html.Table(
         [html.Tr([
@@ -109,110 +112,76 @@ def generate_profile(node_id, pathname):
             html.Td(html.H6('%', id={'type':id('col_invalid'), 'index': i})),
             html.Td(html.H6('-', id={'type':id('col_result'), 'index': i})),
             html.Td([
-                html.Button('Index', id={'type':id('col_button_index'), 'index': i}, style={'background-color':'white'}),
-                html.Button('Target', id={'type':id('col_button_target'), 'index': i}, style={'background-color':'white'}),
+                html.Button('Index', id={'type':id('col_button_index'), 'index': i}, className=('btn btn-warning' if col in node['index'] else '')),
+                html.Button('Target', id={'type':id('col_button_target'), 'index': i}, className=('btn btn-success' if col in node['target'] else '')),
                 html.Button('Remove', id={'type':id('col_button_remove'), 'index': i}, style={'background-color':'white'})
             ]),
-            ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(zip(columns, detected_datatype_list))
+            ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(datatype.items())
         ] +
         [html.Tr([''])],
         style={'width':'100%', 'height':'800px'}, 
         id=id('table_data_profile')))
 
 
-# Style Indexed Row
-# @app.callback(Output({'type':id('row'), 'index': MATCH}, 'style'), 
-#             [Input({'type':id('col_button_index'), 'index': MATCH}, 'n_clicks'),
-#             State({'type':id('row'), 'index': MATCH}, 'style')])
-# def style_row(n_clicks, style):
-#     if n_clicks is None: return no_update
-
-#     if style is None: newStyle = {'background-color':'grey'}
-#     else: newStyle = None
-
-#     return newStyle
-
 
 # Save Profile
-@app.callback([Output({'type':id('col_button_index'), 'index': MATCH}, 'style'),
-                Output({'type':id('col_button_target'), 'index': MATCH}, 'style')],
+@app.callback([Output({'type':id('col_button_index'), 'index': MATCH}, 'className'),
+                Output({'type':id('col_button_target'), 'index': MATCH}, 'className'),
+                Output({'type':id('row'), 'index': MATCH}, 'style')],
                 [Input({'type':id('col_dropdown_datatype'), 'index': MATCH}, 'value'),
                 Input({'type':id('col_button_index'), 'index': MATCH}, 'n_clicks'),
                 Input({'type':id('col_button_target'), 'index': MATCH}, 'n_clicks'),
                 Input({'type':id('col_button_remove'), 'index': MATCH}, 'n_clicks'),
                 State({'type':id('col_column'), 'index': MATCH}, 'children'),
-                State('current_node', 'data')])
-def update_output(datatype, n_click_index, n_click_target, n_click_remove, column, node_id):
+                State('current_node', 'data'),
+                State({'type':id('col_button_index'), 'index': MATCH}, 'className'),
+                State({'type':id('col_button_target'), 'index': MATCH}, 'className'),])
+def update_output(datatype, n_click_index, n_click_target, n_click_remove, column, node_id, button_index_class, button_target_class):
+    if node_id is None: return no_update
+    if callback_context.triggered == [{'prop_id': '.', 'value': None}]: return no_update
+    
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-    if triggered == '': return no_update
     triggered = ast.literal_eval(triggered)
+    ix = triggered['index']
+    column = column['props']['children']
 
     # Initialize Output Variables
-    button_index_style = {}
-    button_target_style = {}
-
+    # button_index_class = ''
+    # button_target_class = ''
+    row_style = {}
+    
     # Retrieve and Update Node Metadata Document
-    node = client.collections['node'].documents[node_id].retrieve()
-    datatype = ast.literal_eval(node['datatype'])
-    datatype.append(node_id)
-    node['datatype'] = str(datatype)
+    node = get_document('node', node_id)
 
     if triggered['type'] == id('col_dropdown_datatype'):
-        print(datatype)
+        node['datatype'][column] = datatype
+
     elif triggered['type'] == id('col_button_index'):
-        pass
+        if column not in node['index']: 
+            node['index'].append(column)
+            button_index_class = 'btn btn-warning'
+        else: 
+            node['index'].remove(column)
+            button_index_class = ''
+
     elif triggered['type'] == id('col_button_target'):
-        pass
+        if column not in node['target']: 
+            node['target'].append(column)
+            button_target_class = 'btn btn-success'
+        else: 
+            node['target'].remove(column)
+            button_target_class = ''
+
     elif triggered['type'] == id('col_button_remove'):
-        pass
+        if node['isDeletedStatus'][column] == True:
+            node['isDeletedStatus'][column] = False
+        else:
+            node['isDeletedStatus'][column] = True
+            row_style = {'display':'none'}
+    
+    # Update Typesense Node
+    upsert('node', node)
 
-    # print(triggered['type'], triggered['index'])
-
-    return no_update
-
-# # Store profile
-# @app.callback(Output('dataset_profile', 'data'),
-#                 Output(id('remove_list'), 'data'),
-#                 [Input(id("tabs_content"), "value"),
-#                 Input({'type':id('col_dropdown_datatype'), 'index': ALL}, 'value'),
-#                 Input({'type':id('col_button_remove'), 'index': ALL}, 'n_clicks'),
-#                 State({'type':id('col_column'), 'index': ALL}, 'children')])
-# def update_output(tab, datatype, remove_list_n_clicks, column):
-#     if tab != id('set_data_profile'): return no_update
-
-#     column = [c['props']['children'] for c in column]
-
-#     # Profile
-#     profile = {}
-#     profile['datatype'] = dict(zip(column, datatype))
-#     profile['index'] = '' # TODO Store index field 
-#     profile['expectation'] = {} # TODO Store expectations 
-
-#     # Remove Column List
-#     remove_list = []
-#     for n_clicks, c in zip(remove_list_n_clicks, column):
-#         if (n_clicks is not None) and n_clicks%2 == 1:
-#             remove_list.append(c)
-
-#     return profile, remove_list
+    return button_index_class, button_target_class, row_style
 
 
-
-
-
-# Update typesense dataset with settings/profile/columns to remove
-# @app.callback(Output(id('????????'), "??????"), 
-#                 [Input(id("button_confirm"), "n_clicks"),
-#                 State('dataset_metadata', "data"),
-#                 State('dataset_profile', "data")])
-# def upload_data(n_clicks, setting, profile):
-#     if n_clicks is None: return no_update
-
-#     print(setting)
-#     print(profile)
-
-    # Update typesense dataset
-
-    # Update typesense dataset profile
-
-#     return no_update
