@@ -123,20 +123,7 @@ stylesheet = [
     },
 ]
 
-# Action Dropdown Options
-option_list = []
-# [ for nav in sidebar_2_list]
-dropdown_merge_strategy = dbc.DropdownMenu(label='Merge Strategy', children=[
-        dbc.DropdownMenuItem("First"),
-        dbc.DropdownMenuItem(divider=True),
-        dbc.DropdownMenuItem("Second"),
-], direction='end')
 
-for nav in sidebar_2_list:
-    if nav['label'] == 'Merge Strategy':
-        option_list.append(dbc.DropdownMenuItem(dropdown_merge_strategy, id=id(nav['label'])))
-    else:
-        option_list.append(dbc.DropdownMenuItem(nav['label'], id=id(nav['label'])))
 
 
 layout = html.Div([
@@ -144,58 +131,55 @@ layout = html.Div([
     dcc.Store(id='current_node', storage_type='session'),
     dcc.Store(id='isUploadAPI', storage_type='memory'),
     dcc.Interval(id=id('interval'), interval=1000, n_intervals=0),
+    html.Div('', id=id('test')),
 
     html.Div([
-        # dbc.Row(dbc.Col(html.H1('Data Explorer')), style={'text-align':'center'}),
+        dbc.Row(dbc.Col(html.H1('Data Lineage (Data Flow Experiments)', style={'text-align':'center'}))),
 
         dbc.Row([
             dbc.Col([
-                html.H1('Data Lineage (Data Flow Experiments)', style={'text-align':'center'}),
-
-                dbc.Col(dbc.DropdownMenu(option_list, label="Action", style={'float':'left', 'width': '200px'}), width={"size": 2, "order": "1"}),
-    
-                dbc.Col(html.Button('Modify Profile', id=id('modify_profile'), className='btn btn-warning btn-lg'), style={'float':'right', 'margin-right':'3px'}), 
-                dbc.Col(html.Button('Remove Node', id=id('remove_node'), className='btn btn-danger btn-lg'), style={'float':'right', 'margin-right':'3px'}),
-                dbc.Col(html.Button('Inspect', id=id('inspect'), className='btn btn-info btn-lg'), style={'float':'right', 'margin-right':'3px'}), 
-                dbc.Col(html.Button('Add API', id=id('button_add_api'), className='btn btn-success btn-lg'), style={'float':'right', 'margin-right':'3px'}), 
-                # html.Button('Merge Versions', id('button_merge'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}),
-                # html.Button('Remove Version', id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
-
+                html.Button('Add API', id=id('button_add'), className='btn btn-success btn-lg', style={'margin-right':'3px'}), 
+                html.Button('Inspect', id=id('button_inspect'), className='btn btn-info btn-lg', style={'margin-right':'3px'}), 
+                # html.Button('Modify Profile', id=id('button_profile'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}), 
+                html.Button('Remove Node', id=id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
+                
                 dbc.Col(html.H5('Selected(temporary): None', id=id('selected_version')), style={'text-align':'center', 'background-color': 'silver'}),
-                cyto.Cytoscape(id=id('data_explorer'), elements=[], 
+                cyto.Cytoscape(id=id('cytoscape'), 
+                                elements=[], 
                                 layout={'name': 'preset'},
                                 style={'height': '1000px','width': '100%'},
-                                stylesheet=stylesheet)
+                                stylesheet=None)
             ], width=9),
 
             dbc.Col([
-                html.Div([
-                    html.H5('Experiments', style={'text-align':'center'}),
-                    html.Div(id=id('experiments')),
-                    
-                ]),
-                # dcc.Tabs(id='tabs', children=[
-                #     dcc.Tab(label='Data', children=[
-                #         html.Div(style=styles['tab'], children=[
-                #             html.Pre(id=id('data_output'),style={'overflow-y': 'scroll', 'height':'95%'}),
-                #         ])
-                #     ], id=id('tab_1')),
-
-                #     dcc.Tab(label='Profile', children=[
-                #         html.Div(style=styles['tab'], children=[
-                #             html.P('Data'),
-                #             html.Pre(id=id('profile_output'),style={'overflow-y': 'scroll', 'height':'95%'}),
-                #         ])
-                #     ]),
-                # ]),
+                dbc.Card([
+                    dbc.CardHeader(html.H5('Action'), style={'text-align':'center'}),
+                    dbc.CardHeader(dbc.Select(id=id('dropdown_action'), placeholder='Select at least one Node', style={'min-width':'120px', 'text-align':'center'}, persistence_type='session', persistence=True)),
+                    dbc.CardBody(html.P('Inputs'), id=id('action_inputs')),
+                    dbc.CardFooter(dbc.Button('Button', id=id('button_action'), color='primary', style={'width':'100%'})),
+                ], className='bg-primary', style={'min-height': '250px'}, inverse=True),
+                
+                dbc.Card([
+                    dbc.CardHeader(html.H5('Experiments'), style={'text-align':'center'}),
+                    dbc.CardBody(html.P('experiments'), id=id('experiments')),
+                    dbc.CardFooter('Buttons'),
+                ], className='bg-info', style={'height': '500px'}),
 
             ], width=3),
         ]),
+
+        # Modal
+        dbc.Modal([
+            dbc.ModalHeader(dbc.ModalTitle('', id=id('modal_title'))),
+            dbc.ModalBody('', id=id('modal_body')),
+            dbc.ModalFooter('', id=id('modal_footer')),
+        ], id=id('modal'), size='xl'),
+
     ], style={'width':'100%'}),
 ])
 
 
-@app.callback(Output(id('data_explorer'), 'elements'), 
+@app.callback(Output(id('cytoscape'), 'elements'), 
                 Input(id('interval'), 'n_intervals'),
                 State('current_dataset', 'data'))
 def generate_cytoscape(n_intervals, dataset_id):
@@ -218,28 +202,149 @@ def generate_cytoscape(n_intervals, dataset_id):
 #     return [dbc.Card(children=(dbc.CardHeader(experiment['name']), dbc.CardBody(experiment['description'])), color="info", inverse=True) for experiment in dataset['experiment']]
 
 
-# Select API
+# Select Node
 @app.callback(Output('display_current_node', 'value'), 
-                Input(id('data_explorer'), 'tapNodeData'))
-def add_api(tapNodeData):
+                Input(id('cytoscape'), 'tapNodeData'))
+def select_node(tapNodeData):
     if tapNodeData is None: return no_update
-    pprint(tapNodeData)
     return no_update
 
 # Add API
 @app.callback(Output('url', 'pathname'),
-                Input(id('button_add_api'), 'n_clicks'))
-def add_api(n_clicks):
+                Input(id('button_add'), 'n_clicks'))
+def button_add(n_clicks):
     if n_clicks is None: return no_update
-    return '/apps/upload/step=2'
+    return '/apps/upload_api'
+
+# Inspect/Action Button
+@app.callback(Output(id('modal'), 'is_open'),
+                Output(id('modal_title'), 'children'),
+                Output(id('modal_body'), 'children'),
+                Output(id('modal_footer'), 'children'),
+                Input(id('button_inspect'), 'n_clicks'),
+                Input(id('button_action'), 'n_clicks'),
+                State('current_node', 'data'),
+                State(id('dropdown_action'), 'value'))
+def button_inspect_action(n_clicks_inspect, n_clicks_action, node_id, selected_action):
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+    if node_id is None: return no_update
+    if triggered == '': return no_update
+    if selected_action is '' or selected_action is None: return no_update
+
+    # Retrieve Node Data
+    node = get_document('node', node_id)
+    data = search_documents(node['id'], 250)
+    df = json_normalize(data)
+    pprint(data)
+    
+    if triggered == id('button_inspect'):
+        modal_title = "Inspect"
+        modal_body = (dbc.ModalBody([
+                        dbc.InputGroup([
+                            dbc.InputGroupText("Node ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                            dbc.Textarea(id=id('node_id'), disabled=True, value=node['id'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                        ], className="mb-3 lg"),
+                        dbc.InputGroup([
+                            dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                            dbc.Textarea(id=id('node_description'), disabled=True, value=node['description'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                        ], className="mb-3 lg"),
+                        html.Div(generate_datatable(id('inspect_modal_datatable'), df.to_dict('records'), df.columns, height='700px')),
+                    ]))
+        modal_footer = ''
+
+    elif triggered == id('button_action'):
+        from apps import (upload, overview, profile, merge_strategy, temporal_evolution, temporal_merge, 
+                decomposition, impute_data, remove_duplicate, data_lineage,
+                page2, page3, page6, page6,page7, page8, page9, page10)
+
+        pathname = selected_action
+        if pathname.startswith('/apps/upload'): layout = upload.layout
+        if pathname.startswith('/apps/overview'): layout = overview.layout
+        if pathname.startswith('/apps/profile'): layout = profile.layout
+        if pathname.startswith('/apps/merge_strategy'): layout = merge_strategy.layout
+        if pathname.startswith('/apps/temporal_evolution'): layout = temporal_evolution.layout
+        if pathname.startswith('/apps/decomposition'): layout = decomposition.layout
+        if pathname.startswith('/apps/impute_data'): layout = impute_data.layout
+        if pathname.startswith('/apps/remove_duplicate'): layout = remove_duplicate.layout
+        if pathname.startswith('/apps/data_lineage'): layout = data_lineage.layout
+
+        # modal_title = selected_action['label']
+        modal_title = 'Title'
+        modal_body = html.Div(layout, style={'overflow-y':'auto'})
+        modal_footer = dbc.Button('Commit Changes', id=id('button_commit'))
+
+    return True, modal_title, modal_body, modal_footer
+
+
+
+# Commit Changes
+@app.callback(Output(id('test'), 'children'),
+                Output(id('modal'), 'is_open'),
+                Input(id('button_commit'), 'n_clicks'),
+                State('current_dataset', 'data'),
+                State(id('cytoscape'), 'tapNodeData')
+                # State('impute_data-dropdown_select_action', 'value'),
+                )
+def button_commit(n_clicks, dataset_id, tapNodeData):
+    if n_clicks is None: return no_update
+    dataset = get_document('dataset', dataset_id)
+    node_id = tapNodeData['id']
+    new_node_id = str(uuid.uuid1())
+    
+    add_node(dataset_id, node_id)
+
+    return no_update, False
+
+
+# Remove Node
+
+
+
+
+
+# Generate options in dropdown and button 
+@app.callback(Output(id('dropdown_action'), 'options'),
+                Output(id('dropdown_action'), 'value'),
+                # Output(id('button_action'), 'children'),
+                Input(id('cytoscape'), 'selectedNodeData'))
+def generate_dropdown_actions(selected_nodes):
+    if selected_nodes is None: return no_update
+    options = []
+    single = [ nav for nav in sidebar_2_list  if nav['multiple']==False ]
+    multiple = [ nav for nav in sidebar_2_list  if nav['multiple']==True ]
+
+    # Generate Options
+    if len(selected_nodes) == 1:
+        options = [ {'label':nav['label'], 'value':nav['value']} for nav in single ]
+    elif len(selected_nodes) > 1:
+        options = [ {'label':nav['label'], 'value':nav['value']} for nav in multiple ]
+    
+    # Get Default selected value
+    selected_value = (options[0] if len(options) > 0 else None)
+
+    return options, selected_value
+
+
+# # Perform Action
+# @app.callback(Output(id('button_action'), 'children'),
+#                 Input(id('button_action'), 'n_clicks'))
+# def button_action(n_clicks):
+#     if n_clicks is None: return no_update
+#     return 'abc'
+
+
+
+
+
+
 
 
 # Load, Add, Delete, Merge
-# @app.callback(Output(id('data_explorer'), 'elements'), 
+# @app.callback(Output(id('cytoscape'), 'elements'), 
 #                 [Input('url', 'pathname'),
 #                 Input(id('button_add_api'), 'n_clicks'), 
-#                 State(id('data_explorer'), 'tapNodeData'),
-#                 State(id('data_explorer'), 'elements'),
+#                 State(id('cytoscape'), 'tapNodeData'),
+#                 State(id('cytoscape'), 'elements'),
 #                 State('dataset_metadata', 'data'),])
 # def add_version(pathname, n_clicks, tapNodeData, elements, metadata):
 #     triggered = callback_context.triggered[0]['prop_id']
@@ -281,7 +386,7 @@ def add_api(n_clicks):
 
 # # Display Selected Version Name
 # @app.callback(Output(id('selected_version'), 'children'), 
-#                 Input(id('data_explorer'), 'selectedNodeData'))
+#                 Input(id('cytoscape'), 'selectedNodeData'))
 # def display_selected_version(selected_node_list):
 #     if selected_node_list is None or len(selected_node_list) == 0: return 'Selected: None'
 #     node_list = [node['label'] for node in selected_node_list]
@@ -291,9 +396,9 @@ def add_api(n_clicks):
 # # Display Version Data & Difference
 # @app.callback(Output(id('tab_1'), 'label'),
 #                 Output(id('data_output'), 'children'),
-#                 [Input(id('data_explorer'), 'tapNodeData'),
-#                 Input(id('data_explorer'), 'selectedNodeData'),
-#                 Input(id('data_explorer'), 'tapEdgeData')])
+#                 [Input(id('cytoscape'), 'tapNodeData'),
+#                 Input(id('cytoscape'), 'selectedNodeData'),
+#                 Input(id('cytoscape'), 'tapEdgeData')])
 # def displayTapNode(node_data, selectedNodeData, edge_data):
 #     triggered = callback_context.triggered[0]['prop_id']
 #     if triggered == '.': return no_update
@@ -317,6 +422,6 @@ def add_api(n_clicks):
 
 
 # @app.callback(Output(id('profile_output'), 'children'),
-#               [Input(id('data_explorer'), 'tapNodeData')])
+#               [Input(id('cytoscape'), 'tapNodeData')])
 # def displayTapNodeData(data):
 #     return json.dumps(data, indent=2)

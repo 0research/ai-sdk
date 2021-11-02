@@ -2,6 +2,8 @@ import typesense
 import os
 import socket
 import ast
+import uuid
+from pandas import json_normalize
 
 def typesense_client(host, port, protocol, api_key, timeout=2):
   return typesense.Client({
@@ -67,25 +69,88 @@ def get_document(collection_id, document_id):
   return doc
 
 
+def create(collection_id, document):
+  document = {k:str(v) for k, v in document.items()}
+  client.collections[collection_id].documents.create(document)
+
 def upsert(collection_id, document):
   document = {k:str(v) for k, v in document.items()}
   client.collections[collection_id].documents.upsert(document)
 
 
 
+def Node(node_id, node_type='blob', label=''):
+  return {
+    'data': {'id': node_id, 'label': label},
+    'position': {'x': 50, 'y': 50},
+    'classes': node_type,
+  }
 
-def add_node(document_id, node, edge):
-  dataset = client.collections['dataset'].documents[document_id].retrieve()
-  print('document: ---------------')
-  print(dataset)
+def Edge(source_node_id, destination_node_id, label='', extra_data=''):
+  return {
+    'data': {
+            'id': source_node_id + '-' + destination_node_id,
+            'source': source_node_id,
+            'target': destination_node_id,
+            'label': '',
+            'extra_data': extra_data
+        }
+  }
+
+def add_node(dataset_id, source_node_id, data='', description='', node_type='blob'):
+  # Retrieve Dataset and Node Document
+  dataset = get_document('dataset', dataset_id)
+  new_node_id = str(uuid.uuid1())
+  node = Node(new_node_id, node_type, '')
+  edge = Edge(source_node_id, new_node_id, label='')
   dataset['cytoscape_node'].append(node)
   dataset['cytoscape_edge'].append(edge)
+
+  # Form Node Data Collection
+  # df = json_normalize(datatable_data)
+  # jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+
+  # Create Node Metadata Document TODO incorrect data
+  # node = {
+  #     'id': destination_node_id,
+  #     'description': description, 
+  #     'source': None,
+  #     'delimiter': None, 
+  #     'remove_space': None,
+  #     'remove_header': None,
+  #     'type': node_type, 
+  #     'datatype': '', 
+  #     'isDeletedStatus': {col:False for col in df.columns}, 
+  #     'expectation': {col:None for col in df.columns}, 
+  #     'index': [],
+  #     'target': [], 
+  # }
+
   upsert('dataset', dataset)
+  # upsert('node', node)
+  # client.collections.create(generate_schema_auto(node_id))
+  # client.collections[node_id].documents.import_(jsonl, {'action': 'create'})
 
 
-def merge_nodes(document_id, node, edge_list):
-  dataset = client.collections['dataset'].documents[document_id].retrieve()
+def merge_nodes(dataset_id, source_node_id_list, destination_node_id, data, node_type='blob'):
+  dataset = client.collections['dataset'].documents[dataset_id].retrieve()
+
+  node = Node(destination_node_id, node_type, '')
   dataset['cytoscape_node'].append(node)
-  for edge in edge_list:
+
+  for source_node_id in source_node_id_list:
+    edge = Edge(source_node_id, destination_node_id, label='')
     dataset['cytoscape_edge'].append(edge)
+
+
   upsert('dataset', dataset)
+
+
+
+def generate_datatable_data(node_id):
+  node = get_document('node', node_id)
+  
+
+  data = search_documents(node_id, '250')
+  df = json_normalize(data)
+  return 

@@ -8,7 +8,7 @@ from app import app
 from app import server 
 from app import dbc # https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
 from apps.typesense_client import *
-from apps import (upload, overview, profile, merge_strategy, temporal_evolution, temporal_merge, 
+from apps import (upload_dataset, upload_api, overview, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage,
                 page2, page3, page6, page6,page7, page8, page9, page10)
 import ast
@@ -87,11 +87,11 @@ navbar = dbc.Navbar([
 
 # Sidebar
 sidebar_1 = [
-    dbc.NavLink("Upload", href="/apps/upload", id=id('nav_upload'), active="exact", className="fas fa-upload"),
+    dbc.NavLink("Upload Dataset", href="/apps/upload_dataset", id=id('nav_upload'), active="exact", className="fas fa-upload"),
     dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
     dbc.NavLink("Overview", href="/apps/overview", active="exact", className="fas fa-chart-pie"),
 ]
-sidebar_2 = [dbc.NavLink(nav['label'], href=nav['pathname'], active='exact', className=nav['className']) for nav in sidebar_2_list]
+sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in sidebar_2_list]
 sidebar_3 = [
     dbc.NavLink("Workflow", href="/apps/workflow", active="exact", className="fas fa-arrow-alt-circle-right"),
     dbc.NavLink("Remove Duplicate", href="/apps/remove_duplicate", active="exact", className='far fa-copy'),
@@ -121,7 +121,8 @@ sidebar = html.Div([
 ], style=SIDEBAR_STYLE)
 
 
-
+def doOne():
+    return 'one'
 
 # Layout
 def serve_layout():
@@ -139,7 +140,8 @@ app.layout = serve_layout
 
 @app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
 def display_page(pathname):
-    if pathname.startswith('/apps/upload'): return upload.layout
+    if pathname.startswith('/apps/upload_dataset'): return upload_dataset.layout
+    if pathname.startswith('/apps/upload_api'): return upload_api.layout
     if pathname.startswith('/apps/overview'): return overview.layout
     if pathname.startswith('/apps/profile'): return profile.layout
     if pathname.startswith('/apps/merge_strategy'): return merge_strategy.layout

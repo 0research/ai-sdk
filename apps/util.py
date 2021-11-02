@@ -23,13 +23,14 @@ import pandas as pd
 import uuid
 
 
-mergeOptions = ['overwrite', 'objectMerge', 'version']
-flattenOptions = ['Flatten', 'Unflatten']
+
+
 sidebar_2_list = [
-    {'label': 'Profile', 'pathname': '/apps/profile', 'className': 'fas fa-chess-knight'},
-    {'label': 'Merge Strategy', 'pathname': '/apps/merge_strategy', 'className': 'fas fa-chess-knight'},
-    {'label': 'Temporal Evolution', 'pathname': '/apps/temporal_evolution', 'className': 'fas fa-clock'},
-    {'label': 'Impute Data', 'pathname': '/apps/impute_data', 'className': 'fas fa-search-plus'},
+    {'label': 'Upload API',         'value': '/apps/upload_api',         'multiple':False, 'className': 'fas fa-upload'},
+    {'label': 'Profile',            'value': '/apps/profile',            'multiple':False, 'className': 'fas fa-chess-knight'},
+    {'label': 'Merge Strategy',     'value': '/apps/merge_strategy',     'multiple':True,  'className': 'fas fa-chess-knight'},
+    {'label': 'Temporal Evolution', 'value': '/apps/temporal_evolution', 'multiple':False, 'className': 'fas fa-clock'},
+    {'label': 'Impute Data',        'value': '/apps/impute_data',        'multiple':False, 'className': 'fas fa-search-plus'},
 ]
 
 def id_factory(page: str):
@@ -189,21 +190,17 @@ def generate_dropdown(component_id, options, value=None, placeholder='Select...'
     )
 
 
-def generate_datatable(component_id, df=None, height='450px'):
-    df = pd.DataFrame(OrderedDict([
-        ('climate', ['Sunny', 'Snowy', 'Sunny', 'Rainy']),
-        ('temperature', [13, 43, 50, 30]),
-        ('city', ['NYC', 'Montreal', 'Miami', 'NYC'])
-    ]))
+def generate_datatable(component_id, df=[], columns=[], height='450px'):
+    # df = pd.DataFrame(OrderedDict([
+    #     ('climate', ['Sunny', 'Snowy', 'Sunny', 'Rainy']),
+    #     ('temperature', [13, 43, 50, 30]),
+    #     ('city', ['NYC', 'Montreal', 'Miami', 'NYC'])
+    # ]))
 
     return dash_table.DataTable(
         id=component_id,
-        data=df.to_dict('records'),
-        columns=[
-            {'id': 'climate', 'name': 'climate', 'presentation': 'dropdown'},
-            {'id': 'temperature', 'name': 'temperature'},
-            {'id': 'city', 'name': 'city', 'presentation': 'dropdown'},
-        ],
+        data=df,
+        columns=columns,
         selected_rows=[],
         column_selectable="single",
         row_selectable="multi",

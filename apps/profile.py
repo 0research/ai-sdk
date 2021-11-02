@@ -91,12 +91,8 @@ def generate_profile(node_id, pathname):
     if node_id is None or node_id is '': return no_update
 
     node = get_document('node', node_id)
-    deleted_columns = [col for col, status in node['isDeletedStatus'].items() if status == True]
     datatype = node['datatype']
-    for col in deleted_columns:
-        datatype.remove(col)
-        print('Delete: ', col)
-        
+    datatype = {col: datatype[col] for col in node['columns']}
 
     return (html.Table(
         [html.Tr([
@@ -135,15 +131,18 @@ def generate_profile(node_id, pathname):
                 State({'type':id('col_column'), 'index': MATCH}, 'children'),
                 State('current_node', 'data'),
                 State({'type':id('col_button_index'), 'index': MATCH}, 'className'),
-                State({'type':id('col_button_target'), 'index': MATCH}, 'className'),])
+                State({'type':id('col_button_target'), 'index': MATCH}, 'className'),], 
+                prevent_initial_call=True)
 def update_output(datatype, n_click_index, n_click_target, n_click_remove, column, node_id, button_index_class, button_target_class):
     if node_id is None: return no_update
     if callback_context.triggered == [{'prop_id': '.', 'value': None}]: return no_update
-    
+
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     triggered = ast.literal_eval(triggered)
     ix = triggered['index']
     column = column['props']['children']
+
+    print('trigg', triggered)
 
     # Initialize Output Variables
     # button_index_class = ''
@@ -173,12 +172,10 @@ def update_output(datatype, n_click_index, n_click_target, n_click_remove, colum
             button_target_class = ''
 
     elif triggered['type'] == id('col_button_remove'):
-        if node['isDeletedStatus'][column] == True:
-            node['isDeletedStatus'][column] = False
-        else:
-            node['isDeletedStatus'][column] = True
-            row_style = {'display':'none'}
-    
+        node['columns'].remove(column)
+        node['columns_deleted'].append(column)
+        row_style = {'display': 'none'}
+
     # Update Typesense Node
     upsert('node', node)
 

@@ -28,6 +28,8 @@ app.css.config.serve_locally = True
 
 id = id_factory('merge_strategy')
 
+mergeOptions = ['overwrite', 'objectMerge', 'version']
+flattenOptions = ['Flatten', 'Unflatten']
 
 # Layout
 layout = html.Div([
@@ -88,7 +90,7 @@ layout = html.Div([
 def update_data_table(pathname, setting):
     if setting is None: return no_update
     
-    result = search_documents(setting['name'], 250)
+    result = get_documents(setting['name'], 250)
     df = json_normalize(result)
     df.insert(0, column='index', value=range(1, len(df)+1))
     json_dict = df.to_dict('records')

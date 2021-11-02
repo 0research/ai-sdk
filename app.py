@@ -12,7 +12,7 @@ FA = {
 external_stylesheets = [dbc.themes.BOOTSTRAP, FA]
 
 
-app = DashProxy(__name__, 
+app = DashProxy(__name__,
                 suppress_callback_exceptions=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=external_stylesheets,
