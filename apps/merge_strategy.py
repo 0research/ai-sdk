@@ -33,6 +33,8 @@ flattenOptions = ['Flatten', 'Unflatten']
 
 # Layout
 layout = html.Div([
+    dcc.Store(id='current_dataset', storage_type='session'),
+    dcc.Store(id='current_node', storage_type='session'),
     dcc.Store(id='dataset_metadata', storage_type='session'),
     dcc.Store(id=id('slider_store'), storage_type='session'),
     dcc.Store(id=id('selection_list_store'), storage_type='session'),
@@ -76,22 +78,20 @@ layout = html.Div([
             dbc.Col(html.Pre(id=id('json_1'), className='bg-success text-white'), style={'text-align': 'left'}, width=4),
             dbc.Col(html.Pre(id=id('json_2'), className='bg-info text-white', style={'text-align': 'left'}), width=4),
             dbc.Col(html.Pre(id=id('json_3'), className='bg-danger text-white', style={'text-align': 'left'}), width=4),
-        ], className='text-center bg-light'),
+        ], className='text-center bg-light', style={'overflow-y':'auto', 'height':'700px'}),
         
     ], style={'width':'100%', 'maxWidth':'100%'}),
     
 ])
 
 # Update Datatable in "Review Data" Tab
-@app.callback([Output(id('input_datatable'), "data"), 
-                Output(id('input_datatable'), 'columns')], 
-                [Input('url', 'pathname'),
-                State('dataset_metadata', "data")])
-def update_data_table(pathname, setting):
-    if setting is None: return no_update
+@app.callback(Output(id('input_datatable'), "data"), 
+                Output(id('input_datatable'), 'columns'), 
+                Input('current_node', "data"))
+def update_data_table(node_id):
+    if node_id is None: return no_update
     
-    result = get_documents(setting['name'], 250)
-    df = json_normalize(result)
+    df = get_node_data(node_id)
     df.insert(0, column='index', value=range(1, len(df)+1))
     json_dict = df.to_dict('records')
 
@@ -101,8 +101,11 @@ def update_data_table(pathname, setting):
 
 
 # Generate Slider data
-@app.callback([Output(id('slider'), 'marks'), Output(id('slider'), 'min'), Output(id('slider'), 'max'), Output(id('slider'), 'value')],
-            Input(id('input_datatable'), 'data'))
+@app.callback([Output(id('slider'), 'marks'), 
+                Output(id('slider'), 'min'), 
+                Output(id('slider'), 'max'), 
+                Output(id('slider'), 'value')],
+                Input(id('input_datatable'), 'data'))
 def generate_range_slider_values(data):
     if data is None: return no_update
 
@@ -176,12 +179,11 @@ for x in range(1, 3):
         return (html.P('You have Selected: ' + str(selection_list)[1:-1]), html.P('Merge Strategy: ' + merge_strategy))
 
     @app.callback(Output(id('json_store_')+str(x), 'data'), 
-                    [Input(id('button_json_')+str(x), 'n_clicks'),
+                    Input(id('button_json_')+str(x), 'n_clicks'),
                     State(id('selection_list_store'), 'data'), 
-                    State(id('merge_strategy_store'), 'data'), 
-                    State('dataset_metadata', 'data'), 
-                    State(id('input_datatable'), 'data')])
-    def save_json(n_clicks, selected_list, merge_strategy, setting, data):
+                    State(id('merge_strategy_store'), 'data'),
+                    State(id('input_datatable'), 'data'))
+    def save_json(n_clicks, selected_list, merge_strategy, data):
         if selected_list is None or len(selected_list) == 0: return []
         triggered = callback_context.triggered[0]['prop_id']
         if triggered == '.': return [], []

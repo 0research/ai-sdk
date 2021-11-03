@@ -121,8 +121,6 @@ sidebar = html.Div([
 ], style=SIDEBAR_STYLE)
 
 
-def doOne():
-    return 'one'
 
 # Layout
 def serve_layout():
@@ -130,6 +128,7 @@ def serve_layout():
         dcc.Location(id='url', refresh=False),
         dcc.Store(id='current_dataset', storage_type='session'),
         dcc.Store(id='current_node', storage_type='session'),
+        dbc.Modal('', id='modal_confirm'),
         sidebar,
         navbar,
         html.Div(id='page-content', style=CONTENT_STYLE),

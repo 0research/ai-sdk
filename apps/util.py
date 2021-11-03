@@ -190,16 +190,17 @@ def generate_dropdown(component_id, options, value=None, placeholder='Select...'
     )
 
 
-def generate_datatable(component_id, df=[], columns=[], height='450px'):
+def generate_datatable(component_id, data=[], columns=[], height='450px'):
     # df = pd.DataFrame(OrderedDict([
     #     ('climate', ['Sunny', 'Snowy', 'Sunny', 'Rainy']),
     #     ('temperature', [13, 43, 50, 30]),
     #     ('city', ['NYC', 'Montreal', 'Miami', 'NYC'])
     # ]))
+    columns = [{"name": col, "id": col, "deletable": False, "selectable": False} for col in columns]
 
     return dash_table.DataTable(
         id=component_id,
-        data=df,
+        data=data,
         columns=columns,
         selected_rows=[],
         column_selectable="single",

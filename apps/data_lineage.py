@@ -23,6 +23,7 @@ from itertools import zip_longest
 from datetime import datetime
 import dash_cytoscape as cyto
 from apps.typesense_client import *
+import ast
 
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
@@ -142,7 +143,7 @@ layout = html.Div([
                 html.Button('Inspect', id=id('button_inspect'), className='btn btn-info btn-lg', style={'margin-right':'3px'}), 
                 # html.Button('Modify Profile', id=id('button_profile'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}), 
                 html.Button('Remove Node', id=id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
-                
+
                 dbc.Col(html.H5('Selected(temporary): None', id=id('selected_version')), style={'text-align':'center', 'background-color': 'silver'}),
                 cyto.Cytoscape(id=id('cytoscape'), 
                                 elements=[], 
@@ -156,7 +157,7 @@ layout = html.Div([
                     dbc.CardHeader(html.H5('Action'), style={'text-align':'center'}),
                     dbc.CardHeader(dbc.Select(id=id('dropdown_action'), placeholder='Select at least one Node', style={'min-width':'120px', 'text-align':'center'}, persistence_type='session', persistence=True)),
                     dbc.CardBody(html.P('Inputs'), id=id('action_inputs')),
-                    dbc.CardFooter(dbc.Button('Button', id=id('button_action'), color='primary', style={'width':'100%'})),
+                    dbc.CardFooter(dbc.Button('', id=id('button_action'), color='primary', style={'width':'100%'})),
                 ], className='bg-primary', style={'min-height': '250px'}, inverse=True),
                 
                 dbc.Card([
@@ -185,10 +186,7 @@ layout = html.Div([
 def generate_cytoscape(n_intervals, dataset_id):
     if dataset_id is None or dataset_id == '': return no_update
     dataset = get_document('dataset', dataset_id)
-    # print('start NODE', n_intervals)
-    # pprint(dataset['cytoscape_node'])
-    # print('start EDGE')
-    # pprint(dataset['cytoscape_edge'])
+
     return (dataset['cytoscape_node'] + dataset['cytoscape_edge'])
 
 
@@ -216,16 +214,16 @@ def button_add(n_clicks):
     if n_clicks is None: return no_update
     return '/apps/upload_api'
 
-# Inspect/Action Button
+# Inspect Button
 @app.callback(Output(id('modal'), 'is_open'),
                 Output(id('modal_title'), 'children'),
                 Output(id('modal_body'), 'children'),
                 Output(id('modal_footer'), 'children'),
                 Input(id('button_inspect'), 'n_clicks'),
-                Input(id('button_action'), 'n_clicks'),
                 State('current_node', 'data'),
+                State('current_dataset', 'data'),
                 State(id('dropdown_action'), 'value'))
-def button_inspect_action(n_clicks_inspect, n_clicks_action, node_id, selected_action):
+def button_inspect_action(n_clicks_inspect, node_id, dataset_id, selected_action):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     if node_id is None: return no_update
     if triggered == '': return no_update
@@ -233,9 +231,7 @@ def button_inspect_action(n_clicks_inspect, n_clicks_action, node_id, selected_a
 
     # Retrieve Node Data
     node = get_document('node', node_id)
-    data = search_documents(node['id'], 250)
-    df = json_normalize(data)
-    pprint(data)
+    df = get_node_data(node_id)
     
     if triggered == id('button_inspect'):
         modal_title = "Inspect"
@@ -251,53 +247,20 @@ def button_inspect_action(n_clicks_inspect, n_clicks_action, node_id, selected_a
                         html.Div(generate_datatable(id('inspect_modal_datatable'), df.to_dict('records'), df.columns, height='700px')),
                     ]))
         modal_footer = ''
-
-    elif triggered == id('button_action'):
-        from apps import (upload, overview, profile, merge_strategy, temporal_evolution, temporal_merge, 
-                decomposition, impute_data, remove_duplicate, data_lineage,
-                page2, page3, page6, page6,page7, page8, page9, page10)
-
-        pathname = selected_action
-        if pathname.startswith('/apps/upload'): layout = upload.layout
-        if pathname.startswith('/apps/overview'): layout = overview.layout
-        if pathname.startswith('/apps/profile'): layout = profile.layout
-        if pathname.startswith('/apps/merge_strategy'): layout = merge_strategy.layout
-        if pathname.startswith('/apps/temporal_evolution'): layout = temporal_evolution.layout
-        if pathname.startswith('/apps/decomposition'): layout = decomposition.layout
-        if pathname.startswith('/apps/impute_data'): layout = impute_data.layout
-        if pathname.startswith('/apps/remove_duplicate'): layout = remove_duplicate.layout
-        if pathname.startswith('/apps/data_lineage'): layout = data_lineage.layout
-
-        # modal_title = selected_action['label']
-        modal_title = 'Title'
-        modal_body = html.Div(layout, style={'overflow-y':'auto'})
-        modal_footer = dbc.Button('Commit Changes', id=id('button_commit'))
-
+    
     return True, modal_title, modal_body, modal_footer
 
 
 
-# Commit Changes
-@app.callback(Output(id('test'), 'children'),
-                Output(id('modal'), 'is_open'),
-                Input(id('button_commit'), 'n_clicks'),
-                State('current_dataset', 'data'),
-                State(id('cytoscape'), 'tapNodeData')
-                # State('impute_data-dropdown_select_action', 'value'),
-                )
-def button_commit(n_clicks, dataset_id, tapNodeData):
-    if n_clicks is None: return no_update
-    dataset = get_document('dataset', dataset_id)
-    node_id = tapNodeData['id']
-    new_node_id = str(uuid.uuid1())
-    
-    add_node(dataset_id, node_id)
-
-    return no_update, False
-
-
-# Remove Node
-
+# Change button_action href based on selected action
+@app.callback(Output(id('button_action'), 'children'),
+                Output(id('button_action'), 'href'),
+                Input(id('dropdown_action'), 'value'),
+                State(id('dropdown_action'), 'options'))
+def button_modify_on_select_action(selected, options):
+    if selected is None: return no_update
+    label = [o['label'] for o in options if o['value'] == selected][0]
+    return label, selected
 
 
 
@@ -320,7 +283,7 @@ def generate_dropdown_actions(selected_nodes):
         options = [ {'label':nav['label'], 'value':nav['value']} for nav in multiple ]
     
     # Get Default selected value
-    selected_value = (options[0] if len(options) > 0 else None)
+    selected_value = (options[0]['value'] if len(options) > 0 else None)
 
     return options, selected_value
 

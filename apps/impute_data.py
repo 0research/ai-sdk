@@ -50,21 +50,12 @@ option_graph = [
 
 # Layout
 layout = html.Div([
-    dcc.Store(id='dataset_metadata', storage_type='session'),
-    dcc.Store(id='dataset_profile', storage_type='session'),
-    dcc.Store(id='input_data_store', storage_type='session'),
-    dcc.Store(id='input_datatype_store', storage_type='session'),
+    dcc.Store(id='current_dataset', storage_type='session'),
+    dcc.Store(id='current_node', storage_type='session'),
     dcc.Store(id=id('selection_list_store'), storage_type='session'),
-    dcc.Store(id=id('merge_strategy_store'), storage_type='session'),
-    dcc.Store(id=id('json_store_1'), storage_type='session'),
-    dcc.Store(id=id('json_store_2'), storage_type='session'),
 
     dbc.Container([
-        # # Datatable & Selected Rows/Json List
-        # dbc.Row([
-        #     dbc.Col(html.H5('Step 1: Ensure the columns have the correct selected datatype'), width=12),
-        #     dbc.Col(html.Div(generate_datatable(id('input_datatable'))), width=12),            
-        # ], className='text-center', style={'margin': '3px'}),
+        dbc.Row([dbc.Col(html.H2('Impute Data'), width=12)], className='text-center', style={'margin': '3px'}),
         
         # Select Column(Left Panel) and Column Data(Right Panel)
         dbc.Row([
@@ -92,35 +83,44 @@ layout = html.Div([
                 html.H6('Perform Action'),
             ]), width=3),
             dbc.Col(html.Div([
-                generate_dropdown(id('dropdown_select_graph'), option_graph),
-                generate_dropdown(id('dropdown_select_action'), option_action),
+                generate_dropdown(id('dropdown_select_graph'), option_graph, value=option_graph[0]['value']),
+                generate_dropdown(id('dropdown_select_action'), option_action, value=option_action[0]['value']),
             ]), width=9),
             dbc.Col(html.Div(dcc.Graph(id=id('selected_column_graph'))), width=6),
-            dbc.Col(html.Div(dcc.Graph(id=id('perform_action_graph'))), width=6),
-            dbc.Col(html.Button('Confirm', className='btn-secondary', id=id('button_confirm'), style={'width':'50%'}), width=12),
-            dbc.Toast(
-                id=id('toast_confirm'),
-                header="Impute Data Success!",
-                is_open=False,
-                dismissable=True,
-                icon="success",
-                # top: 66 positions the toast below the navbar
-                style={"position": "fixed", "top": 66, "right": 10, "width": 350},
-            ),
+            dbc.Col(html.Div(dcc.Graph(id=id('impute_col_graph'))), width=6),
+            
         ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
+
+        dbc.Row([
+            dbc.Col([
+                html.H6('Changes (TODO)', style={'text-align':'center'}),
+            ], id=id('modified'), width=12, style={'min-height':'200px', 'background-color':'silver'}),
+        ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
+        
+        dbc.Row([
+            dbc.Col(dbc.Button(html.H6('Confirm'), className='btn-primary', id=id('button_confirm'), href='/apps/data_lineage', style={'width':'100%'}), width={'size':10, 'offset':1}),
+        ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
+
+        # dbc.Toast(
+        #     id=id('toast_confirm'),
+        #     header="Impute Data Success!",
+        #     is_open=False,
+        #     dismissable=True,
+        #     icon="success",
+        #     # top: 66 positions the toast below the navbar
+        #     style={"position": "fixed", "top": 66, "right": 10, "width": 350},
+        # ),
     ], style={'width':'100%', 'maxWidth':'100%'}),
 ])
 
 
 # Left Bar Graph
 @app.callback(Output(id('left_panel_graph'), 'figure'), 
-                [Input('url', 'pathname'), 
-                Input('dataset_metadata', 'data')])
-def generate_left_bar_graph(pathname, settings):
-    if settings is None or settings['name'] is None: return no_update
-    
-    result = search_documents(settings['name'], 250)
-    df = json_normalize(result)
+                Input('current_dataset', 'data'), 
+                Input('current_node', 'data'))
+def generate_left_bar_graph(dataset_id, node_id):
+    if node_id is None: return no_update
+    df = get_node_data(node_id)
     
     # stack_types = ['Valid', 'Missing', 'Invalid'] # TODO add Invalid
     stack_types = ['Valid', 'Missing']
@@ -153,19 +153,19 @@ def generate_selected_column(selected_columns):
 
 # Right Bar Graph
 @app.callback(Output(id('right_panel_graph'), 'figure'), 
-                [Input(id('selection_list_store'), 'data'),
-                State('dataset_metadata', 'data')])
-def generate_right_bar_graph(selected_column, settings):
-    if settings is None or settings['name'] is None: return no_update
-    if selected_column == None: return no_update
+                Input(id('selection_list_store'), 'data'),
+                Input('current_node', 'data'))
+def generate_right_bar_graph(selected_column, node_id):
+    if selected_column == None or selected_column == []: return no_update
     
-    result = search_documents(settings['name'], 250)
-    data = json_normalize(result)[selected_column].value_counts(dropna=False)
+    df = get_node_data(node_id)
+    data = df[selected_column].value_counts(dropna=False)
 
     # TODO add invalid as diff colored bars
     colors = ['Valid',] * len(data)
-    colors[1] = 'Invalid'
-    colors[2] = 'Missing'
+    if len(colors) > 2:
+        colors[1] = 'Invalid'
+        # colors[2] = 'Missing'
 
     graph_df = pd.DataFrame({
         'Freq': list(data.values),
@@ -178,7 +178,7 @@ def generate_right_bar_graph(selected_column, settings):
     return fig
 
 
-def perform_action(df, action, fillna=0):
+def impute_col(df, action, fillna=0):
     if action == 'removeNAN':
         df.dropna(inplace=True)
     elif action == 'replaceNANwithValue':
@@ -192,120 +192,70 @@ def perform_action(df, action, fillna=0):
     return df
 
 
-
-@app.callback([Output(id('selected_column_graph'), 'figure'), 
-                Output(id('perform_action_graph'), 'figure')],
-                [Input(id('selection_list_store'), 'data'),
+@app.callback(Output(id('selected_column_graph'), 'figure'), 
+                Output(id('impute_col_graph'), 'figure'),
+                Input(id('selection_list_store'), 'data'), 
                 Input(id('dropdown_select_graph'), 'value'),  
                 Input(id('dropdown_select_action'), 'value'),
-                State('dataset_metadata', 'data')])
-def generate_select_graph(selected_columns, selected_graph, action, settings):
-    if selected_columns == None: return no_update
-    if settings is None or settings['name'] is None: return no_update
-
+                Input('current_node', 'data'))
+def generate_select_graph(selected_columns, selected_graph, action, node_id):
+    if selected_columns == None or selected_columns == []: return no_update
+    if node_id is None: return no_update
+    
     # Get Data
-    result = search_documents(settings['name'], 250)
-    df = json_normalize(result)
-    df.insert(0, column='index', value=range(1, len(df)+1))
-
-    # Get Frequency for each Unique Value
-    df_value_counts = df[selected_columns].value_counts(dropna=False).reset_index()
-    df_value_counts.rename(columns={'index':'Unique Value', selected_columns: 'Freq'}, inplace=True)
-
-    # print(df_value_counts)
-    # print(action)
-    # print(perform_action(df_value_counts, action))
+    df = get_node_data(node_id)
+    col = df[selected_columns]
+    col_clean = impute_col(col, action)
 
     if selected_graph == 'pie':
+        df_value_counts = col.value_counts(dropna=False).reset_index().rename(columns={'index':'Unique Value', selected_columns: 'Freq'})
         figure = px.pie(df_value_counts, values='Freq', names='Unique Value')
-        figure2 = px.pie(perform_action(df_value_counts, action), values='Freq', names='Unique Value')
-    if selected_graph == 'line':
+        
+        df_value_counts = col_clean.value_counts(dropna=False).reset_index().rename(columns={'index':'Unique Value', selected_columns: 'Freq'})
+        figure2 = px.pie(df_value_counts, values='Freq', names='Unique Value')
+
+    elif selected_graph == 'line':
+        df_clean = impute_col(df, action)
         figure = px.line(df, x="index", y=selected_columns)
-        figure2 = px.line(perform_action(df, action), x="index", y=selected_columns)
+        figure2 = px.line(df_clean, x="index", y=selected_columns)
     # elif selected_graph == 'bar':
     #     figure = px.bar(df_value_counts, x=columns[0], y=columns[1], barmode='stack')
-    #     figure2 = px.bar(perform_action(df_value_counts, action), x=columns[0], y=columns[1], barmode='stack')
+    #     figure2 = px.bar(impute_col(df_value_counts, action), x=columns[0],  y=columns[1], barmode='stack')
     # elif selected_graph == 'scatter':
     #     figure = px.scatter(df_value_counts, x=columns[0], y=columns[1])
-    #     figure2 = px.scatter(perform_action(df_value_counts, action), x=columns[0], y=columns[1])
+    #     figure2 = px.scatter(impute_col(df_value_counts, action), x=columns[0], y=columns[1])
     # elif selected_graph == 'box':
     #     figure = px.box(df_value_counts, x=columns[0], y=columns[1])
-    #     figure2 = px.scatter(perform_action(df_value_counts, action), x=columns[0], y=columns[1])
-
-    return figure, figure2
+    #     figure2 = px.scatter(impute_col(df_value_counts, action), x=columns[0], y=columns[1])
 
 
+    # # Upload temporary output data
+    # jsonl = col_clean.to_json(orient='records', lines=True) # Convert to jsonl
+    # try:
+    #     client.collections['out'].delete()
+    #     client.collections.create(generate_schema_auto('out'))
+    # except Exception as e:
+    #     client.collections.create(generate_schema_auto('out'))
+    # client.collections['out'].documents.import_(jsonl, {'action': 'create'})
+
+    return figure, figure2,
 
 
-@app.callback(Output(id('toast_confirm'), "is_open"),
-                [Input(id('button_confirm'), 'n_clicks'),
-                State(id('selection_list_store'), 'data'),
-                State(id('dropdown_select_action'), 'value'),
-                State('dataset_metadata', 'data')])
-def confirm_action(n_clicks, selected_columns, action, settings):
+
+
+# Button Confirm
+@app.callback(Output('modal_confirm', 'children'),
+                Input(id('button_confirm'), 'n_clicks'),
+                State('current_dataset', 'data'),
+                State('current_node', 'data'),
+                State(id('selection_list_store'), 'data'), 
+                State(id('dropdown_select_action'), 'value'))
+def button_confirm(n_clicks, dataset_id, node_id, selected_column, action):
     if n_clicks is None: return no_update
-    if selected_columns == None: return no_update
-    if settings is None or settings['name'] is None: return no_update
 
-    # Get Data
-    result = search_documents(settings['name'], 250)
-    df = json_normalize(result)
-    df[selected_columns] = perform_action(df[selected_columns], action)
-    
-    # Delete Collection & Upload TODO fix error
-    jsonl = df.to_json(orient='records', lines=True)
-    client.collections[settings['name']].delete()
-    client.collections[settings['name']].documents.import_(jsonl, {'action': 'create'})
+    df = get_node_data(node_id)
+    df[selected_column] = impute_col(df[selected_column], action)
+    add_node(dataset_id, node_id, df.to_dict('records'), label='')
 
-    return True
+    return no_update
 
-
-
-
-
-
-
-
-
-
-
-
-
-# # Update datatable when files upload
-# @app.callback([Output(id('input_datatable'), "data"), 
-#                 Output(id('input_datatable'), 'columns'), 
-#                 Output(id('input_datatable'), 'dropdown_data')], 
-#                 Input('dataset_metadata', "data"), 
-#                 Input('dataset_profile', 'data'), 
-#                 Input('url', 'pathname'))
-# def update_data_table(setting, profile, pathname):
-#     if setting == None: return no_update
-#     if profile == None: return no_update
-    
-#     # Convert data & Convert all values to string
-#     result = search_documents(setting['name'], 250)
-#     df = json_normalize(result)
-#     df.insert(0, column='index', value=range(1, len(df)+1))
-
-#     # for i in range(len(json_dict)):
-#     #     for key, val in json_dict[i].items():
-#     #         if type(json_dict[i][key]) == list:
-#     #             json_dict[i][key] = str(json_dict[i][key])
-
-#     # Get best dtypes and insert to first row
-#     datatype = [[i] for i in profile['datatype']]
-#     row_dropdown_dtype = pd.DataFrame.from_dict(dict(zip(df.columns, datatype)))
-#     df = pd.concat([row_dropdown_dtype, df]).reset_index(drop=True)
-
-#     options_datatype = [{}]
-#     datatype_list = ['object', 'string', 'Int64', 'datetime64', 'boolean', 'category']
-#     for key in df.to_dict('records')[0].keys():
-#         options_datatype[0][key] = {}
-#         options_datatype[0][key]['options'] = [{'label': i, 'value': i} for i in datatype_list]
-
-#     # Get Columns
-#     # columns = [{ "id": i, "name": i, "deletable": True, "selectable": True, 'presentation': 'dropdown'} for i in df.columns]
-#     columns = [{"id": i, "name": i, 'presentation': 'dropdown'} for i in df.columns]
-#     print(df.to_dict('records'))
-#     print(columns)
-#     return df.to_dict('records'), columns, options_datatype

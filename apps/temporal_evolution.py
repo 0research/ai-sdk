@@ -15,6 +15,8 @@ id = id_factory('temporal_evolution')
 
 # Layout
 layout = html.Div([
+    dcc.Store(id='current_dataset', storage_type='session'),
+    dcc.Store(id='current_node', storage_type='session'),
     dcc.Store(id='dataset_metadata', storage_type='session'),
     dcc.Store(id=id('selection_list_store'), storage_type='session'),
     dcc.Store(id=id('json_store_1'), storage_type='session'),
@@ -62,19 +64,18 @@ layout = html.Div([
 # Update Datatable in "Review Data" Tab
 @app.callback([Output(id('input_datatable'), "data"), 
                 Output(id('input_datatable'), 'columns')], 
-                [Input('url', 'pathname'),
-                State('dataset_metadata', "data")])
-def update_data_table(pathname, setting):
-    if setting is None: return no_update
+                Input('current_node', "data"))
+def update_data_table(node_id):
+    if node_id is None: return no_update
     
-    result = search_documents(setting['name'], 250)
-    df = json_normalize(result)
+    df = get_node_data(node_id)
     df.insert(0, column='index', value=range(1, len(df)+1))
     json_dict = df.to_dict('records')
 
     columns = [{"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns]
 
     return json_dict, columns
+
 
 # Store/Clear selected rows
 @app.callback([Output(id('selection_list_store'), "data"), 
@@ -113,10 +114,9 @@ for x in range(1, 3):
 
     @app.callback(Output(id('json_store_')+str(x), 'data'), 
                 [Input(id('button_json_')+str(x), 'n_clicks'),
-                State(id('selection_list_store'), 'data'), 
-                State('dataset_metadata', 'data'), 
+                State(id('selection_list_store'), 'data'),
                 State(id('input_datatable'), 'data')])
-    def save_json(n_clicks, selected_list, setting, data):
+    def save_json(n_clicks, selected_list, data):
         if n_clicks is None: return no_update
         if selected_list is None or len(selected_list) == 0: return []
         
@@ -140,21 +140,20 @@ for x in range(1, 3):
 # Update Json Trees (Difference)
 for x in range(3, 6):
     @app.callback(Output(id('selected_list_'+str(x)), 'children'), 
-                [Input(id('button_json_')+str(x), 'n_clicks'), State(id('selection_list_store'), 'data')])
+                    Input(id('button_json_')+str(x), 'n_clicks'), 
+                    State(id('selection_list_store'), 'data'))
     def display_selected(n_clicks, selection_list):
         if selection_list is None: return no_update
         selection_list = list(map(lambda x:x+1, selection_list))[-2:]
         return 'You have Selected: ', str(selection_list)[1:-1]
 
     @app.callback(Output(id('json_store_')+str(x), 'data'), 
-                [Input(id('button_json_')+str(x), 'n_clicks'),
-                State(id('selection_list_store'), 'data'), 
-                State('dataset_metadata', 'data'), 
-                State(id('input_datatable'), 'data')])
-    def save_json(n_clicks, selected_list, setting, data):
+                    Input(id('button_json_')+str(x), 'n_clicks'),
+                    State(id('selection_list_store'), 'data'),
+                    State(id('input_datatable'), 'data'))
+    def save_json(n_clicks, selected_list, data):
         if n_clicks is None: return no_update
         if selected_list is None or len(selected_list) < 2: return []
-        if setting is None: return no_update
 
         df = json_normalize(data)
         index1 = selected_list[-2] + 1

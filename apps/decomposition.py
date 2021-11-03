@@ -12,7 +12,8 @@ from apps.util import *
 
 
 layout = html.Div([
-    dcc.Store(id='input_data_store', storage_type='session'),
+    dcc.Store(id='current_dataset', storage_type='session'),
+    dcc.Store(id='current_node', storage_type='session'),
     html.H1('Missing Data', style={"textAlign": "center"}),
     generate_upload('upload_json'),
     html.Div(id='topDiv2', style={'text-align': 'center'}, children=[
