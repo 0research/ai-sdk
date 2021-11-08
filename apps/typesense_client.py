@@ -3,6 +3,7 @@ import os
 import socket
 import ast
 import uuid
+import pandas as pd
 from pandas import json_normalize
 from pprint import pprint
 
@@ -27,27 +28,25 @@ def generate_schema_auto(name):
 def initialize_typesense():
     # Initialize Typesense
     if socket.gethostname() == 'DESKTOP-9IOI6RV':
-        client = typesense_client('localhost', '8108', 'http', 'Hu52dwsas2AdxdE') 
+        client = typesense_client('oswmql6f04pndbi1p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
+        # client = typesense_client('localhost', '8108', 'http', 'Hu52dwsas2AdxdE') 
     else:
         client = typesense_client('oswmql6f04pndbi1p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
 
-    try:
-        client.collections.create(generate_schema_auto('dataset'))
-        client.collections.create(generate_schema_auto('node'))
-        print('Created Dataset and Node Collections')
-    except typesense.exceptions.ObjectAlreadyExists:
-        pass
-    except Exception as e:
-        print(e)
+    collection_list = ['dataset', 'node', 'session1'] # TODO Currently all users will use same session. Replace when generate user/session ID
+    for name in collection_list:
+        try:
+            client.collections.create(generate_schema_auto(name))
+        except typesense.exceptions.ObjectAlreadyExists:
+            pass
+        except Exception as e:
+            print(e)
 
     return client
-
 
 client = initialize_typesense()
 
 
-# def get_collection(collection_id):
-#   client.collections[collection_id].retrieve()
 
 
 def search_documents(collection_id, per_page):
@@ -58,7 +57,6 @@ def search_documents(collection_id, per_page):
     result = client.collections[collection_id].documents.search(search_parameters)
     return [d['document'] for d in result['hits']]
 
-
 def get_document(collection_id, document_id):
     doc = client.collections[collection_id].documents[document_id].retrieve()
     for k, v in doc.items():
@@ -68,8 +66,6 @@ def get_document(collection_id, document_id):
             except Exception as e: 
                 print(e)
     return doc
-
-
 def create(collection_id, document):
     document = {k:str(v) for k, v in document.items()}
     client.collections[collection_id].documents.create(document)
@@ -80,35 +76,114 @@ def upsert(collection_id, document):
 
 
 
-def Node(node_id, node_type='blob', label=''):
+# Store & Retrieve Session
+def store_session(key, value):
+    session_id = 'session1' # TODO Currently all users will use same session. Replace when generate user/session ID
+    client.collections[session_id].documents.upsert({'id': key, 'value': str(value)})
+def get_session(key):
+    session_id = 'session1' # TODO Currently all users will use same session. Replace when generate user/session ID
+    return client.collections[session_id].documents[key].retrieve()['value']
+
+
+
+# Typesense Object
+def Project(id, type, cDataset, cAction, cEdge):
     return {
-        'data': {'id': node_id, 'label': label},
-        'position': {'x': 50, 'y': 50},
-        'classes': node_type,
+        'id': id, 
+        'type': type, 
+        'cytoscape_dataset': cDataset,
+        'cytoscape_action': cAction,
+        'cytoscape_edge': cEdge
+    }
+def Dataset(id, description, type, api_data, column, datatype, expectation, index, target):
+    return {
+        'id': id,
+        'description': description,
+        'type': type,
+        'api_data': api_data, # Source, Delimiter, remove_space, remove_header
+        'column': list(column),
+        'datatype': datatype,
+        'expectation': expectation,
+        'index': index, 
+        'target': target,
     }
 
-def Edge(source_node_id, destination_node_id, label='', extra_data=''):
+# Cytoscape Object 
+def cNode(node_id, node_type, label=''):
+    return {
+        'data': {'id': node_id, 'label': label},
+        # 'position': {'x': 50, 'y': 50},
+        'classes': node_type,
+    }
+def cEdge(source_node_id, destination_node_id, label='', extra_data=''):
     return {
         'data': {
                 'id': source_node_id + '-' + destination_node_id,
                 'source': source_node_id,
                 'target': destination_node_id,
                 'label': '',
-                'extra_data': extra_data
-            }
+                'extra_data': extra_data,
+            },
+            'selectable': False
     }
 
-def add_node(dataset_id, source_node_id, data, label='', node_type='blob'):
-    # Update Dataset Document
+def action(dataset_id, source_node_id, data, label=''):
+    # Dataset Document
     dataset = get_document('dataset', dataset_id)
     node_id = str(uuid.uuid1())
-    node = Node(node_id, node_type, label=label)
-    edge = Edge(source_node_id, node_id, label=label)
     dataset['node'].append(node_id)
+    node = cNode(node_id, node_type='dataset', label=label)
+    edge = cEdge(source_node_id, node_id, label=label)
+    
     dataset['cytoscape_node'].append(node)
     dataset['cytoscape_edge'].append(edge)
 
-    # Node
+    node2 = cNode(node_id, node_type='action', label=label)
+    edge2 = cEdge(source_node_id, node_id, label=label)
+
+    # Node Document
+    source_node = get_document('node', source_node_id)
+    df = get_node_data(source_node_id)
+    node = {
+        'id': node_id,
+        'description': None, 
+        'source': None,
+        'delimiter': None, 
+        'remove_space': None,
+        'remove_header': None,
+        'type': 'dataset', 
+        'datatype': {col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)}, 
+        'columns': source_node['columns'],
+        'columns_deleted': source_node['columns_deleted'],
+        'expectation': {col:None for col in df.columns}, 
+        'index': [],
+        'target': [], 
+    }
+
+    # Node Data Collection
+    df = json_normalize(data)
+    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+    
+    # Upload
+    upsert('dataset', dataset)
+    upsert('node', node)
+    client.collections.create(generate_schema_auto(node_id))
+    client.collections[node_id].documents.import_(jsonl, {'action': 'create'})
+
+
+
+def merge_nodes(dataset_id, source_node_id_list, label='', node_type='blob'):
+    # Dataset Document
+    dataset = get_document('dataset', dataset_id)
+    node_id = str(uuid.uuid1())
+    node = cNode(node_id, node_type, label=label)
+    dataset['node'].append(node_id)
+    dataset['cytoscape_node'].append(node)
+    for source_node_id in source_node_id_list:
+        edge = cEdge(source_node_id, node_id, label=label)
+        dataset['cytoscape_edge'].append(edge)
+
+    # Node Document
     source_node = get_document('node', source_node_id)
     df = get_node_data(source_node_id)
     node = {
@@ -127,8 +202,9 @@ def add_node(dataset_id, source_node_id, data, label='', node_type='blob'):
         'target': [], 
     }
 
-    # Form Node Data Collection
-    df = json_normalize(data)
+    # Node Data Collection
+    df_list = [get_node_data(source_node_id) for source_node_id in source_node_id_list]
+    df = pd.concat(df_list)
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
     
     # Upload
@@ -136,20 +212,6 @@ def add_node(dataset_id, source_node_id, data, label='', node_type='blob'):
     upsert('node', node)
     client.collections.create(generate_schema_auto(node_id))
     client.collections[node_id].documents.import_(jsonl, {'action': 'create'})
-
-
-
-def merge_nodes(dataset_id, source_node_id_list, destination_node_id, data, node_type='blob'):
-    dataset = client.collections['dataset'].documents[dataset_id].retrieve()
-
-    node = Node(destination_node_id, node_type, '')
-    dataset['cytoscape_node'].append(node)
-
-    for source_node_id in source_node_id_list:
-        edge = Edge(source_node_id, destination_node_id, label='')
-        dataset['cytoscape_edge'].append(edge)
-
-    upsert('dataset', dataset)
 
 
 

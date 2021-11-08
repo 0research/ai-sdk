@@ -25,13 +25,7 @@ import uuid
 
 
 
-sidebar_2_list = [
-    {'label': 'Upload API',         'value': '/apps/upload_api',         'multiple':False, 'className': 'fas fa-upload'},
-    {'label': 'Profile',            'value': '/apps/profile',            'multiple':False, 'className': 'fas fa-chess-knight'},
-    {'label': 'Merge Strategy',     'value': '/apps/merge_strategy',     'multiple':True,  'className': 'fas fa-chess-knight'},
-    {'label': 'Temporal Evolution', 'value': '/apps/temporal_evolution', 'multiple':False, 'className': 'fas fa-clock'},
-    {'label': 'Impute Data',        'value': '/apps/impute_data',        'multiple':False, 'className': 'fas fa-search-plus'},
-]
+
 
 def id_factory(page: str):
     def func(_id: str):

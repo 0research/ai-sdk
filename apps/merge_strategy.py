@@ -79,6 +79,10 @@ layout = html.Div([
             dbc.Col(html.Pre(id=id('json_2'), className='bg-info text-white', style={'text-align': 'left'}), width=4),
             dbc.Col(html.Pre(id=id('json_3'), className='bg-danger text-white', style={'text-align': 'left'}), width=4),
         ], className='text-center bg-light', style={'overflow-y':'auto', 'height':'700px'}),
+
+        dbc.Row([
+            dbc.Col(dbc.Button(html.H6('Confirm'), className='btn-primary', id=id('button_confirm'), href='/apps/data_lineage', style={'width':'100%'}), width={'size':10, 'offset':1}),
+        ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
         
     ], style={'width':'100%', 'maxWidth':'100%'}),
     
@@ -218,3 +222,21 @@ def generate_json(json_history_1, json_history_2):
     return (json.dumps(difference_history, indent=2),
             ([html.P('Number of Changes per key', style={'textAlign':'left'}), 
             html.Pre(json.dumps(num_changes, indent=2)[1:-1], style={'textAlign':'left'}), html.Br()]))
+
+
+
+
+# @app.callback(Output('modal_confirm', 'children'),
+#                 Input(id('button_confirm'), 'n_clicks'),
+#                 State('current_dataset', 'data'),
+#                 State('current_node', 'data'),
+#                 State(id('json_store_1'), 'data'))
+# def button_confirm(n_clicks, dataset_id, node_id, data):
+#     if n_clicks is None: return no_update
+
+#     df = get_node_data(node_id)
+#     df[selected_column] = impute_col(df[selected_column], action)
+
+#     action(dataset_id, node_id, df.to_dict('records'), label='')
+
+#     return no_update

@@ -24,13 +24,13 @@ from apps.typesense_client import *
 import time
 import ast
 
+
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 
 # Initialize Variables
 id = id_factory('profile')
 
-datatype_list = ['object', 'Int64', 'float64', 'bool', 'datetime64', 'category']
 option_datatype = [
         {'label': 'object', 'value': 'object'},
         {'label': 'string', 'value': 'string'},
@@ -61,17 +61,17 @@ def generate_expectations():
     datatype = None # TODO get selected dropdown datatype from arg
     expectation = html.Div()
 
-    if datatype == datatype_list[0]:  # Object
+    if datatype == DATATYPE_LIST[0]:  # Object
         pass
-    elif datatype == datatype_list[1]:  # Int64
+    elif datatype == DATATYPE_LIST[1]:  # Int64
         pass
-    elif datatype == datatype_list[2]:  # float64
+    elif datatype == DATATYPE_LIST[2]:  # float64
         pass
-    elif datatype == datatype_list[3]:  # bool
+    elif datatype == DATATYPE_LIST[3]:  # bool
         pass
-    elif datatype == datatype_list[4]:  # datetime64
+    elif datatype == DATATYPE_LIST[4]:  # datetime64
         pass
-    elif datatype == datatype_list[5]:  # category
+    elif datatype == DATATYPE_LIST[5]:  # category
         pass
 
     return [ 

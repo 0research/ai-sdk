@@ -24,104 +24,72 @@ from datetime import datetime
 import dash_cytoscape as cyto
 from apps.typesense_client import *
 import ast
+from apps.constants import *
 
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 
 id = id_factory('data_lineage')
 
-# Object declaration
-basic_elements = [
-    {
-        'data': {'id': 'one', 'label': 'Version 1'},
-        'position': {'x': 50, 'y': 50},
-        'classes':'api',
-    },
-    {
-        'data': {'id': 'two', 'label': 'Version 2'},
-        'position': {'x': 200, 'y': 200},
-        'classes':'api',
-    },
-    {
-        'data': {
-            'id': 'one-five',
-            'source': 'one',
-            'target': 'five',
-            'label': 'Edge from Version 1 to Version 5',
-            'extra_data': 'hello'
-        }
-    }
-]
 
-styles = {
-    'json-output': {
-        'overflow-y': 'scroll',
-        'height': 'calc(50% - 25px)',
-        'border': 'thin lightgrey solid'
-    },
-    'tab': {'height': 'calc(98vh - 115px)'}
-}
+def get_current_valid_edges(current_nodes, all_edges):
+    """Returns edges that are present in Cytoscape:
+    its source and target nodes are still present in the graph.
+    """
+    valid_edges = []
+    node_ids = {n['data']['id'] for n in current_nodes}
 
+    for e in all_edges:
+        if e['data']['source'] in node_ids and e['data']['target'] in node_ids:
+            valid_edges.append(e)
+    return valid_edges
+    
 
 # Creating styles
 stylesheet = [
-    # Node
-    {
-        'selector': 'node',
-        'style': {
-            'label': 'data(id)',
-            'background-color': 'white',
-        }
-    },
     # Edge
     {
         'selector': 'edge',
         'style': {
-            'label': 'data(id)',
+            # 'label': 'data(id)',
             'source-arrow-shape': 'triangle',
         }
     },
+
     # API Node
     {
         'selector': '.api',
         'style': {
-            'width': 25,
-            'height': 25,
-            'background-fit': 'cover',
-            'background-image': "/assets/static/api.png"
+        #     'background-color': 'black',
+        #     # 'width': 25,
+        #     # 'height': 25,
+        #     # 'background-fit': 'cover',
+        #     # 'background-image': "/assets/static/api.png"
+            'shape': 'triangle'
         }
     },
-    # CSV Node
+    # Action
     {
-        'selector': '.csv',
+        'selector': '.action',
         'style': {
-            'width': 25,
-            'height': 25,
-            'background-fit': 'cover',
-            'background-image': "/assets/static/csv.png"
+            # 'background-color': 'yellow',
+            # 'width': 25,
+            # 'height': 25,
+            # 'background-image': "/assets/static/api.png"
+            'shape': 'rectangle'
         }
     },
-    # JSON Node
-    {
-        'selector': '.json',
-        'style': {
-            'width': 25,
-            'height': 25,
-            'background-fit': 'cover',
-            'background-image': "/assets/static/json.JPG"
-        }
-    },
+    # Blob
+    # {
+        # 'selector': '.blob',
+        # 'style': {
+        #     'background-color': 'blue',
+        #     # 'width': 25,
+        #     # 'height': 25,
+        #     # 'background-image': "/assets/static/api.png"
+        # }
+    # },
 
-    # BLOB Node
-    {
-        'selector': '.blob',
-        'style': {
-            'width': 30,
-            'height': 30,
-            'background-fit': 'cover',
-            'background-image': "/assets/static/database.png"
-        }
-    },
 ]
 
 
@@ -130,26 +98,23 @@ stylesheet = [
 layout = html.Div([
     dcc.Store(id='current_dataset', storage_type='session'),
     dcc.Store(id='current_node', storage_type='session'),
-    dcc.Store(id='isUploadAPI', storage_type='memory'),
     dcc.Interval(id=id('interval'), interval=1000, n_intervals=0),
-    html.Div('', id=id('test')),
 
     html.Div([
         dbc.Row(dbc.Col(html.H1('Data Lineage (Data Flow Experiments)', style={'text-align':'center'}))),
 
         dbc.Row([
             dbc.Col([
-                html.Button('Add API', id=id('button_add'), className='btn btn-success btn-lg', style={'margin-right':'3px'}), 
+                html.Button('Upload Dataset', id=id('button_add'), className='btn btn-success btn-lg', style={'margin-right':'3px'}), 
                 html.Button('Inspect', id=id('button_inspect'), className='btn btn-info btn-lg', style={'margin-right':'3px'}), 
-                # html.Button('Modify Profile', id=id('button_profile'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}), 
+                html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}), 
                 html.Button('Remove Node', id=id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
 
-                dbc.Col(html.H5('Selected(temporary): None', id=id('selected_version')), style={'text-align':'center', 'background-color': 'silver'}),
                 cyto.Cytoscape(id=id('cytoscape'), 
                                 elements=[], 
                                 layout={'name': 'preset'},
                                 style={'height': '1000px','width': '100%'},
-                                stylesheet=None)
+                                stylesheet=stylesheet)
             ], width=9),
 
             dbc.Col([
@@ -205,14 +170,15 @@ def generate_cytoscape(n_intervals, dataset_id):
                 Input(id('cytoscape'), 'tapNodeData'))
 def select_node(tapNodeData):
     if tapNodeData is None: return no_update
-    return no_update
+    return tapNodeData['id']
 
-# Add API
+
+# Add Dataset
 @app.callback(Output('url', 'pathname'),
                 Input(id('button_add'), 'n_clicks'))
 def button_add(n_clicks):
     if n_clicks is None: return no_update
-    return '/apps/upload_api'
+    return '/apps/upload_dataset'
 
 # Inspect Button
 @app.callback(Output(id('modal'), 'is_open'),
@@ -252,6 +218,21 @@ def button_inspect_action(n_clicks_inspect, node_id, dataset_id, selected_action
 
 
 
+# Remove Node
+@app.callback(Output('modal_confirm', 'children'),
+                Input(id('button_remove'), 'n_clicks'),
+                State(id('cytoscape'), 'tapNodeData'),
+                prevent_initial_call=True)
+def button_remove(n_clicks, tapNodeData):
+    if n_clicks is None: return no_update
+    if tapNodeData is None: return no_update
+    node_id = tapNodeData['id']
+    # TODO retrieve from typesense and remove
+    print('TODO remove')
+    return ''
+
+
+
 # Change button_action href based on selected action
 @app.callback(Output(id('button_action'), 'children'),
                 Output(id('button_action'), 'href'),
@@ -260,9 +241,22 @@ def button_inspect_action(n_clicks_inspect, node_id, dataset_id, selected_action
 def button_modify_on_select_action(selected, options):
     if selected is None: return no_update
     label = [o['label'] for o in options if o['value'] == selected][0]
+
+    if label == 'Merge Strategy':
+        return 'Merge', None
+
     return label, selected
 
 
+@app.callback(Output('modal_confirm', 'children'),
+                Input(id('button_action'), 'n_clicks'),
+                State(id('dropdown_action'), 'value'),
+                State('current_dataset', 'data'),
+                State(id('cytoscape'), 'selectedNodeData'),
+                prevent_initial_call=True)
+def button_action(n_clicks, selected, dataset_id, node_id):
+    # merge_nodes()
+    return no_update
 
 
 # Generate options in dropdown and button 
@@ -273,8 +267,8 @@ def button_modify_on_select_action(selected, options):
 def generate_dropdown_actions(selected_nodes):
     if selected_nodes is None: return no_update
     options = []
-    single = [ nav for nav in sidebar_2_list  if nav['multiple']==False ]
-    multiple = [ nav for nav in sidebar_2_list  if nav['multiple']==True ]
+    single = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==False ]
+    multiple = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==True ]
 
     # Generate Options
     if len(selected_nodes) == 1:
@@ -284,7 +278,7 @@ def generate_dropdown_actions(selected_nodes):
     
     # Get Default selected value
     selected_value = (options[0]['value'] if len(options) > 0 else None)
-
+    
     return options, selected_value
 
 
@@ -388,3 +382,6 @@ def generate_dropdown_actions(selected_nodes):
 #               [Input(id('cytoscape'), 'tapNodeData')])
 # def displayTapNodeData(data):
 #     return json.dumps(data, indent=2)
+
+
+

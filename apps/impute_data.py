@@ -252,10 +252,10 @@ def generate_select_graph(selected_columns, selected_graph, action, node_id):
                 State(id('dropdown_select_action'), 'value'))
 def button_confirm(n_clicks, dataset_id, node_id, selected_column, action):
     if n_clicks is None: return no_update
-
+    print('Source: ', node_id)
     df = get_node_data(node_id)
     df[selected_column] = impute_col(df[selected_column], action)
-    add_node(dataset_id, node_id, df.to_dict('records'), label='')
+    action(dataset_id, node_id, df.to_dict('records'), label='')
 
     return no_update
 

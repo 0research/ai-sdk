@@ -1,17 +1,17 @@
 from dash import dcc
-#import dash_bootstrap_components as dbc
 from dash import html
 from dash.dependencies import Input, Output, State
 from pandas import json_normalize
 from apps.util import *
 from app import app
 from app import server 
-from app import dbc # https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
+from app import dbc
 from apps.typesense_client import *
-from apps import (upload_dataset, upload_api, overview, profile, merge_strategy, temporal_evolution, temporal_merge, 
+from apps import (new_project, upload_dataset, overview, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage,
                 page2, page3, page6, page6,page7, page8, page9, page10)
 import ast
+from apps.constants import *
 
 
 id = id_factory('index')
@@ -60,8 +60,8 @@ navbar = dbc.Navbar([
         dbc.Col(html.A(html.Img(src=DOCKER, height="30px",id="tooltip-docker"), href="https://hub.docker.com/r/0research/ai-sdk"), width={"size": 1, "order": "1"}),
         dbc.Col(html.A(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction"), href="https://github.com/marketplace/actions/ai-sdk-action"), width={"size": 1, "order": "1"}),
         dbc.Col(dbc.InputGroup([
-            dbc.InputGroupText("Choose Dataset"),
-            dbc.Select(options=[], id='dropdown_current_dataset', style={'min-width':'120px'}, persistence_type='session', persistence=True),
+            dbc.InputGroupText("Select Project"),
+            dbc.Select(options=[], id='dropdown_current_project', style={'min-width':'120px'}, persistence_type='session', persistence=True),
         ]), width={"size": 2, "order": "4", 'offset': 2}),
 
         dbc.Col(dbc.InputGroup([
@@ -80,19 +80,20 @@ navbar = dbc.Navbar([
     dbc.Tooltip("Demo Video",target="tooltip-youtube"),
     dbc.Tooltip("Opensource Repo",target="tooltip-github"),
     dbc.Tooltip("Self Hosted Docker",target="tooltip-docker"),
-    dbc.Tooltip("Use in GithubAction",target="tooltip-githubaction"),
-    ], color="dark", dark=True,)
+    dbc.Tooltip("Use in Github Action",target="tooltip-githubaction"),
+], color="dark", dark=True,)
     
 
 
 # Sidebar
 sidebar_1 = [
-    dbc.NavLink("Upload Dataset", href="/apps/upload_dataset", id=id('nav_upload'), active="exact", className="fas fa-upload"),
+    dbc.NavLink("New Project", href="/apps/new_project", id=id('nav_upload'), active="exact", className="fas fa-upload"),
     dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
     dbc.NavLink("Overview", href="/apps/overview", active="exact", className="fas fa-chart-pie"),
 ]
-sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in sidebar_2_list]
-sidebar_3 = [
+sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_2_LIST]
+sidebar_3 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_3_LIST]
+sidebar_4 = [
     dbc.NavLink("Workflow", href="/apps/workflow", active="exact", className="fas fa-arrow-alt-circle-right"),
     dbc.NavLink("Remove Duplicate", href="/apps/remove_duplicate", active="exact", className='far fa-copy'),
     dbc.NavLink("Decomposition", href="/apps/decomposition", active="exact", className='fas fa-recycle'),
@@ -109,7 +110,9 @@ sidebar = html.Div([
         sidebar_2 +
         [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
         sidebar_3 +
-        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})]
+        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
+        sidebar_4 +
+        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] 
         
         # dcc.Link(' Page 3 | ', href='/apps/page3'),
         # dcc.Link('Page 6 | ', href='/apps/page6'),
@@ -139,8 +142,8 @@ app.layout = serve_layout
 
 @app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
 def display_page(pathname):
+    if pathname.startswith('/apps/new_project'): return new_project.layout
     if pathname.startswith('/apps/upload_dataset'): return upload_dataset.layout
-    if pathname.startswith('/apps/upload_api'): return upload_api.layout
     if pathname.startswith('/apps/overview'): return overview.layout
     if pathname.startswith('/apps/profile'): return profile.layout
     if pathname.startswith('/apps/merge_strategy'): return merge_strategy.layout
@@ -164,7 +167,7 @@ def display_page(pathname):
 
 
 # # If Click Upload, remove Current Dataset/Node
-# @app.callback(Output('dropdown_current_dataset', 'value'),
+# @app.callback(Output('dropdown_current_project', 'value'),
 #                 Output('display_current_node', 'value'),
 #                 Input(id('nav_upload'), 'n_clicks'))
 # def load_dataset_dropdown(n_clicks):
@@ -174,14 +177,20 @@ def display_page(pathname):
 
 
 # Load Datasets in dropdown
-@app.callback([Output('dropdown_current_dataset', 'options')],
+@app.callback([Output('dropdown_current_project', 'options')],
                 Input('url', 'pathname'),)
 def load_dataset_dropdown(pathname):
     dataset_list = search_documents('dataset', 250)
     options = [{'label': d['id'], 'value': d['id']} for d in dataset_list]
     return options
 
-
+# Load Datasets in dropdown
+@app.callback([Output('dropdown_current_project', 'options')],
+                Input('url', 'pathname'),)
+def load_dataset_dropdown(pathname):
+    dataset_list = search_documents('dataset', 250)
+    options = [{'label': d['id'], 'value': d['id']} for d in dataset_list]
+    return options
 
 
 # Load Last Node ID if change Selected Dataset
@@ -197,7 +206,7 @@ def load_nodeID(dataset_id):
 
 # Save Current Dataset/Node IDs to store
 @app.callback([Output('current_dataset', 'data')],
-                Input('dropdown_current_dataset', 'value'),)
+                Input('dropdown_current_project', 'value'),)
 def load_dataset_dropdown(dataset_id):
     return dataset_id
 @app.callback([Output('current_node', 'data')],
@@ -207,10 +216,10 @@ def load_dataset_dropdown(node_id):
 
 
 # Selected Dataset
-# @app.callback([Output('dropdown_current_dataset', 'options'),
+# @app.callback([Output('dropdown_current_project', 'options'),
 #                 Output('current_dataset', 'data')],
 #                 [Input('current_dataset', 'data'),
-#                 Input('dropdown_current_dataset', 'value')])
+#                 Input('dropdown_current_project', 'value')])
 # def current_dataset(current_dataset, selected):
 #     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
 
@@ -223,7 +232,7 @@ def load_dataset_dropdown(node_id):
     
 #     if triggered == 'current_dataset':
 #         options = [{'label':name, 'value':name} for name in dataset_name_list]
-#     elif triggered == 'dropdown_current_dataset':
+#     elif triggered == 'dropdown_current_project':
 #         pass
     
 #     return options, selected
