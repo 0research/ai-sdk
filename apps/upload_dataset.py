@@ -68,9 +68,6 @@ option_delimiter = [
 
 # Layout
 layout = html.Div([
-    dcc.Store(id='current_dataset', storage_type='session'),
-    dcc.Store(id='current_node', storage_type='session'),
-
     dbc.Container([
         # Settings & Drag and Drop
         dbc.Row([

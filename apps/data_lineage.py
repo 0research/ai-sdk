@@ -169,8 +169,12 @@ def generate_cytoscape(n_intervals):
                 Input(id('cytoscape'), 'tapNodeData'),)
 def select_node(tapNodeData):
     if tapNodeData is None: return no_update
-    store_session('dataset_id', tapNodeData['id'])
-    return tapNodeData['id']
+    pprint(tapNodeData)
+    if tapNodeData['type'] == 'dataset':
+        store_session('dataset_id', tapNodeData['id'])
+        return tapNodeData['id']
+    else:
+        return no_update
 
 # Select Node Multiple 
 @app.callback(Output('modal_confirm', 'children'),
@@ -205,9 +209,9 @@ def button_add(n_clicks):
 def button_inspect_action(n_clicks_inspect):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     if triggered == '': return no_update
-    print('Inspect0', get_session('dataset_id'))
+    print('Inspect: ', get_session('dataset_id'))
     if get_session('dataset_id') is None: return no_update
-    print('Inspect')
+
     # Retrieve Dataset Data
     dataset_id = get_session('dataset_id')
     dataset = get_document('dataset', dataset_id)

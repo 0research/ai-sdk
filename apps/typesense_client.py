@@ -114,7 +114,7 @@ def Dataset(id, description, api_data, column, datatype, expectation, index, tar
         'id': id,
         'description': description,
         'api_data': api_data, # None or {source, delimiter, remove_space, remove_header}
-        'column': list(column),
+        'column': column,
         'datatype': datatype,
         'expectation': expectation,
         'index': index, 
@@ -168,11 +168,12 @@ def upload_dataset(project_id, dataset_id, dataset_data, description, source,
         'remove_space': remove_space,
         'remove_header': remove_header,
     }
+
     dataset = Dataset(
             id=dataset_id,
             description=description, 
             api_data=api_data, 
-            column=list(df.columns), 
+            column={col:True for col in df.columns}, 
             datatype={col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
             expectation = {col:None for col in df.columns}, 
             index = [], 
