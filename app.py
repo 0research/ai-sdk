@@ -1,5 +1,6 @@
 import dash
 import dash_bootstrap_components as dbc
+from dash_extensions.enrich import DashProxy, MultiplexerTransform
 
 FA = {
     "href": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css",
@@ -11,7 +12,9 @@ FA = {
 external_stylesheets = [dbc.themes.BOOTSTRAP, FA]
 
 
-app = dash.Dash(__name__, suppress_callback_exceptions=True,
+app = DashProxy(__name__,
+                suppress_callback_exceptions=True,
+                transforms=[MultiplexerTransform()],
                 external_stylesheets=external_stylesheets,
                 meta_tags=[{'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'}],
                 title='AI-SDK'

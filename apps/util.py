@@ -17,16 +17,14 @@ from jsonmerge import Merger
 from pprint import pprint
 from genson import SchemaBuilder
 from jsondiff import diff
-
 import os
 from pandas import json_normalize
 import pandas as pd
-
-
 import uuid
 
-mergeOptions = ['overwrite', 'objectMerge', 'version']
-flattenOptions = ['Flatten', 'Unflatten']
+
+
+
 
 
 def id_factory(page: str):
@@ -35,12 +33,12 @@ def id_factory(page: str):
     return func
 
 
-def generate_tabs(tabs_id, tab_labels, tab_values):
+def generate_tabs(tabs_id, tab_labels, tab_values, tab_disabled):
     return dcc.Tabs(
         id=tabs_id,
         value=tab_values[0],
         children=[
-            dcc.Tab(label=label, value=value) for label, value in zip(tab_labels, tab_values)
+            dcc.Tab(label=label, value=value, disabled=disabled) for label, value, disabled in zip(tab_labels, tab_values, tab_disabled)
         ],
     )
 
@@ -174,7 +172,7 @@ def json_merge(base, new, merge_strategy):
 
 
 def generate_dropdown(component_id, options, value=None, placeholder='Select...'):
-    if value == None: value = options[0]['value']
+    # if value == None: value = options[0]['value']
     return dcc.Dropdown(
         id=component_id,
         options=options,
@@ -186,21 +184,18 @@ def generate_dropdown(component_id, options, value=None, placeholder='Select...'
     )
 
 
-def generate_datatable(component_id, df=None, height='450px'):
-    df = pd.DataFrame(OrderedDict([
-        ('climate', ['Sunny', 'Snowy', 'Sunny', 'Rainy']),
-        ('temperature', [13, 43, 50, 30]),
-        ('city', ['NYC', 'Montreal', 'Miami', 'NYC'])
-    ]))
+def generate_datatable(component_id, data=[], columns=[], height='450px'):
+    # df = pd.DataFrame(OrderedDict([
+    #     ('climate', ['Sunny', 'Snowy', 'Sunny', 'Rainy']),
+    #     ('temperature', [13, 43, 50, 30]),
+    #     ('city', ['NYC', 'Montreal', 'Miami', 'NYC'])
+    # ]))
+    columns = [{"name": col, "id": col, "deletable": False, "selectable": False} for col in columns]
 
     return dash_table.DataTable(
         id=component_id,
-        data=df.to_dict('records'),
-        columns=[
-            {'id': 'climate', 'name': 'climate', 'presentation': 'dropdown'},
-            {'id': 'temperature', 'name': 'temperature'},
-            {'id': 'city', 'name': 'city', 'presentation': 'dropdown'},
-        ],
+        data=data,
+        columns=columns,
         selected_rows=[],
         column_selectable="single",
         row_selectable="multi",
@@ -223,13 +218,13 @@ def generate_datatable(component_id, df=None, height='450px'):
     ),
 
 
-def generate_radio(id, options, label, default_value=0):
-
+def generate_radio(id, options, label, default_value=0, inline=False):
     return (dbc.Label(label),
             dbc.RadioItems(
                 options=[{'label': o, 'value': o} for o in options],                 
                 value=options[default_value],
                 id=id,
+                inline=inline,
             )
     )
 
@@ -289,9 +284,6 @@ def generate_number_changes(difference_history):
             else:
                 num_changes[key] = 1
     return num_changes
-
-
-
 
 def whitespace_remover(df):
     for i in df.columns:

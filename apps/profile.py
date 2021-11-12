@@ -1,0 +1,230 @@
+from dash import dcc, html, dash_table, no_update, callback_context
+from dash.dependencies import Input, Output, State, ALL, MATCH
+import dash_bootstrap_components as dbc
+import plotly.express as px
+from app import app
+import dash_bootstrap_components as dbc
+import json
+import io
+import sys
+from flatten_json import flatten, unflatten, unflatten_list
+from jsonmerge import Merger
+from pprint import pprint
+from genson import SchemaBuilder
+import json
+from jsondiff import diff, symbols
+from apps.util import *
+import base64
+import pandas as pd
+from itertools import zip_longest
+from datetime import datetime
+from pandas import json_normalize
+from pathlib import Path
+from apps.typesense_client import *
+import time
+import ast
+from apps.constants import *
+
+app.scripts.config.serve_locally = True
+app.css.config.serve_locally = True
+
+# Initialize Variables
+id = id_factory('profile')
+
+option_datatype = [
+        {'label': 'object', 'value': 'object'},
+        {'label': 'string', 'value': 'string'},
+        {'label': 'Int64', 'value': 'Int64'},
+        {'label': 'datetime64', 'value': 'datetime64'},
+        {'label': 'boolean', 'value': 'boolean'},
+        {'label': 'category', 'value': 'category'}
+    ]
+
+
+# Layout
+layout = html.Div([
+    dcc.Interval(id=id('interval'), interval=1000, n_intervals=0),
+
+    dbc.Row(dbc.Col(html.H2('Set Profile'), width=12), style={'text-align':'center'}),
+    dbc.Row(dbc.Col(html.Div(id=id('data_profile'), style={'overflow-y': 'auto', 'overflow-x': 'hidden', 'height':'800px'}), width=12)),
+    dbc.Row([
+        dbc.Col(html.H5('Changes (TODO)'), width=12, style={'text-align':'center'}),
+        dbc.Col(html.Pre([], id=id('changes'), style={'text-align':'left', 'height':'400px', 'background-color':'silver', 'overflow-y':'auto'}), width=12),
+    ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
+    dbc.Row([
+        dbc.Col(dbc.Button(html.H6('Confirm'), className='btn-primary', id=id('button_confirm'), href='/apps/data_lineage', style={'width':'100%'}), width={'size':10, 'offset':1}),
+    ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
+
+])
+
+
+
+def generate_expectations():
+    datatype = None # TODO get selected dropdown datatype from arg
+    expectation = html.Div()
+
+    if datatype == DATATYPE_LIST[0]:  # Object
+        pass
+    elif datatype == DATATYPE_LIST[1]:  # Int64
+        pass
+    elif datatype == DATATYPE_LIST[2]:  # float64
+        pass
+    elif datatype == DATATYPE_LIST[3]:  # bool
+        pass
+    elif datatype == DATATYPE_LIST[4]:  # datetime64
+        pass
+    elif datatype == DATATYPE_LIST[5]:  # category
+        pass
+
+    return [ 
+        html.Div([
+            expectation,
+            html.Div('Not Null Threshold', style={'width':'40%', 'display':'inline-block', 'vertical-align':'top'}),
+            html.Div(generate_slider(id('slider_not_null_threshold'), min=0, max=100, step=1, value=1), style={'width':'50%','display':'inline-block'}),
+            html.Div(style={'width':'40%', 'display':'inline-block', 'vertical-align':'top'}, id=id('val_not_null_threshold')),
+        ]),
+    ]
+    
+
+@app.callback(Output(id('data_profile'), 'children'),
+                Input('url', 'pathname'))
+def generate_profile(pathname):
+    if get_session('dataset_id') is None: return no_update
+
+    dataset = get_document('dataset', get_session('dataset_id'))
+    store_session('changes_profile', dataset) # Clear Changes Session on page load
+    datatype = dataset['datatype']
+    # datatype_deleted = {}
+    # for col, val in dataset['datatype'].items():
+    #     if dataset['column'][col] == True:
+    #         datatype[col] = val
+    #     else:
+    #         datatype[col] = val
+    print(dataset['column'])
+    print(type(dataset['column']))
+    for col, dtype in datatype.items():
+        print(col, dataset['column'][col])
+
+    return (html.Table(
+        [
+            html.Tr([
+                html.Th('Column'),
+                html.Th('Datatype'),
+                html.Th('Invalid (%)'),
+                html.Th('Result'),
+                html.Th(''),
+            ])
+        ] + 
+        [
+            html.Tr([
+                html.Td(html.H6(col), id={'type':id('col_column'), 'index': i}),
+                html.Td(generate_dropdown({'type':id('col_dropdown_datatype'), 'index': i}, option_datatype, value=dtype)),
+                html.Td(html.H6('%', id={'type':id('col_invalid'), 'index': i})),
+                html.Td(html.H6('-', id={'type':id('col_result'), 'index': i})),
+                html.Td([
+                    html.Button('Index', id={'type':id('col_button_index'), 'index': i}, className=('btn btn-warning' if col in dataset['index'] else '')),
+                    html.Button('Target', id={'type':id('col_button_target'), 'index': i}, className=('btn btn-success' if col in dataset['target'] else '')),
+                    html.Button('Remove', id={'type':id('col_button_remove'), 'index': i}, className=('btn btn-danger' if dataset['column'][col] == False else ''))
+                ]),
+            ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(datatype.items())
+        ] +
+        [
+            html.Tr([
+                # TODO Show deleted columns or create another table
+                # datatype_deleted
+            ])
+        ],
+        style={'width':'100%', 'height':'800px'}, 
+        id=id('table_data_profile')
+        )
+    )
+
+
+
+# Save Changes
+@app.callback(Output({'type':id('col_button_index'), 'index': MATCH}, 'className'),
+                Output({'type':id('col_button_target'), 'index': MATCH}, 'className'),
+                Output({'type':id('row'), 'index': MATCH}, 'style'),
+                Input({'type':id('col_dropdown_datatype'), 'index': MATCH}, 'value'),
+                Input({'type':id('col_button_index'), 'index': MATCH}, 'n_clicks'),
+                Input({'type':id('col_button_target'), 'index': MATCH}, 'n_clicks'),
+                Input({'type':id('col_button_remove'), 'index': MATCH}, 'n_clicks'),
+                State({'type':id('col_column'), 'index': MATCH}, 'children'),
+                State({'type':id('col_button_index'), 'index': MATCH}, 'className'),
+                State({'type':id('col_button_target'), 'index': MATCH}, 'className'),
+                prevent_initial_call=True)
+def update_output(datatype, n_click_index, n_click_target, n_click_remove, column, button_index_class, button_target_class):
+    if get_session('dataset_id') is None: return no_update
+    if callback_context.triggered == [{'prop_id': '.', 'value': None}]: return no_update
+
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+    triggered = ast.literal_eval(triggered)
+    column = column['props']['children']
+
+    # Initialize Output Variables
+    # button_index_class = ''
+    # button_target_class = ''
+    row_style = {}
+    
+    # Retrieve and Update Node Metadata Document
+    if get_session('changes_profile') is not None:
+        dataset = ast.literal_eval(get_session('changes_profile'))
+    else:
+        dataset = get_document('dataset', get_session('dataset_id'))
+
+    if triggered['type'] == id('col_dropdown_datatype'):
+        dataset['datatype'][column] = datatype
+
+    elif triggered['type'] == id('col_button_index'):
+        if column not in dataset['index']:
+            dataset['index'].append(column)
+            button_index_class = 'btn btn-warning'
+        else:
+            dataset['index'].remove(column)
+            button_index_class = ''
+
+    elif triggered['type'] == id('col_button_target'):
+        if column not in dataset['target']: 
+            dataset['target'].append(column)
+            button_target_class = 'btn btn-success'
+        else: 
+            dataset['target'].remove(column)
+            button_target_class = ''
+
+    elif triggered['type'] == id('col_button_remove'):
+        dataset['column'][column] = not dataset['column'][column]
+        # row_style = {'display': 'none'}
+
+    # Update Typesense Node
+    store_session('changes_profile', dataset)
+
+    return button_index_class, button_target_class, row_style
+
+
+@app.callback(Output(id('changes'), 'children'),
+                Input(id('interval'), 'n_intervals'))
+def generate_changes(n_intervals):
+    if get_session('changes_profile') is None: return no_update
+
+    keys = ['column', 'datatype', 'expectation', 'index', 'target']
+    dataset = get_document('dataset', get_session('dataset_id'))
+    changes = ast.literal_eval(get_session('changes_profile'))
+    dataset = { k: dataset[k] for k in keys }
+    changes = { k: changes[k] for k in keys }
+    difference = diff(dataset, changes, syntax='symmetric', marshal=True)
+
+    return json.dumps(difference, indent=2)
+
+
+
+# Button Confirm
+@app.callback(Output('modal_confirm', 'children'),
+                Input(id('button_confirm'), 'n_clicks'))
+def button_confirm(n_clicks):
+    if n_clicks is None: return no_update
+    changes = ast.literal_eval(get_session('changes_profile'))
+    dataset_id = get_session('dataset_id')
+    action(get_session('project_id'), dataset_id, 'profile', '', changes, search_documents(dataset_id, 250))
+    # action(project_id, source_id, action, description, dataset, dataset_data)
+
+    return no_update
