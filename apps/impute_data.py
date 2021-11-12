@@ -120,7 +120,7 @@ layout = html.Div([
                 Input('current_node', 'data'))
 def generate_left_bar_graph(dataset_id, node_id):
     if node_id is None: return no_update
-    df = get_node_data(node_id)
+    df = get_dataset_data(node_id)
     
     # stack_types = ['Valid', 'Missing', 'Invalid'] # TODO add Invalid
     stack_types = ['Valid', 'Missing']
@@ -158,7 +158,7 @@ def generate_selected_column(selected_columns):
 def generate_right_bar_graph(selected_column, node_id):
     if selected_column == None or selected_column == []: return no_update
     
-    df = get_node_data(node_id)
+    df = get_dataset_data(node_id)
     data = df[selected_column].value_counts(dropna=False)
 
     # TODO add invalid as diff colored bars
@@ -203,7 +203,7 @@ def generate_select_graph(selected_columns, selected_graph, action, node_id):
     if node_id is None: return no_update
     
     # Get Data
-    df = get_node_data(node_id)
+    df = get_dataset_data(node_id)
     col = df[selected_columns]
     col_clean = impute_col(col, action)
 
@@ -253,7 +253,7 @@ def generate_select_graph(selected_columns, selected_graph, action, node_id):
 def button_confirm(n_clicks, dataset_id, node_id, selected_column, action):
     if n_clicks is None: return no_update
     print('Source: ', node_id)
-    df = get_node_data(node_id)
+    df = get_dataset_data(node_id)
     df[selected_column] = impute_col(df[selected_column], action)
     action(dataset_id, node_id, df.to_dict('records'), label='')
 

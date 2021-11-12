@@ -33,7 +33,7 @@ def initialize_typesense():
     else:
         client = typesense_client('oswmql6f04pndbi1p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
 
-    collection_list = ['dataset', 'node', 'session1'] # TODO Currently all users will use same session. Replace when generate user/session ID
+    collection_list = ['project', 'dataset', 'action', 'session1'] # TODO Currently all users will use same session. Replace when generate user/session ID
     for name in collection_list:
         try:
             client.collections.create(generate_schema_auto(name))
@@ -48,15 +48,7 @@ client = initialize_typesense()
 
 
 
-
-def search_documents(collection_id, per_page):
-    search_parameters = {
-        'q': '*',
-        'per_page': per_page,
-    }
-    result = client.collections[collection_id].documents.search(search_parameters)
-    return [d['document'] for d in result['hits']]
-
+ # Basic Typesense Functions
 def get_document(collection_id, document_id):
     doc = client.collections[collection_id].documents[document_id].retrieve()
     for k, v in doc.items():
@@ -66,6 +58,7 @@ def get_document(collection_id, document_id):
             except Exception as e: 
                 print(e)
     return doc
+
 def create(collection_id, document):
     document = {k:str(v) for k, v in document.items()}
     client.collections[collection_id].documents.create(document)
@@ -74,6 +67,20 @@ def upsert(collection_id, document):
     document = {k:str(v) for k, v in document.items()}
     client.collections[collection_id].documents.upsert(document)
 
+def search_documents(collection_id, per_page):
+    search_parameters = {
+        'q': '*',
+        'per_page': per_page,
+    }
+    result = client.collections[collection_id].documents.search(search_parameters)
+    return [d['document'] for d in result['hits']]
+def get_dataset_data(dataset_id):
+    dataset = get_document('dataset', dataset_id)
+    column = dataset['column']
+    data = search_documents(dataset_id, '250')
+    df = json_normalize(data)
+
+    return df[column]
 
 
 # Store & Retrieve Session
@@ -81,144 +88,206 @@ def store_session(key, value):
     session_id = 'session1' # TODO Currently all users will use same session. Replace when generate user/session ID
     client.collections[session_id].documents.upsert({'id': key, 'value': str(value)})
 def get_session(key):
-    session_id = 'session1' # TODO Currently all users will use same session. Replace when generate user/session ID
-    return client.collections[session_id].documents[key].retrieve()['value']
+    try:
+        session_id = 'session1' # TODO Currently all users will use same session. Replace when generate user/session ID
+        session_value = client.collections[session_id].documents[key].retrieve()['value']
+        session_value = session_value
+    except Exception as e:
+        # print(e)
+        return None
+    return session_value
 
 
 
 # Typesense Object
-def Project(id, type, cDataset, cAction, cEdge):
+def Project(id, type, dataset, action, edge, experiment):
     return {
         'id': id, 
         'type': type, 
-        'cytoscape_dataset': cDataset,
-        'cytoscape_action': cAction,
-        'cytoscape_edge': cEdge
+        'dataset_list': dataset,
+        'action_list': action,
+        'edge_list': edge,
+        'experiment': experiment
     }
-def Dataset(id, description, type, api_data, column, datatype, expectation, index, target):
+def Dataset(id, description, api_data, column, datatype, expectation, index, target):
     return {
         'id': id,
         'description': description,
-        'type': type,
-        'api_data': api_data, # Source, Delimiter, remove_space, remove_header
+        'api_data': api_data, # None or {source, delimiter, remove_space, remove_header}
         'column': list(column),
         'datatype': datatype,
         'expectation': expectation,
         'index': index, 
         'target': target,
     }
+def Action(id, action, description):
+    return {
+        'id': id,
+        'action': action,
+        'description': description,
+    }
+
 
 # Cytoscape Object 
-def cNode(node_id, node_type, label=''):
+def cNode(id, node_type, label):
     return {
-        'data': {'id': node_id, 'label': label},
-        # 'position': {'x': 50, 'y': 50},
+        'data': {'id': id, 'label': label, 'type': node_type},
         'classes': node_type,
     }
-def cEdge(source_node_id, destination_node_id, label='', extra_data=''):
+def cEdge(source_id, destination_id, label):
     return {
         'data': {
-                'id': source_node_id + '-' + destination_node_id,
-                'source': source_node_id,
-                'target': destination_node_id,
-                'label': '',
-                'extra_data': extra_data,
+                'id': source_id + '_' + destination_id,
+                'source': source_id,
+                'target': destination_id,
+                'label': label
             },
             'selectable': False
     }
 
-def action(dataset_id, source_node_id, data, label=''):
-    # Dataset Document
-    dataset = get_document('dataset', dataset_id)
-    node_id = str(uuid.uuid1())
-    dataset['node'].append(node_id)
-    node = cNode(node_id, node_type='dataset', label=label)
-    edge = cEdge(source_node_id, node_id, label=label)
-    
-    dataset['cytoscape_node'].append(node)
-    dataset['cytoscape_edge'].append(edge)
 
-    node2 = cNode(node_id, node_type='action', label=label)
-    edge2 = cEdge(source_node_id, node_id, label=label)
+def new_project(project_id, project_type):
+    document = Project(id=project_id, type=project_type, dataset=[], action=[], edge=[], experiment=[])
+    create('project', document)
 
-    # Node Document
-    source_node = get_document('node', source_node_id)
-    df = get_node_data(source_node_id)
-    node = {
-        'id': node_id,
-        'description': None, 
-        'source': None,
-        'delimiter': None, 
-        'remove_space': None,
-        'remove_header': None,
-        'type': 'dataset', 
-        'datatype': {col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)}, 
-        'columns': source_node['columns'],
-        'columns_deleted': source_node['columns_deleted'],
-        'expectation': {col:None for col in df.columns}, 
-        'index': [],
-        'target': [], 
+def upload_dataset(project_id, dataset_id, dataset_data, description, source, 
+                    delimiter, remove_space, remove_header):
+    # Project
+    project_id = get_session('project_id')
+    project = get_document('project', project_id)
+    project['dataset_list'].append(dataset_id)
+
+    # Dataset
+    df = json_normalize(dataset_data)
+    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+
+    # Node
+    api_data = {
+        'source': source, 
+        'delimiter': delimiter,
+        'remove_space': remove_space,
+        'remove_header': remove_header,
     }
+    dataset = Dataset(
+            id=dataset_id,
+            description=description, 
+            api_data=api_data, 
+            column=list(df.columns), 
+            datatype={col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
+            expectation = {col:None for col in df.columns}, 
+            index = [], 
+            target = []
+    )
 
-    # Node Data Collection
-    df = json_normalize(data)
+    # Upload to Typesense
+    upsert('project', project)
+    upsert('dataset', dataset)
+    client.collections.create(generate_schema_auto(dataset_id))
+    client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
+    
+
+def delete(project_id, node_id):
+    project = get_document('project', project_id)
+    edge_source_list = [edge.split('_')[0] for edge in project['edge_list']]
+
+    # TODO delete action = deletes multiple nodes
+    if node_id in project['action_list']:
+        print('TODO delete action')
+    elif node_id in project['dataset_list']:
+        if node_id in edge_source_list:
+            print('[Error] Node selected is not a leaf node.')
+        else:
+            print('TODO delete')
+            # project['dataset_list'].remove(node_id)
+            # for edge in project['edge_list']:
+            #     if edge.split('_')[1] == node_id:
+            #         project['edge_list'].remove(node_id)
+            upsert('project', project)
+
+def action(project_id, source_id, action, description, dataset, dataset_data):
+    # New id
+    action_id = str(uuid.uuid1())
+    dataset_id = str(uuid.uuid1())
+    edge1 = source_id + '_' + action_id
+    edge2 = action_id + '_' + dataset_id
+
+    # Project Document
+    project = get_document('project', project_id)
+    project['action_list'].append(action_id)
+    project['dataset_list'].append(dataset_id)
+    project['edge_list'].append(edge1)
+    project['edge_list'].append(edge2)
+
+    # Action Document
+    action = Action(id=action_id, action=action, description=description)
+
+    # Dataset Data Collection
+    df = json_normalize(dataset_data)
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
     
     # Upload
+    upsert('project', project)
+    upsert('action', action)
     upsert('dataset', dataset)
-    upsert('node', node)
-    client.collections.create(generate_schema_auto(node_id))
-    client.collections[node_id].documents.import_(jsonl, {'action': 'create'})
+    client.collections.create(generate_schema_auto(dataset_id))
+    client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
 
 
-def merge_nodes(dataset_id, source_node_id_list, label='', node_type='blob'):
-    # Dataset Document
-    dataset = get_document('dataset', dataset_id)
-    node_id = str(uuid.uuid1())
-    node = cNode(node_id, node_type, label=label)
-    dataset['node'].append(node_id)
-    dataset['cytoscape_node'].append(node)
-    for source_node_id in source_node_id_list:
-        edge = cEdge(source_node_id, node_id, label=label)
-        dataset['cytoscape_edge'].append(edge)
+def join(project_id, source_id_list, description, dataset_data):
+    # New id
+    action_id = str(uuid.uuid1())
+    dataset_id = str(uuid.uuid1())
 
-    # Node Document
-    source_node = get_document('node', source_node_id)
-    df = get_node_data(source_node_id)
-    node = {
-        'id': node_id,
-        'description': None, 
-        'source': None,
-        'delimiter': None, 
-        'remove_space': None,
-        'remove_header': None,
-        'type': node_type, 
-        'datatype': {col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)}, 
-        'columns': source_node['columns'],
-        'columns_deleted': source_node['columns_deleted'],
-        'expectation': {col:None for col in df.columns}, 
-        'index': [],
-        'target': [], 
-    }
+    # Project Document
+    project = get_document('project', project_id)
+    project['action_list'].append(action_id)
+    project['dataset_list'].append(dataset_id)
+    for source_id in source_id_list:
+        edge_id = source_id + '_' + action_id
+        project['edge_list'].append(edge_id)
+    project['edge_list'].append(action_id + '_' + dataset_id)
 
-    # Node Data Collection
-    df_list = [get_node_data(source_node_id) for source_node_id in source_node_id_list]
-    df = pd.concat(df_list)
-    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+    for source_id in source_id_list:
+        source_data = get_dataset_data(source_id)
+
+        # Dataset Data Collection
+        df = json_normalize(dataset_data)
+        jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+
+        # Action Document
+        action = Action(id=action_id, action='merge', description=description)
+        dataset = Dataset(
+                id=dataset_id,
+                description=description, 
+                api_data=None, 
+                column=list(df.columns), 
+                datatype = [],
+                expectation = [],
+                index = [], 
+                target = []
+        )
     
     # Upload
+    upsert('project', project)
+    upsert('action', action)
     upsert('dataset', dataset)
-    upsert('node', node)
-    client.collections.create(generate_schema_auto(node_id))
-    client.collections[node_id].documents.import_(jsonl, {'action': 'create'})
+    client.collections.create(generate_schema_auto(dataset_id))
+    client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
 
 
-def get_node_data(node_id):
-    node = get_document('node', node_id)
-    data = search_documents(node_id, '250')
-    df = json_normalize(data)
-    df = df[node['columns']]
 
-    return df
+
+
+
+
+
+def generate_cytoscape_elements(project_id):
+    project = get_document('project', project_id)    
+    cAction_list = [cNode(id, node_type='action', label='') for id in project['action_list']]
+    cDataset_list = [cNode(id, node_type='dataset', label='') for id in project['dataset_list']]
+    cEdge_list = [cEdge(id.split('_')[0], id.split('_')[1], label='') for id in project['edge_list']]
+
+
+    return cAction_list + cDataset_list + cEdge_list

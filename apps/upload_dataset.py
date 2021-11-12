@@ -70,24 +70,19 @@ option_delimiter = [
 layout = html.Div([
     dcc.Store(id='current_dataset', storage_type='session'),
     dcc.Store(id='current_node', storage_type='session'),
-    dcc.Store(id='isUploadAPI', storage_type='memory'),
 
     dbc.Container([
         # Settings & Drag and Drop
         dbc.Row([
             dbc.Col([
-                html.H5('Step 1: API Description'),
+                html.H5('Step 1: Dataset Description'),
                 dbc.InputGroup([
-                    dbc.InputGroupText("Dataset ID", style={'width':'120px', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'30px'}), 
-                    dbc.Input(id=id('dataset_id'), disabled=True, style={'font-size': '12px', 'text-align':'center'})
-                ], className="mb-3 lg"),
-                dbc.InputGroup([
-                    dbc.InputGroupText("Node ID", style={'width':'120px', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'30px'}), 
-                    dbc.Input(id=id('node_id'), disabled=True, style={'font-size': '12px', 'text-align':'center'})
+                    dbc.InputGroupText("Project ID", style={'width':'120px', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'30px'}), 
+                    dbc.Input(id=id('project_id'), disabled=True, style={'font-size': '12px', 'text-align':'center'})
                 ], className="mb-3 lg"),
                 dbc.InputGroup([
                     dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                    dbc.Textarea(id=id('node_description'), placeholder='Enter API Description (Optional)', style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                    dbc.Textarea(id=id('dataset_description'), placeholder='Enter Dataset Description (Optional)', style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
                 ], className="mb-3 lg"),
             ], width={'size':8, 'offset':2}, className='rounded bg-info text-dark'),
             dbc.Col(html.Hr(style={'border': '1px dotted black', 'margin': '30px 0px 30px 0px'}), width=12),
@@ -131,16 +126,13 @@ layout = html.Div([
             dbc.Col(id=id('upload_error'), width=12),
         ]),
     ], fluid=True, id=id('content')),
-    html.Div(id='test1'),
 ])
 
-# Load Dataset ID and Node ID
-@app.callback([Output(id('dataset_id'), 'value'),
-                Output(id('node_id'), 'value')],
-                Input('current_dataset', 'data'))
-def load_nodeID_datasetID(dataset_id):
-    if dataset_id is None: return no_update
-    return dataset_id, str(uuid.uuid1())
+#Load Project ID
+@app.callback(Output(id('project_id'), 'value'),
+                Input('url', 'pathname'))
+def load_project_id(pathname):
+    return get_session('project_id')
 
 
 
@@ -222,57 +214,22 @@ def browse_drag_drop_files(isCompleted, files_selected, dropdown_delimiter, chec
 
 
 # Upload Button
-@app.callback([Output('display_current_node', 'value'), 
-                Output('url', 'pathname')],
+@app.callback(Output('url', 'pathname'),
                 Input(id('button_upload'), 'n_clicks'),
-                State('current_dataset', 'data'),
-                State(id('node_id'), 'value'),
-                State(id('node_description'), 'value'),
+                State(id('dataset_description'), 'value'),
                 State(id('dropdown_delimiter'), 'value'),
                 State(id('checklist_settings'), 'value'),
                 State(id('datatable'), 'data'))
-def upload(n_clicks, current_dataset, node_id, node_description, dropdown_delimiter, checklist_settings, datatable_data):
+def upload(n_clicks, dataset_description, dropdown_delimiter, checklist_settings, datatable_data):
     if n_clicks is None: return no_update
 
-    remove_space, remove_header = False, False
-    if 'remove_space' in checklist_settings: remove_space = True
-    if 'remove_header' in checklist_settings: remove_header = False
+    pathname = '/apps/data_lineage'
+    dataset_id = str(uuid.uuid1())
+    project_id = get_session('project_id')
+    remove_space = 'remove_space' in checklist_settings
+    remove_header = 'remove_header' in checklist_settings
+    upload_dataset(project_id, dataset_id, datatable_data, dataset_description, '', 
+                    dropdown_delimiter, remove_space, remove_header)
+    # store_session('dataset_id', dataset_id)
 
-    # Retrieve and Append Dataset Metadata Document
-    dataset = get_document('dataset', current_dataset)
-    dataset['node'].append(node_id)
-    from random import randint
-    dataset['cytoscape_node'].append({
-        'data': {'id': node_id, 'label': node_id},
-        'position': {'x': randint(1, 100), 'y': randint(1, 100)},
-        'classes': 'api',
-    })
-
-    # Form Node Data Collection
-    df = json_normalize(datatable_data)
-    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-
-    # Create Node Metadata Document
-    node = {
-        'id': node_id,
-        'description': node_description, 
-        'source': [], # TODO add filename uploaded?
-        'delimiter': dropdown_delimiter, 
-        'remove_space': remove_space,
-        'remove_header': remove_header,
-        'type': 'api', 
-        'datatype': {col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
-        'columns': list(df.columns),
-        'columns_deleted': [],
-        'expectation': {col:None for col in df.columns},
-        'index': [], 
-        'target': [],
-    }
-    
-    # Upload to Typesense
-    upsert('dataset', dataset)
-    upsert('node', node)
-    client.collections.create(generate_schema_auto(node_id))
-    client.collections[node_id].documents.import_(jsonl, {'action': 'create'})
-    
-    return node_id, '/apps/data_lineage'
+    return pathname

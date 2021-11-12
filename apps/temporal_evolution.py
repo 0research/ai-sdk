@@ -68,7 +68,7 @@ layout = html.Div([
 def update_data_table(node_id):
     if node_id is None: return no_update
     
-    df = get_node_data(node_id)
+    df = get_dataset_data(node_id)
     df.insert(0, column='index', value=range(1, len(df)+1))
     json_dict = df.to_dict('records')
 

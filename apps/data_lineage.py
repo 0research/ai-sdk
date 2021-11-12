@@ -1,3 +1,4 @@
+from typing_extensions import ParamSpecArgs
 from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output, State, ALL, MATCH
@@ -96,8 +97,6 @@ stylesheet = [
 
 
 layout = html.Div([
-    dcc.Store(id='current_dataset', storage_type='session'),
-    dcc.Store(id='current_node', storage_type='session'),
     dcc.Interval(id=id('interval'), interval=1000, n_intervals=0),
 
     html.Div([
@@ -105,8 +104,9 @@ layout = html.Div([
 
         dbc.Row([
             dbc.Col([
-                html.Button('Upload Dataset', id=id('button_add'), className='btn btn-success btn-lg', style={'margin-right':'3px'}), 
+                html.Button('Upload Dataset', id=id('button_upload'), className='btn btn-success btn-lg', style={'margin-right':'3px'}), 
                 html.Button('Inspect', id=id('button_inspect'), className='btn btn-info btn-lg', style={'margin-right':'3px'}), 
+                html.Button('Add Graph', id=id('button_add_graph'), className='btn btn-secondary btn-lg', style={'margin-right':'3px'}),
                 html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}), 
                 html.Button('Remove Node', id=id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
 
@@ -146,13 +146,12 @@ layout = html.Div([
 
 
 @app.callback(Output(id('cytoscape'), 'elements'), 
-                Input(id('interval'), 'n_intervals'),
-                State('current_dataset', 'data'))
-def generate_cytoscape(n_intervals, dataset_id):
-    if dataset_id is None or dataset_id == '': return no_update
-    dataset = get_document('dataset', dataset_id)
+                Input(id('interval'), 'n_intervals'))
+def generate_cytoscape(n_intervals):
+    project_id = get_session('project_id')
+    if project_id is None: return no_update
 
-    return (dataset['cytoscape_node'] + dataset['cytoscape_edge'])
+    return generate_cytoscape_elements(project_id)
 
 
 # @app.callback(Output(id('experiments'), 'children'),
@@ -165,17 +164,34 @@ def generate_cytoscape(n_intervals, dataset_id):
 #     return [dbc.Card(children=(dbc.CardHeader(experiment['name']), dbc.CardBody(experiment['description'])), color="info", inverse=True) for experiment in dataset['experiment']]
 
 
-# Select Node
-@app.callback(Output('display_current_node', 'value'), 
-                Input(id('cytoscape'), 'tapNodeData'))
+# Select Node Single
+@app.callback(Output('display_current_dataset', 'value'),
+                Input(id('cytoscape'), 'tapNodeData'),)
 def select_node(tapNodeData):
     if tapNodeData is None: return no_update
+    store_session('dataset_id', tapNodeData['id'])
     return tapNodeData['id']
+
+# Select Node Multiple 
+@app.callback(Output('modal_confirm', 'children'),
+                Input(id('cytoscape'), 'selectedNodeData'),)
+def select_node_multiple(selectedNodeData):
+    if selectedNodeData is None or len(selectedNodeData) == 0: return no_update
+
+    if all(node['type'] == 'dataset' for node in selectedNodeData):
+        selected_id_list = [node['id'] for node in selectedNodeData]
+        store_session('dataset_id_multiple', selected_id_list)
+
+    return no_update
+
+
+
+
 
 
 # Add Dataset
 @app.callback(Output('url', 'pathname'),
-                Input(id('button_add'), 'n_clicks'))
+                Input(id('button_upload'), 'n_clicks'))
 def button_add(n_clicks):
     if n_clicks is None: return no_update
     return '/apps/upload_dataset'
@@ -185,30 +201,28 @@ def button_add(n_clicks):
                 Output(id('modal_title'), 'children'),
                 Output(id('modal_body'), 'children'),
                 Output(id('modal_footer'), 'children'),
-                Input(id('button_inspect'), 'n_clicks'),
-                State('current_node', 'data'),
-                State('current_dataset', 'data'),
-                State(id('dropdown_action'), 'value'))
-def button_inspect_action(n_clicks_inspect, node_id, dataset_id, selected_action):
+                Input(id('button_inspect'), 'n_clicks'))
+def button_inspect_action(n_clicks_inspect):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-    if node_id is None: return no_update
     if triggered == '': return no_update
-    if selected_action is '' or selected_action is None: return no_update
-
-    # Retrieve Node Data
-    node = get_document('node', node_id)
-    df = get_node_data(node_id)
+    print('Inspect0', get_session('dataset_id'))
+    if get_session('dataset_id') is None: return no_update
+    print('Inspect')
+    # Retrieve Dataset Data
+    dataset_id = get_session('dataset_id')
+    dataset = get_document('dataset', dataset_id)
+    df = get_dataset_data(dataset_id)
     
     if triggered == id('button_inspect'):
         modal_title = "Inspect"
         modal_body = (dbc.ModalBody([
                         dbc.InputGroup([
-                            dbc.InputGroupText("Node ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                            dbc.Textarea(id=id('node_id'), disabled=True, value=node['id'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                            dbc.InputGroupText("Dataset ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                            dbc.Textarea(id=id('dataset_id'), disabled=True, value=dataset['id'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
                         ], className="mb-3 lg"),
                         dbc.InputGroup([
                             dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                            dbc.Textarea(id=id('node_description'), disabled=True, value=node['description'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                            dbc.Textarea(id=id('node_description'), disabled=True, value=dataset['description'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
                         ], className="mb-3 lg"),
                         html.Div(generate_datatable(id('inspect_modal_datatable'), df.to_dict('records'), df.columns, height='700px')),
                     ]))
@@ -216,6 +230,13 @@ def button_inspect_action(n_clicks_inspect, node_id, dataset_id, selected_action
     
     return True, modal_title, modal_body, modal_footer
 
+
+# Add Graph
+@app.callback(Output('url', 'pathname'),
+                Input(id('button_add_graph'), 'n_clicks'))
+def button_add_graph(n_clicks):
+    if n_clicks is None: return no_update
+    return '/apps/upload_graph'
 
 
 # Remove Node
@@ -226,60 +247,77 @@ def button_inspect_action(n_clicks_inspect, node_id, dataset_id, selected_action
 def button_remove(n_clicks, tapNodeData):
     if n_clicks is None: return no_update
     if tapNodeData is None: return no_update
-    node_id = tapNodeData['id']
-    # TODO retrieve from typesense and remove
-    print('TODO remove')
+
+    delete(get_session['project_id'], tapNodeData['id'])
+
     return ''
-
-
-
-# Change button_action href based on selected action
-@app.callback(Output(id('button_action'), 'children'),
-                Output(id('button_action'), 'href'),
-                Input(id('dropdown_action'), 'value'),
-                State(id('dropdown_action'), 'options'))
-def button_modify_on_select_action(selected, options):
-    if selected is None: return no_update
-    label = [o['label'] for o in options if o['value'] == selected][0]
-
-    if label == 'Merge Strategy':
-        return 'Merge', None
-
-    return label, selected
-
-
-@app.callback(Output('modal_confirm', 'children'),
-                Input(id('button_action'), 'n_clicks'),
-                State(id('dropdown_action'), 'value'),
-                State('current_dataset', 'data'),
-                State(id('cytoscape'), 'selectedNodeData'),
-                prevent_initial_call=True)
-def button_action(n_clicks, selected, dataset_id, node_id):
-    # merge_nodes()
-    return no_update
 
 
 # Generate options in dropdown and button 
 @app.callback(Output(id('dropdown_action'), 'options'),
                 Output(id('dropdown_action'), 'value'),
+                Output(id('button_action'), 'children'),
+                Output(id('button_action'), 'href'),
                 # Output(id('button_action'), 'children'),
-                Input(id('cytoscape'), 'selectedNodeData'))
-def generate_dropdown_actions(selected_nodes):
+                Input(id('cytoscape'), 'selectedNodeData'),
+                Input(id('dropdown_action'), 'value'),
+                State(id('dropdown_action'), 'options'))
+def generate_dropdown_actions(selected_nodes, action_href, options):
     if selected_nodes is None: return no_update
-    options = []
-    single = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==False ]
-    multiple = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==True ]
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
 
-    # Generate Options
-    if len(selected_nodes) == 1:
-        options = [ {'label':nav['label'], 'value':nav['value']} for nav in single ]
-    elif len(selected_nodes) > 1:
-        options = [ {'label':nav['label'], 'value':nav['value']} for nav in multiple ]
-    
-    # Get Default selected value
-    selected_value = (options[0]['value'] if len(options) > 0 else None)
-    
-    return options, selected_value
+    if triggered == id('cytoscape'):
+        options = []
+        single = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==False ]
+        multiple = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==True ]
+
+        # Generate Options
+        if len(selected_nodes) == 1:
+            options = [ {'label':nav['label'], 'value':nav['value']} for nav in single ]
+        elif len(selected_nodes) > 1:
+            options = [ {'label':nav['label'], 'value':nav['value']} for nav in multiple ]
+        
+        # Set Default selected value
+        default_label, default_action = None, None
+        if len(options) > 0:
+            default_label = options[0]['label']
+            default_action = options[0]['value']
+
+        return options, default_action, default_label, default_action
+
+    elif triggered == id('dropdown_action'):
+        label = [o['label'] for o in options if o['value'] == action_href][0]
+
+        return no_update, no_update, label, action_href
+
+
+# # Change button_action href based on selected action
+# @app.callback(Output(id('button_action'), 'children'),
+#                 Output(id('button_action'), 'href'),
+#                 Input(id('dropdown_action'), 'value'),
+#                 State(id('dropdown_action'), 'options'))
+# def button_modify_on_select_action(selected, options):
+#     if selected is None: return no_update
+#     label = [o['label'] for o in options if o['value'] == selected][0]
+
+#     if label == 'Merge Strategy':
+#         return 'Merge', None
+
+#     return label, selected
+
+
+# @app.callback(Output('modal_confirm', 'children'),
+#                 Input(id('button_action'), 'n_clicks'),
+#                 State(id('dropdown_action'), 'value'),
+#                 State('current_dataset', 'data'),
+#                 State(id('cytoscape'), 'selectedNodeData'),
+#                 prevent_initial_call=True)
+# def button_action(n_clicks, selected, dataset_id, node_id):
+#     # merge_nodes()
+#     return no_update
+
+
+
 
 
 # # Perform Action

@@ -30,7 +30,7 @@ layout = html.Div([
                 prevent_initial_call=True)
 def button1(n_clicks):
     if n_clicks is None: return no_update
-    store_session('project', '1')
+    store_session('project_id', '1')
     return ''
 
 
@@ -39,7 +39,7 @@ def button1(n_clicks):
                 prevent_initial_call=True)
 def button2(n_clicks):
     if n_clicks is None: return no_update
-    store_session('project', '2')
+    store_session('project_id', '2')
     return ''
 
 

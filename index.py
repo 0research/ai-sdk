@@ -7,7 +7,7 @@ from app import app
 from app import server 
 from app import dbc
 from apps.typesense_client import *
-from apps import (new_project, upload_dataset, overview, profile, merge_strategy, temporal_evolution, temporal_merge, 
+from apps import (new_project, upload_dataset, join, overview, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage,
                 page2, page3, page6, page6,page7, page8, page9, page10)
 import ast
@@ -60,13 +60,13 @@ navbar = dbc.Navbar([
         dbc.Col(html.A(html.Img(src=DOCKER, height="30px",id="tooltip-docker"), href="https://hub.docker.com/r/0research/ai-sdk"), width={"size": 1, "order": "1"}),
         dbc.Col(html.A(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction"), href="https://github.com/marketplace/actions/ai-sdk-action"), width={"size": 1, "order": "1"}),
         dbc.Col(dbc.InputGroup([
-            dbc.InputGroupText("Select Project"),
+            dbc.InputGroupText("Project"),
             dbc.Select(options=[], id='dropdown_current_project', style={'min-width':'120px'}, persistence_type='session', persistence=True),
         ]), width={"size": 2, "order": "4", 'offset': 2}),
 
         dbc.Col(dbc.InputGroup([
-            dbc.InputGroupText("Node"),
-            dbc.Input(id='display_current_node', disabled=True, style={'text-align':'center'})
+            dbc.InputGroupText("Dataset"),
+            dbc.Input(id='display_current_dataset', disabled=True, style={'text-align':'center'})
         ]), width={"size": 2, "order": "4", 'offset': 0}, style={'margin-right':'30px', 'height':'100%'}),
 
         # dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "4", 'offset':3}),
@@ -94,6 +94,7 @@ sidebar_1 = [
 sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_2_LIST]
 sidebar_3 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_3_LIST]
 sidebar_4 = [
+    dbc.NavLink("Graph Your Data", href="/apps/graph_your_data", active="exact", className="fas fa-chart-pie"),
     dbc.NavLink("Workflow", href="/apps/workflow", active="exact", className="fas fa-arrow-alt-circle-right"),
     dbc.NavLink("Remove Duplicate", href="/apps/remove_duplicate", active="exact", className='far fa-copy'),
     dbc.NavLink("Decomposition", href="/apps/decomposition", active="exact", className='fas fa-recycle'),
@@ -129,8 +130,6 @@ sidebar = html.Div([
 def serve_layout():
     return html.Div([
         dcc.Location(id='url', refresh=False),
-        dcc.Store(id='current_dataset', storage_type='session'),
-        dcc.Store(id='current_node', storage_type='session'),
         dbc.Modal('', id='modal_confirm'),
         sidebar,
         navbar,
@@ -146,10 +145,13 @@ def display_page(pathname):
     if pathname.startswith('/apps/upload_dataset'): return upload_dataset.layout
     if pathname.startswith('/apps/overview'): return overview.layout
     if pathname.startswith('/apps/profile'): return profile.layout
+    if pathname.startswith('/apps/impute_data'): return impute_data.layout
+    if pathname.startswith('/apps/join'): return join.layout
+    
     if pathname.startswith('/apps/merge_strategy'): return merge_strategy.layout
     if pathname.startswith('/apps/temporal_evolution'): return temporal_evolution.layout
     if pathname.startswith('/apps/decomposition'): return decomposition.layout
-    if pathname.startswith('/apps/impute_data'): return impute_data.layout
+    
     if pathname.startswith('/apps/remove_duplicate'): return remove_duplicate.layout
     if pathname.startswith('/apps/data_lineage'): return data_lineage.layout
 
@@ -166,102 +168,33 @@ def display_page(pathname):
 
 
 
-# # If Click Upload, remove Current Dataset/Node
-# @app.callback(Output('dropdown_current_project', 'value'),
-#                 Output('display_current_node', 'value'),
-#                 Input(id('nav_upload'), 'n_clicks'))
-# def load_dataset_dropdown(n_clicks):
-#     if n_clicks is None: return no_update
-#     return '', ''
-
-
-
-# Load Datasets in dropdown
+# Load Projects Options in dropdown
 @app.callback([Output('dropdown_current_project', 'options')],
                 Input('url', 'pathname'),)
 def load_dataset_dropdown(pathname):
-    dataset_list = search_documents('dataset', 250)
+    dataset_list = search_documents('project', 250)
     options = [{'label': d['id'], 'value': d['id']} for d in dataset_list]
     return options
 
-# Load Datasets in dropdown
-@app.callback([Output('dropdown_current_project', 'options')],
-                Input('url', 'pathname'),)
-def load_dataset_dropdown(pathname):
-    dataset_list = search_documents('dataset', 250)
-    options = [{'label': d['id'], 'value': d['id']} for d in dataset_list]
-    return options
-
-
-# Load Last Node ID if change Selected Dataset
-@app.callback([Output('display_current_node', 'value')],
-                [Input('current_dataset', 'data')])
-def load_nodeID(dataset_id):
-    if dataset_id is None: return no_update
-    dataset = client.collections['dataset'].documents[dataset_id].retrieve()
-    node_list = ast.literal_eval(dataset['node'])
-    if len(node_list) == 0: return ''
-    else: return node_list[-1]
-
-
-# Save Current Dataset/Node IDs to store
-@app.callback([Output('current_dataset', 'data')],
-                Input('dropdown_current_project', 'value'),)
-def load_dataset_dropdown(dataset_id):
-    return dataset_id
-@app.callback([Output('current_node', 'data')],
-                Input('display_current_node', 'value'),)
-def load_dataset_dropdown(node_id):
-    return node_id
-
-
-# Selected Dataset
-# @app.callback([Output('dropdown_current_project', 'options'),
-#                 Output('current_dataset', 'data')],
-#                 [Input('current_dataset', 'data'),
-#                 Input('dropdown_current_project', 'value')])
-# def current_dataset(current_dataset, selected):
-#     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-
-#     options = no_update
-#     dataset_name_list = [c['name'] for c in client.collections.retrieve()]
-#     if len(dataset_name_list) == 0: current_dataset = None # If no dataset exist
-#     else: current_dataset = dataset_name_list[0]   # By Default take first dataset in typesense
-
-#     if selected is None: selected = current_dataset
+# Store Project ID Session on selecting dropdown
+@app.callback(Output('modal_confirm', 'children'),
+                Input('dropdown_current_project', 'value'))
+def load_dataset_dropdown(project_id):
+    store_session('project_id', project_id)
+    # project_list = search_documents('project', 250)
     
-#     if triggered == 'current_dataset':
-#         options = [{'label':name, 'value':name} for name in dataset_name_list]
-#     elif triggered == 'dropdown_current_project':
-#         pass
-    
-#     return options, selected
+    return no_update
 
-# @app.callback(Output('current_dataset', 'data'), Input('url', 'pathname'))
-# def doSomething(pathname):
-#     print('aaaa')
-#     return {'abc':'123'}
+# Load Project ID and Node ID
+@app.callback(Output('dropdown_current_project', 'value'), 
+                Output('display_current_dataset', 'value'),
+                Input('url', 'pathname'))
+def load_project_id(pathname):
+    return get_session('project_id'), get_session('dataset_id')
 
-
-# # Display_selected_node
-# @app.callback(Output('current_node_id', "value"),
-#                 [Input('current_dataset', "data"),
-#                 Input('current_node', 'data'),])
-# def generate_load_node_id(metadata, selected_node):
-#     # If New Dataset, Generate random Node number
-#     if (metadata['node']) == 0:
-#         return 123
-#     else:
-#         return selected_node
 
 
 if __name__ == '__main__':
     app.run_server("0.0.0.0", 8889, debug=True)
     
-
-
-
-
-
-
 

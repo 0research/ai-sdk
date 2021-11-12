@@ -95,7 +95,7 @@ layout = html.Div([
 def update_data_table(node_id):
     if node_id is None: return no_update
     
-    df = get_node_data(node_id)
+    df = get_dataset_data(node_id)
     df.insert(0, column='index', value=range(1, len(df)+1))
     json_dict = df.to_dict('records')
 
@@ -234,7 +234,7 @@ def generate_json(json_history_1, json_history_2):
 # def button_confirm(n_clicks, dataset_id, node_id, data):
 #     if n_clicks is None: return no_update
 
-#     df = get_node_data(node_id)
+#     df = get_dataset_data(node_id)
 #     df[selected_column] = impute_col(df[selected_column], action)
 
 #     action(dataset_id, node_id, df.to_dict('records'), label='')
