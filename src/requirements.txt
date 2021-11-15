@@ -19,4 +19,3 @@ dash-extensions
 dash-uploader
 packaging
 missingpy
-sklearn

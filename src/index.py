@@ -14,6 +14,7 @@ import ast
 from apps.constants import *
 
 
+
 id = id_factory('index')
 
 SIDEBAR_STYLE = {

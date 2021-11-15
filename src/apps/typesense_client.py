@@ -29,9 +29,10 @@ def initialize_typesense():
     # Initialize Typesense
     if socket.gethostname() == 'DESKTOP-9IOI6RV':
         # client = typesense_client('oswmql6f04pndbi1p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
-        client = typesense_client('localhost', '8108', 'http', 'Hu52dwsas2AdxdE') 
+        client = typesense_client('0.0.0.0', '8108', 'http', 'Hu52dwsas2AdxdE') 
     else:
-        client = typesense_client('oswmql6f04pndbi1p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
+        # client = typesense_client('oswmql6f04pndbi1p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
+        client = typesense_client('0.0.0.0', '8108', 'http', 'Hu52dwsas2AdxdE')
 
     collection_list = ['project', 'dataset', 'action', 'session1'] # TODO Currently all users will use same session. Replace when generate user/session ID
     for name in collection_list:
