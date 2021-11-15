@@ -28,8 +28,8 @@ def generate_schema_auto(name):
 def initialize_typesense():
     # Initialize Typesense
     if socket.gethostname() == 'DESKTOP-9IOI6RV':
-        client = typesense_client('oswmql6f04pndbi1p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
-        # client = typesense_client('localhost', '8108', 'http', 'Hu52dwsas2AdxdE') 
+        # client = typesense_client('oswmql6f04pndbi1p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
+        client = typesense_client('localhost', '8108', 'http', 'Hu52dwsas2AdxdE') 
     else:
         client = typesense_client('oswmql6f04pndbi1p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
 
@@ -52,11 +52,12 @@ client = initialize_typesense()
 def get_document(collection_id, document_id):
     doc = client.collections[collection_id].documents[document_id].retrieve()
     for k, v in doc.items():
-        if (v[0] == '[' and v[-1] == ']') or (v[0] == '{' and v[-1] == '}'):
-            try: 
-                doc[k] = ast.literal_eval(v)
-            except Exception as e: 
-                print(e)
+        if len(v)>0:
+            if (v[0] == '[' and v[-1] == ']') or (v[0] == '{' and v[-1] == '}'):
+                try: 
+                    doc[k] = ast.literal_eval(v)
+                except Exception as e: 
+                    print(e)
     return doc
 
 def create(collection_id, document):
@@ -120,27 +121,27 @@ def Dataset(id, description, api_data, column, datatype, expectation, index, tar
         'index': index, 
         'target': target,
     }
-def Action(id, action, description):
+def Action(id, action, description, action_details):
     return {
         'id': id,
         'action': action,
         'description': description,
+        'action_details': action_details
     }
 
 
 # Cytoscape Object 
-def cNode(id, node_type, label):
+def cNode(id, node_type, action=None):
     return {
-        'data': {'id': id, 'label': label, 'type': node_type},
+        'data': {'id': id, 'type': node_type, 'action': action},
         'classes': node_type,
     }
-def cEdge(source_id, destination_id, label):
+def cEdge(source_id, destination_id):
     return {
         'data': {
                 'id': source_id + '_' + destination_id,
                 'source': source_id,
                 'target': destination_id,
-                'label': label
             },
             'selectable': False
     }
@@ -205,7 +206,7 @@ def delete(project_id, node_id):
             #         project['edge_list'].remove(node_id)
             upsert('project', project)
 
-def action(project_id, source_id, action, description, dataset, dataset_data):
+def action(project_id, source_id, action, description, action_details, changed_dataset, dataset_data):
     # New id
     action_id = str(uuid.uuid1())
     dataset_id = str(uuid.uuid1())
@@ -220,7 +221,8 @@ def action(project_id, source_id, action, description, dataset, dataset_data):
     project['edge_list'].append(edge2)
 
     # Action Document
-    action = Action(id=action_id, action=action, description=description)
+    action = Action(id=action_id, action=action, description=description, action_details=action_details)
+    changed_dataset['id'] =  dataset_id # Overwrite previous dataset ID
 
     # Dataset Data Collection
     df = json_normalize(dataset_data)
@@ -229,13 +231,13 @@ def action(project_id, source_id, action, description, dataset, dataset_data):
     # Upload
     upsert('project', project)
     upsert('action', action)
-    upsert('dataset', dataset)
+    upsert('dataset', changed_dataset)
     client.collections.create(generate_schema_auto(dataset_id))
     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
 
 
-def join(project_id, source_id_list, description, dataset_data):
+def join(project_id, source_id_list, description, dataset_data, action_details):
     # New id
     action_id = str(uuid.uuid1())
     dataset_id = str(uuid.uuid1())
@@ -257,7 +259,7 @@ def join(project_id, source_id_list, description, dataset_data):
         jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
 
         # Action Document
-        action = Action(id=action_id, action='merge', description=description)
+        action = Action(action_id, 'join', description, action_details)
         dataset = Dataset(
                 id=dataset_id,
                 description=description, 
@@ -279,16 +281,15 @@ def join(project_id, source_id_list, description, dataset_data):
 
 
 
-
-
-
-
-
 def generate_cytoscape_elements(project_id):
-    project = get_document('project', project_id)    
-    cAction_list = [cNode(id, node_type='action', label='') for id in project['action_list']]
-    cDataset_list = [cNode(id, node_type='dataset', label='') for id in project['dataset_list']]
-    cEdge_list = [cEdge(id.split('_')[0], id.split('_')[1], label='') for id in project['edge_list']]
+    project = get_document('project', project_id)
+
+    action_list = [get_document('action', id) for id in project['action_list']]
+    dataset_list = [get_document('dataset', id) for id in project['dataset_list']]
+
+    cAction_list = [cNode(action['id'], node_type='action', action=action['action']) for action in action_list]
+    cDataset_list = [cNode(dataset['id'], node_type='dataset') for dataset in dataset_list]
+    cEdge_list = [cEdge(id.split('_')[0], id.split('_')[1]) for id in project['edge_list']]
 
 
     return cAction_list + cDataset_list + cEdge_list

@@ -163,5 +163,5 @@ def generate_datatable3(selection_list, join_type):
 def button_confirm(n_clicks, datatable_data):
     if n_clicks is None: return no_update
     dataset_id_mulitple = ast.literal_eval(get_session('dataset_id_multiple'))
-    join(get_session('project_id'), dataset_id_mulitple, '', datatable_data)
+    join(get_session('project_id'), dataset_id_mulitple, '', datatable_data, 'action_details')
     return no_update

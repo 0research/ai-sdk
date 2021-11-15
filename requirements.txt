@@ -18,3 +18,5 @@ dash_cytoscape
 dash-extensions
 dash-uploader
 packaging
+missingpy
+sklearn

@@ -77,7 +77,8 @@ stylesheet = [
             # 'width': 25,
             # 'height': 25,
             # 'background-image': "/assets/static/api.png"
-            'shape': 'rectangle'
+            'shape': 'rectangle',
+            'content': 'data(action)'
         }
     },
     # Blob
@@ -112,7 +113,7 @@ layout = html.Div([
 
                 cyto.Cytoscape(id=id('cytoscape'), 
                                 elements=[], 
-                                layout={'name': 'preset'},
+                                layout={'name': 'cose'},
                                 style={'height': '1000px','width': '100%'},
                                 stylesheet=stylesheet)
             ], width=9),
@@ -168,7 +169,9 @@ def generate_cytoscape(n_intervals):
 @app.callback(Output('display_current_dataset', 'value'),
                 Input(id('cytoscape'), 'tapNodeData'),)
 def select_node(tapNodeData):
-    if tapNodeData is None: return no_update
+    if tapNodeData is None: 
+        store_session('dataset_id', None)
+        return no_update
     pprint(tapNodeData)
     if tapNodeData['type'] == 'dataset':
         store_session('dataset_id', tapNodeData['id'])
@@ -190,9 +193,6 @@ def select_node_multiple(selectedNodeData):
 
 
 
-
-
-
 # Add Dataset
 @app.callback(Output('url', 'pathname'),
                 Input(id('button_upload'), 'n_clicks'))
@@ -205,34 +205,55 @@ def button_add(n_clicks):
                 Output(id('modal_title'), 'children'),
                 Output(id('modal_body'), 'children'),
                 Output(id('modal_footer'), 'children'),
-                Input(id('button_inspect'), 'n_clicks'))
-def button_inspect_action(n_clicks_inspect):
+                Input(id('button_inspect'), 'n_clicks'),
+                Input(id('cytoscape'), 'tapNodeData'))
+def button_inspect_action(n_clicks_inspect, tapNodeData):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     if triggered == '': return no_update
-    print('Inspect: ', get_session('dataset_id'))
-    if get_session('dataset_id') is None: return no_update
-
-    # Retrieve Dataset Data
-    dataset_id = get_session('dataset_id')
-    dataset = get_document('dataset', dataset_id)
-    df = get_dataset_data(dataset_id)
+    if tapNodeData is None: return no_update
     
     if triggered == id('button_inspect'):
+        node_id = tapNodeData['id']
         modal_title = "Inspect"
-        modal_body = (dbc.ModalBody([
+        modal_footer = ''
+
+        # Retrieve Dataset Data
+        if tapNodeData['type'] == 'dataset':
+            dataset = get_document('dataset', node_id)
+            df = get_dataset_data(node_id)
+            modal_body = (dbc.ModalBody([
                         dbc.InputGroup([
                             dbc.InputGroupText("Dataset ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                            dbc.Textarea(id=id('dataset_id'), disabled=True, value=dataset['id'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                            dbc.Textarea(disabled=True, value=dataset['id'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
                         ], className="mb-3 lg"),
                         dbc.InputGroup([
                             dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                            dbc.Textarea(id=id('node_description'), disabled=True, value=dataset['description'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                            dbc.Textarea(disabled=True, value=dataset['description'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
                         ], className="mb-3 lg"),
                         html.Div(generate_datatable(id('inspect_modal_datatable'), df.to_dict('records'), df.columns, height='700px')),
                     ]))
-        modal_footer = ''
-    
-    return True, modal_title, modal_body, modal_footer
+        # Retrieve Action Data
+        elif tapNodeData['type'] == 'action':
+            action = get_document('action', node_id)
+            modal_body = (dbc.ModalBody([
+                        dbc.InputGroup([
+                            dbc.InputGroupText("Action ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                            dbc.Textarea(disabled=True, value=action['id'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                        ], className="mb-3 lg"),
+                        dbc.InputGroup([
+                            dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                            dbc.Textarea(disabled=True, value=action['description'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                        ], className="mb-3 lg"),
+                        dbc.InputGroup([
+                            dbc.InputGroupText("Action Details", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                            dbc.Textarea(disabled=True, value=str(action['action_details']), style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                        ], className="mb-3 lg"),
+                    ]))
+
+        return True, modal_title, modal_body, modal_footer
+
+    else:
+        return no_update
 
 
 # Add Graph

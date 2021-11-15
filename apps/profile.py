@@ -43,16 +43,16 @@ option_datatype = [
 
 # Layout
 layout = html.Div([
-    dcc.Interval(id=id('interval'), interval=1000, n_intervals=0),
+    dcc.Store(id=id('action_details_store'), storage_type='session'),
 
     dbc.Row(dbc.Col(html.H2('Set Profile'), width=12), style={'text-align':'center'}),
     dbc.Row(dbc.Col(html.Div(id=id('data_profile'), style={'overflow-y': 'auto', 'overflow-x': 'hidden', 'height':'800px'}), width=12)),
     dbc.Row([
         dbc.Col(html.H5('Changes (TODO)'), width=12, style={'text-align':'center'}),
-        dbc.Col(html.Pre([], id=id('changes'), style={'text-align':'left', 'height':'400px', 'background-color':'silver', 'overflow-y':'auto'}), width=12),
+        dbc.Col(html.Pre([], id=id('action_details'), style={'text-align':'left', 'height':'400px', 'background-color':'silver', 'overflow-y':'auto'}), width=12),
     ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
     dbc.Row([
-        dbc.Col(dbc.Button(html.H6('Confirm'), className='btn-primary', id=id('button_confirm'), href='/apps/data_lineage', style={'width':'100%'}), width={'size':10, 'offset':1}),
+        dbc.Col(dbc.Button(html.H6('Confirm'), className='btn-primary', id=id('button_confirm'), style={'width':'100%'}), width={'size':10, 'offset':1}),
     ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
 
 ])
@@ -92,7 +92,7 @@ def generate_profile(pathname):
     if get_session('dataset_id') is None: return no_update
 
     dataset = get_document('dataset', get_session('dataset_id'))
-    store_session('changes_profile', dataset) # Clear Changes Session on page load
+    store_session('changed_dataset_profile', dataset) # Clear Changes Session on page load
     datatype = dataset['datatype']
     # datatype_deleted = {}
     # for col, val in dataset['datatype'].items():
@@ -167,8 +167,8 @@ def update_output(datatype, n_click_index, n_click_target, n_click_remove, colum
     row_style = {}
     
     # Retrieve and Update Node Metadata Document
-    if get_session('changes_profile') is not None:
-        dataset = ast.literal_eval(get_session('changes_profile'))
+    if get_session('changed_dataset_profile') is not None:
+        dataset = ast.literal_eval(get_session('changed_dataset_profile'))
     else:
         dataset = get_document('dataset', get_session('dataset_id'))
 
@@ -196,35 +196,52 @@ def update_output(datatype, n_click_index, n_click_target, n_click_remove, colum
         # row_style = {'display': 'none'}
 
     # Update Typesense Node
-    store_session('changes_profile', dataset)
+    store_session('changed_dataset_profile', dataset)
 
     return button_index_class, button_target_class, row_style
 
 
-@app.callback(Output(id('changes'), 'children'),
-                Input(id('interval'), 'n_intervals'))
-def generate_changes(n_intervals):
-    if get_session('changes_profile') is None: return no_update
+@app.callback(Output(id('action_details'), 'children'),
+                Output(id('action_details_store'), 'data'),
+                Input({'type':id('col_dropdown_datatype'), 'index': ALL}, 'value'),
+                Input({'type':id('col_button_index'), 'index': ALL}, 'n_clicks'),
+                Input({'type':id('col_button_target'), 'index': ALL}, 'n_clicks'),
+                Input({'type':id('col_button_remove'), 'index': ALL}, 'n_clicks'),
+                prevent_initial_call=True)
+def generate_action_details(_, _2, _3, _4):
+    if get_session('changed_dataset_profile') is None: return no_update
 
+    # Get changes in updated original vs dataset document in the relevant keys
     keys = ['column', 'datatype', 'expectation', 'index', 'target']
-    dataset = get_document('dataset', get_session('dataset_id'))
-    changes = ast.literal_eval(get_session('changes_profile'))
-    dataset = { k: dataset[k] for k in keys }
-    changes = { k: changes[k] for k in keys }
-    difference = diff(dataset, changes, syntax='symmetric', marshal=True)
 
-    return json.dumps(difference, indent=2)
+    dataset = get_document('dataset', get_session('dataset_id'))
+    dataset = { k: dataset[k] for k in keys }
+    changed_dataset = ast.literal_eval(get_session('changed_dataset_profile'))
+    changed_dataset = { k: changed_dataset[k] for k in keys }
+
+    action_details = diff(dataset, changed_dataset, syntax='symmetric', marshal=True)
+
+    return json.dumps(action_details, indent=2), action_details
 
 
 
 # Button Confirm
-@app.callback(Output('modal_confirm', 'children'),
-                Input(id('button_confirm'), 'n_clicks'))
-def button_confirm(n_clicks):
+@app.callback(Output('url', 'pathname'),
+                Output('modal_confirm', 'children'),
+                Input(id('button_confirm'), 'n_clicks'),
+                State(id('action_details_store'), 'data'))
+def button_confirm(n_clicks, action_details):
     if n_clicks is None: return no_update
-    changes = ast.literal_eval(get_session('changes_profile'))
-    dataset_id = get_session('dataset_id')
-    action(get_session('project_id'), dataset_id, 'profile', '', changes, search_documents(dataset_id, 250))
-    # action(project_id, source_id, action, description, dataset, dataset_data)
+    
+    # Unsuccessful
+    if False:
+        return no_update, 'Fail' 
 
-    return no_update
+    # Successful
+    else: 
+        changed_dataset = ast.literal_eval(get_session('changed_dataset_profile'))
+        dataset_id = get_session('dataset_id')
+        action(get_session('project_id'), dataset_id, 'profile', '', action_details, changed_dataset, search_documents(dataset_id, 250))
+        # action(project_id, source_id, action, description, dataset, dataset_data)
+
+        return '/apps/data_lineage', 'Success'
