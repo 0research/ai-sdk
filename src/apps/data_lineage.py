@@ -96,7 +96,7 @@ stylesheet = [
 
 
 
-
+cyto.load_extra_layouts()
 layout = html.Div([
     dcc.Interval(id=id('interval'), interval=1000, n_intervals=0),
 
@@ -111,9 +111,19 @@ layout = html.Div([
                 html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}), 
                 html.Button('Remove Node', id=id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
 
-                cyto.Cytoscape(id=id('cytoscape'), 
+                dbc.DropdownMenu( label="Action", children=[
+                        dbc.DropdownMenuItem("Item 1"),
+                        dbc.DropdownMenuItem("Item 2"),
+                        dbc.DropdownMenuItem("Item 3"),
+                    ], style={'float':'right'},
+                ),
+
+                cyto.Cytoscape(id=id('cytoscape'),
+                                minZoom=0.2,
+                                maxZoom=2,
                                 elements=[], 
-                                layout={'name': 'cose'},
+                                layout={'name': 'breadthfirst',
+                                        'fit': True},
                                 style={'height': '1000px','width': '100%'},
                                 stylesheet=stylesheet)
             ], width=9),

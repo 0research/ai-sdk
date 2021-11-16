@@ -90,7 +90,7 @@ navbar = dbc.Navbar([
 sidebar_1 = [
     dbc.NavLink("New Project", href="/apps/new_project", id=id('nav_upload'), active="exact", className="fas fa-upload"),
     dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
-    dbc.NavLink("Overview", href="/apps/overview", active="exact", className="fas fa-chart-pie"),
+    dbc.NavLink("Overview123", href="/apps/overview", active="exact", className="fas fa-chart-pie"),
 ]
 sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_2_LIST]
 sidebar_3 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_3_LIST]

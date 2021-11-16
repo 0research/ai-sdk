@@ -13,7 +13,7 @@ services:
         
         
     ai-sdk:
-        build: ./src
+        build: .
         ports:
             - 8889:8889
         depends_on:
