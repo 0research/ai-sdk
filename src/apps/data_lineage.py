@@ -57,16 +57,16 @@ stylesheet = [
         }
     },
 
-    # API Node
+    # Dataset_API Node
     {
-        'selector': '.api',
+        'selector': '.dataset_api',
         'style': {
         #     'background-color': 'black',
         #     # 'width': 25,
         #     # 'height': 25,
         #     # 'background-fit': 'cover',
         #     # 'background-image': "/assets/static/api.png"
-            'shape': 'triangle'
+            'content': 'API'
         }
     },
     # Action
@@ -81,16 +81,6 @@ stylesheet = [
             'content': 'data(action)'
         }
     },
-    # Blob
-    # {
-        # 'selector': '.blob',
-        # 'style': {
-        #     'background-color': 'blue',
-        #     # 'width': 25,
-        #     # 'height': 25,
-        #     # 'background-image': "/assets/static/api.png"
-        # }
-    # },
 
 ]
 
@@ -110,6 +100,7 @@ layout = html.Div([
                 html.Button('Add Graph', id=id('button_add_graph'), className='btn btn-secondary btn-lg', style={'margin-right':'3px'}),
                 html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}), 
                 html.Button('Remove Node', id=id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
+                html.Button('Reset', id=id('button_reset'), className='btn btn-secondary btn-lg', style={'margin-right':'3px'}),
 
                 dbc.DropdownMenu( label="Action", children=[
                         dbc.DropdownMenuItem("Item 1"),
@@ -123,7 +114,8 @@ layout = html.Div([
                                 maxZoom=2,
                                 elements=[], 
                                 layout={'name': 'breadthfirst',
-                                        'fit': True},
+                                        'fit': True,
+                                        },
                                 style={'height': '1000px','width': '100%'},
                                 stylesheet=stylesheet)
             ], width=9),
@@ -156,14 +148,34 @@ layout = html.Div([
 ])
 
 
-@app.callback(Output(id('cytoscape'), 'elements'), 
-                Input(id('interval'), 'n_intervals'))
-def generate_cytoscape(n_intervals):
+# Load Cytoscape & Button Reset
+@app.callback(Output(id('cytoscape'), 'elements'),
+                Output(id('cytoscape'), 'layout'),
+                # Output(id('cytoscape'), 'zoom'),
+                # Input(id('interval'), 'n_intervals'),
+                Input(id('button_reset'), 'n_clicks'),
+                Input('url', 'pathname'))
+def generate_cytoscape(n_clicks, pathname):
     project_id = get_session('project_id')
     if project_id is None: return no_update
-
-    return generate_cytoscape_elements(project_id)
-
+    
+    elements = generate_cytoscape_elements(project_id)
+    roots = [e['data']['id'] for e in elements if e['classes'] == 'dataset_api']
+    layout={'name': 'breadthfirst',
+        'fit': True,
+        'roots': roots
+    }
+    
+    return elements, layout
+    # triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+    # if triggered == id('interval'):
+    #     print('interval')
+    #     return generate_cytoscape_elements(project_id)
+    # if triggered == id('button_reset'):
+    #     print('Button Reset')
+    #     return generate_cytoscape_elements(project_id)
+    
+    
 
 # @app.callback(Output(id('experiments'), 'children'),
 #                 Input('url', 'pathname'),
@@ -183,7 +195,8 @@ def select_node(tapNodeData):
         store_session('dataset_id', None)
         return no_update
     pprint(tapNodeData)
-    if tapNodeData['type'] == 'dataset':
+    pprint(get_document('dataset', tapNodeData['id']))
+    if tapNodeData['type'] == 'dataset' or tapNodeData['type'] == 'dataset_api':
         store_session('dataset_id', tapNodeData['id'])
         return tapNodeData['id']
     else:
@@ -228,7 +241,7 @@ def button_inspect_action(n_clicks_inspect, tapNodeData):
         modal_footer = ''
 
         # Retrieve Dataset Data
-        if tapNodeData['type'] == 'dataset':
+        if tapNodeData['type'] == 'dataset' or tapNodeData['type'] == 'dataset_api':
             dataset = get_document('dataset', node_id)
             df = get_dataset_data(node_id)
             modal_body = (dbc.ModalBody([
@@ -286,6 +299,7 @@ def button_remove(n_clicks, tapNodeData):
     delete(get_session['project_id'], tapNodeData['id'])
 
     return ''
+
 
 
 # Generate options in dropdown and button 

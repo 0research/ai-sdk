@@ -132,9 +132,9 @@ def Action(id, action, description, action_details):
 
 
 # Cytoscape Object 
-def cNode(id, node_type, action=None):
+def cNode(id, node_type, action=None, isAPI=False):
     return {
-        'data': {'id': id, 'type': node_type, 'action': action},
+        'data': {'id': id, 'type': node_type, 'action': action, 'isAPI':isAPI},
         'classes': node_type,
     }
 def cEdge(source_id, destination_id):
@@ -144,7 +144,8 @@ def cEdge(source_id, destination_id):
                 'source': source_id,
                 'target': destination_id,
             },
-            'selectable': False
+        'selectable': False,
+        'classes': '',
     }
 
 
@@ -223,7 +224,10 @@ def action(project_id, source_id, action, description, action_details, changed_d
 
     # Action Document
     action = Action(id=action_id, action=action, description=description, action_details=action_details)
+
+    # Dataset Document
     changed_dataset['id'] =  dataset_id # Overwrite previous dataset ID
+    changed_dataset['api_data'] = None
 
     # Dataset Data Collection
     df = json_normalize(dataset_data)
@@ -252,25 +256,25 @@ def join(project_id, source_id_list, description, dataset_data, action_details):
         project['edge_list'].append(edge_id)
     project['edge_list'].append(action_id + '_' + dataset_id)
 
-    for source_id in source_id_list:
-        source_data = get_dataset_data(source_id)
 
-        # Dataset Data Collection
-        df = json_normalize(dataset_data)
-        jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+    # Dataset Data Collection
+    df = json_normalize(dataset_data)
+    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
 
-        # Action Document
-        action = Action(action_id, 'join', description, action_details)
-        dataset = Dataset(
-                id=dataset_id,
-                description=description, 
-                api_data=None, 
-                column=list(df.columns), 
-                datatype = [],
-                expectation = [],
-                index = [], 
-                target = []
-        )
+    # Action Document
+    action = Action(action_id, 'join', description, action_details)
+
+    # Dataset Document
+    dataset = Dataset(
+            id=dataset_id,
+            description=description, 
+            api_data=None, 
+            column=list(df.columns), 
+            datatype = [],
+            expectation = [],
+            index = [], 
+            target = []
+    )
     
     # Upload
     upsert('project', project)
@@ -289,7 +293,10 @@ def generate_cytoscape_elements(project_id):
     dataset_list = [get_document('dataset', id) for id in project['dataset_list']]
 
     cAction_list = [cNode(action['id'], node_type='action', action=action['action']) for action in action_list]
-    cDataset_list = [cNode(dataset['id'], node_type='dataset') for dataset in dataset_list]
+    cDataset_list = ([cNode(dataset['id'], 
+                        node_type=('dataset_api' if (dataset['api_data'] != 'None') else 'dataset'), 
+                        isAPI=(True if (dataset['api_data'] != 'None') else False)) 
+                        for dataset in dataset_list])
     cEdge_list = [cEdge(id.split('_')[0], id.split('_')[1]) for id in project['edge_list']]
 
 
