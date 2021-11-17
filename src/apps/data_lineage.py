@@ -53,7 +53,10 @@ stylesheet = [
         'selector': 'edge',
         'style': {
             # 'label': 'data(id)',
-            'source-arrow-shape': 'triangle',
+            'curve-style': 'bezier',
+            'target-arrow-color': 'black',
+            'target-arrow-shape': 'triangle',
+            'line-color': 'black'
         }
     },
 
@@ -86,7 +89,7 @@ stylesheet = [
 
 
 
-cyto.load_extra_layouts()
+# cyto.load_extra_layouts()
 layout = html.Div([
     dcc.Interval(id=id('interval'), interval=1000, n_intervals=0),
 
@@ -102,12 +105,7 @@ layout = html.Div([
                 html.Button('Remove Node', id=id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
                 html.Button('Reset', id=id('button_reset'), className='btn btn-secondary btn-lg', style={'margin-right':'3px'}),
 
-                dbc.DropdownMenu( label="Action", children=[
-                        dbc.DropdownMenuItem("Item 1"),
-                        dbc.DropdownMenuItem("Item 2"),
-                        dbc.DropdownMenuItem("Item 3"),
-                    ], style={'float':'right'},
-                ),
+                dbc.DropdownMenu(label="Action", children=[], id=id('dropdown_action2'), style={'float':'right'}),
 
                 cyto.Cytoscape(id=id('cytoscape'),
                                 minZoom=0.2,
@@ -115,6 +113,8 @@ layout = html.Div([
                                 elements=[], 
                                 layout={'name': 'breadthfirst',
                                         'fit': True,
+                                        'directed': True,
+                                        'padding': 10,
                                         },
                                 style={'height': '1000px','width': '100%'},
                                 stylesheet=stylesheet)
@@ -295,6 +295,22 @@ def button_remove(n_clicks, tapNodeData):
     return ''
 
 
+# Generate options in dropdown and button 
+@app.callback(Output(id('dropdown_action'), 'children'),
+                Input(id('cytoscape'), 'selectedNodeData'),
+                # Input(id('dropdown_action'), 'children')
+                )
+def generate_dropdown_actions(selected_nodes):
+    if selected_nodes is None: return no_update
+    
+    single = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==False ]
+    multiple = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==True ]
+
+    # Generate Options
+    if len(selected_nodes) == 1:
+        options = [ {'label':nav['label'], 'value':nav['value']} for nav in single ]
+    elif len(selected_nodes) > 1:
+        options = [ {'label':nav['label'], 'value':nav['value']} for nav in multiple ]
 
 # Generate options in dropdown and button 
 @app.callback(Output(id('dropdown_action'), 'options'),
