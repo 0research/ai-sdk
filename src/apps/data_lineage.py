@@ -165,15 +165,8 @@ def generate_cytoscape(n_clicks, pathname):
         'fit': True,
         'roots': roots
     }
-    
+
     return elements, layout
-    # triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-    # if triggered == id('interval'):
-    #     print('interval')
-    #     return generate_cytoscape_elements(project_id)
-    # if triggered == id('button_reset'):
-    #     print('Button Reset')
-    #     return generate_cytoscape_elements(project_id)
     
     
 
@@ -195,8 +188,9 @@ def select_node(tapNodeData):
         store_session('dataset_id', None)
         return no_update
     pprint(tapNodeData)
-    pprint(get_document('dataset', tapNodeData['id']))
     if tapNodeData['type'] == 'dataset' or tapNodeData['type'] == 'dataset_api':
+        # TODO on select add profile on right panel
+        # pprint(get_document('dataset', tapNodeData['id']))
         store_session('dataset_id', tapNodeData['id'])
         return tapNodeData['id']
     else:
@@ -208,7 +202,7 @@ def select_node(tapNodeData):
 def select_node_multiple(selectedNodeData):
     if selectedNodeData is None or len(selectedNodeData) == 0: return no_update
 
-    if all(node['type'] == 'dataset' for node in selectedNodeData):
+    if all(node['type'] == 'dataset' or node['type'] == 'dataset_api' for node in selectedNodeData):
         selected_id_list = [node['id'] for node in selectedNodeData]
         store_session('dataset_id_multiple', selected_id_list)
 
