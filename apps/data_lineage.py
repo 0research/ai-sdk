@@ -105,7 +105,7 @@ layout = html.Div([
                 html.Button('Remove Node', id=id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
                 html.Button('Reset', id=id('button_reset'), className='btn btn-secondary btn-lg', style={'margin-right':'3px'}),
 
-                dbc.DropdownMenu(label="Action", children=[], id=id('dropdown_action2'), style={'float':'right'}),
+                dbc.DropdownMenu(label="Action", children=[], id=id('dropdown_action'), style={'float':'right'}),
 
                 cyto.Cytoscape(id=id('cytoscape'),
                                 minZoom=0.2,
@@ -121,12 +121,19 @@ layout = html.Div([
             ], width=9),
 
             dbc.Col([
+                # dbc.Card([
+                #     dbc.CardHeader(html.H5('Action'), style={'text-align':'center'}),
+                #     dbc.CardHeader(dbc.Select(id=id('dropdown_action'), placeholder='Select at least one Node', style={'min-width':'120px', 'text-align':'center'}, persistence_type='session', persistence=True)),
+                #     dbc.CardBody(html.P('Inputs'), id=id('action_inputs')),
+                #     dbc.CardFooter(dbc.Button('', id=id('button_action'), color='primary', style={'width':'100%'})),
+                # ], className='bg-primary', style={'min-height': '250px'}, inverse=True),
+
                 dbc.Card([
-                    dbc.CardHeader(html.H5('Action'), style={'text-align':'center'}),
-                    dbc.CardHeader(dbc.Select(id=id('dropdown_action'), placeholder='Select at least one Node', style={'min-width':'120px', 'text-align':'center'}, persistence_type='session', persistence=True)),
-                    dbc.CardBody(html.P('Inputs'), id=id('action_inputs')),
-                    dbc.CardFooter(dbc.Button('', id=id('button_action'), color='primary', style={'width':'100%'})),
+                    dbc.CardHeader(html.H5('Node: None'), style={'text-align':'center'}),
+                    dbc.CardBody('Node Type: None', id=id('display_node_type')),
+                    dbc.CardBody('Node Profile: None', id=id('action_inputs')),
                 ], className='bg-primary', style={'min-height': '250px'}, inverse=True),
+                
                 
                 dbc.Card([
                     dbc.CardHeader(html.H5('Experiments'), style={'text-align':'center'}),
@@ -305,49 +312,51 @@ def generate_dropdown_actions(selected_nodes):
     
     single = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==False ]
     multiple = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==True ]
-
+    
     # Generate Options
     if len(selected_nodes) == 1:
-        options = [ {'label':nav['label'], 'value':nav['value']} for nav in single ]
+        options = [dbc.DropdownMenuItem(nav['label'], href=nav['value']) for nav in single]
     elif len(selected_nodes) > 1:
-        options = [ {'label':nav['label'], 'value':nav['value']} for nav in multiple ]
+        options = [dbc.DropdownMenuItem(nav['label'], href=nav['value']) for nav in multiple]
 
-# Generate options in dropdown and button 
-@app.callback(Output(id('dropdown_action'), 'options'),
-                Output(id('dropdown_action'), 'value'),
-                Output(id('button_action'), 'children'),
-                Output(id('button_action'), 'href'),
-                # Output(id('button_action'), 'children'),
-                Input(id('cytoscape'), 'selectedNodeData'),
-                Input(id('dropdown_action'), 'value'),
-                State(id('dropdown_action'), 'options'))
-def generate_dropdown_actions(selected_nodes, action_href, options):
-    if selected_nodes is None: return no_update
-    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+    return options
 
-    if triggered == id('cytoscape'):
-        options = []
-        single = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==False ]
-        multiple = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==True ]
+# # Generate options in dropdown and button 
+# @app.callback(Output(id('dropdown_action'), 'options'),
+#                 Output(id('dropdown_action'), 'value'),
+#                 Output(id('button_action'), 'children'),
+#                 Output(id('button_action'), 'href'),
+#                 # Output(id('button_action'), 'children'),
+#                 Input(id('cytoscape'), 'selectedNodeData'),
+#                 Input(id('dropdown_action'), 'value'),
+#                 State(id('dropdown_action'), 'options'))
+# def generate_dropdown_actions(selected_nodes, action_href, options):
+#     if selected_nodes is None: return no_update
+#     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
 
-        # Generate Options
-        if len(selected_nodes) == 1:
-            options = [ {'label':nav['label'], 'value':nav['value']} for nav in single ]
-        elif len(selected_nodes) > 1:
-            options = [ {'label':nav['label'], 'value':nav['value']} for nav in multiple ]
+#     if triggered == id('cytoscape'):
+#         options = []
+#         single = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==False ]
+#         multiple = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==True ]
+
+#         # Generate Options
+#         if len(selected_nodes) == 1:
+#             options = [ {'label':nav['label'], 'value':nav['value']} for nav in single ]
+#         elif len(selected_nodes) > 1:
+#             options = [ {'label':nav['label'], 'value':nav['value']} for nav in multiple ]
         
-        # Set Default selected value
-        default_label, default_action = None, None
-        if len(options) > 0:
-            default_label = options[0]['label']
-            default_action = options[0]['value']
+#         # Set Default selected value
+#         default_label, default_action = None, None
+#         if len(options) > 0:
+#             default_label = options[0]['label']
+#             default_action = options[0]['value']
 
-        return options, default_action, default_label, default_action
+#         return options, default_action, default_label, default_action
 
-    elif triggered == id('dropdown_action'):
-        label = [o['label'] for o in options if o['value'] == action_href][0]
+#     elif triggered == id('dropdown_action'):
+#         label = [o['label'] for o in options if o['value'] == action_href][0]
 
-        return no_update, no_update, label, action_href
+#         return no_update, no_update, label, action_href
 
 
 # # Change button_action href based on selected action
