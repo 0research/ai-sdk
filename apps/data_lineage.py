@@ -122,25 +122,20 @@ layout = html.Div([
             ], width=7),
 
             dbc.Col([
-                # dbc.Card([
-                #     dbc.CardHeader(html.H5('Action'), style={'text-align':'center'}),
-                #     dbc.CardHeader(dbc.Select(id=id('dropdown_action'), placeholder='Select at least one Node', style={'min-width':'120px', 'text-align':'center'}, persistence_type='session', persistence=True)),
-                #     dbc.CardBody(html.P('Inputs'), id=id('action_inputs')),
-                #     dbc.CardFooter(dbc.Button('', id=id('button_action'), color='primary', style={'width':'100%'})),
-                # ], className='bg-primary', style={'min-height': '250px'}, inverse=True),
-
                 dbc.Card([
-                    dbc.CardHeader(html.H5('Node: None'), style={'text-align':'center'}),
-                    dbc.CardBody('Node Type: None', id=id('display_node_type')),
-                    dbc.CardBody('Node Profile: None', id=id('display_node_profile')),
-                ], className='bg-primary', style={'min-height': '250px'}, inverse=True),
+                    dbc.CardHeader([
+                        html.H6('Node Type: None', id=id('display_node_type')),
+                        html.P('Node ID: None', id=id('display_node_id')),
+                    ], style={'text-align':'center'}),
+                    dbc.CardBody('Profile/ActionDetails', id=id('display_node_profile')),
+                ], className='bg-primary', style={'height': '450px', 'overflow-y':'auto'}, inverse=True),
                 
                 
                 dbc.Card([
                     dbc.CardHeader(html.H5('Experiments'), style={'text-align':'center'}),
                     dbc.CardBody(html.P('experiments'), id=id('experiments')),
                     dbc.CardFooter('Buttons'),
-                ], className='bg-info', style={'height': '500px'}),
+                ], className='bg-info', style={'height': '450px'}),
 
             ], width=5),
         ]),
@@ -192,6 +187,8 @@ def generate_cytoscape(n_clicks, pathname):
 
 # Select Node Single
 @app.callback(Output('display_current_dataset', 'value'),
+                Output(id('display_node_type'), 'children'),
+                Output(id('display_node_id'), 'children'),
                 Input(id('cytoscape'), 'tapNodeData'))
 def select_node(tapNodeData):
     if tapNodeData is None: 
@@ -202,9 +199,9 @@ def select_node(tapNodeData):
         # TODO on select add profile on right panel
         # pprint(get_document('dataset', tapNodeData['id']))
         store_session('dataset_id', tapNodeData['id'])
-        return tapNodeData['id']
+        return tapNodeData['id'], 'Node Type: '+tapNodeData['type'], 'Node ID: '+tapNodeData['id']
     else:
-        return no_update
+        return no_update, 'Node Type: '+tapNodeData['type'], 'Node Type: '+tapNodeData['id']
 
 # Select Node Multiple 
 @app.callback(Output('modal_confirm', 'children'),

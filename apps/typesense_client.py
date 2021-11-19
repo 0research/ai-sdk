@@ -192,10 +192,10 @@ def upload_dataset(project_id, dataset_id, dataset_data, description, source,
 
 def remove(project_id, node_id):
     project = get_document('project', project_id)
-    edge_list = project['edge_list'].copy()
 
     # Remove action
     if node_id in project['action_list']:
+        edge_list = project['edge_list'].copy()
         project['action_list'].remove(node_id)
         for edge in edge_list:
             if node_id in edge:
@@ -204,38 +204,10 @@ def remove(project_id, node_id):
             if node_id == edge.split('_')[0]:
                 print('Dataset: ', node_id)
                 project['dataset_list'].remove(edge.split('_')[1])
-
         upsert('project', project)
 
-
-    # # Remove Dataset Leaf Node, Edges and Actions(if needed)
-    
-    # else:
-        # edge_source_list = [edge.split('_')[0] for edge in project['edge_list']]
-    #     if node_id in edge_source_list:
-    #         print('[Error] Selected Node is not a leaf node.')
-    #     else:
-    #         # Remove Dataset Leaf Node
-    #         project['dataset_list'].remove(node_id)
-
-    #         # Remove Edge to Leaf Node
-    #         for edge in project['edge_list']:
-    #             if node_id in edge:
-    #                 project['edge_list'].remove(edge)
-
-    #         # Remove Action if action is leaf node
-    #         deleted_action_id = None
-    #         edge_source_list = [edge.split('_')[0] for edge in project['edge_list']]
-    #         for action_id in project['action_list']:
-    #             if action_id not in edge_source_list:
-    #                 deleted_action_id = action_id
-    #                 project['action_list'].remove(action_id)
-
-    #         # Remove Edges with no target
-    #         if deleted_action_id is not None:
-    #             for edge in project['edge_list']:
-    #                 if deleted_action_id in edge:
-    #                     project['edge_list'].remove(edge)
+    else:
+        print('[Error] Node is not an Action')
             
     
 
