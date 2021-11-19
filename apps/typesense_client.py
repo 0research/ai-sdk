@@ -78,11 +78,11 @@ def search_documents(collection_id, per_page):
     return [d['document'] for d in result['hits']]
 def get_dataset_data(dataset_id):
     dataset = get_document('dataset', dataset_id)
-    column = dataset['column']
+    columns = [col for col, show in dataset['column'].items() if show == True]
     data = search_documents(dataset_id, '250')
     df = json_normalize(data)
 
-    return df[column]
+    return df[columns]
 
 
 # Store & Retrieve Session
