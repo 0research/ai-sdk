@@ -101,41 +101,35 @@ def generate_profile(pathname):
     #     else:
     #         datatype[col] = val
     print(dataset['column'])
-    print(type(dataset['column']))
+    print(type(dataset['column']['convicts']))
     for col, dtype in datatype.items():
         print(col, dataset['column'][col])
 
-    return (html.Table(
-        [
-            html.Tr([
-                html.Th('Column'),
-                html.Th('Datatype'),
-                html.Th('Invalid (%)'),
-                html.Th('Result'),
-                html.Th(''),
-            ])
-        ] + 
-        [
-            html.Tr([
-                html.Td(html.H6(col), id={'type':id('col_column'), 'index': i}),
-                html.Td(generate_dropdown({'type':id('col_dropdown_datatype'), 'index': i}, option_datatype, value=dtype)),
-                html.Td(html.H6('%', id={'type':id('col_invalid'), 'index': i})),
-                html.Td(html.H6('-', id={'type':id('col_result'), 'index': i})),
-                html.Td([
-                    html.Button('Index', id={'type':id('col_button_index'), 'index': i}, className=('btn btn-warning' if col in dataset['index'] else '')),
-                    html.Button('Target', id={'type':id('col_button_target'), 'index': i}, className=('btn btn-success' if col in dataset['target'] else '')),
-                    html.Button('Remove', id={'type':id('col_button_remove'), 'index': i}, className=('btn btn-danger' if dataset['column'][col] == False else ''))
-                ]),
-            ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(datatype.items())
-        ] +
-        [
-            html.Tr([
-                # TODO Show deleted columns or create another table
-                # datatype_deleted
-            ])
-        ],
-        style={'width':'100%', 'height':'800px'}, 
-        id=id('table_data_profile')
+    return (
+        html.Table(
+            [
+                html.Tr([
+                    html.Th('Column'),
+                    html.Th('Datatype'),
+                    html.Th('Invalid (%)'),
+                    html.Th('Result'),
+                    html.Th(''),
+                ])
+            ] + 
+            [
+                html.Tr([
+                    html.Td(html.H6(col), id={'type':id('col_column'), 'index': i}),
+                    html.Td(generate_dropdown({'type':id('col_dropdown_datatype'), 'index': i}, option_datatype, value=dtype)),
+                    html.Td(html.H6('%', id={'type':id('col_invalid'), 'index': i})),
+                    html.Td(html.H6('-', id={'type':id('col_result'), 'index': i})),
+                    html.Td([
+                        html.Button('Index', id={'type':id('col_button_index'), 'index': i}, className=('btn btn-warning' if col in dataset['index'] else '')),
+                        html.Button('Target', id={'type':id('col_button_target'), 'index': i}, className=('btn btn-success' if col in dataset['target'] else '')),
+                        html.Button('Remove', id={'type':id('col_button_remove'), 'index': i}, className=('btn btn-danger' if dataset['column'][col] == False else ''))
+                    ]),
+                ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(datatype.items())
+            ],
+            style={'width':'100%', 'height':'800px'}, id=id('table_data_profile')
         )
     )
 
@@ -144,6 +138,7 @@ def generate_profile(pathname):
 # Save Changes
 @app.callback(Output({'type':id('col_button_index'), 'index': MATCH}, 'className'),
                 Output({'type':id('col_button_target'), 'index': MATCH}, 'className'),
+                Output({'type':id('col_button_remove'), 'index': MATCH}, 'className'),
                 Output({'type':id('row'), 'index': MATCH}, 'style'),
                 Input({'type':id('col_dropdown_datatype'), 'index': MATCH}, 'value'),
                 Input({'type':id('col_button_index'), 'index': MATCH}, 'n_clicks'),
@@ -152,8 +147,9 @@ def generate_profile(pathname):
                 State({'type':id('col_column'), 'index': MATCH}, 'children'),
                 State({'type':id('col_button_index'), 'index': MATCH}, 'className'),
                 State({'type':id('col_button_target'), 'index': MATCH}, 'className'),
+                State({'type':id('col_button_remove'), 'index': MATCH}, 'className'),
                 prevent_initial_call=True)
-def update_output(datatype, n_click_index, n_click_target, n_click_remove, column, button_index_class, button_target_class):
+def update_output(datatype, n_click_index, n_click_target, n_click_remove, column, button_index_class, button_target_class, button_remove_class):
     if get_session('dataset_id') is None: return no_update
     if callback_context.triggered == [{'prop_id': '.', 'value': None}]: return no_update
 
@@ -193,12 +189,12 @@ def update_output(datatype, n_click_index, n_click_target, n_click_remove, colum
 
     elif triggered['type'] == id('col_button_remove'):
         dataset['column'][column] = not dataset['column'][column]
-        # row_style = {'display': 'none'}
+        button_remove_class = '' if dataset['column'][column] else 'btn btn-danger'
 
     # Update Typesense Node
     store_session('changed_dataset_profile', dataset)
 
-    return button_index_class, button_target_class, row_style
+    return button_index_class, button_target_class, button_remove_class, row_style
 
 
 @app.callback(Output(id('action_details'), 'children'),

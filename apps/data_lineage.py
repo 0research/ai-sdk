@@ -185,23 +185,90 @@ def generate_cytoscape(n_clicks, pathname):
 #             'type': 'dataset_api'}
 
 
+def display_profile(dataset_id):
+    dataset = get_document('dataset', dataset_id)
+    columns = [col for col, show in dataset['column'].items() if show == True]
+    datatype = {col:dtype for col, dtype in dataset['datatype'].items() if col in columns}
+    return (
+        html.Div([
+            html.Div([
+                # html.P('Index Column(s): ' + str(dataset['index'])[1:-1]),
+                # html.P('Target Column(s): ' + str(dataset['target'])[1:-1]),
+                dbc.InputGroup([
+                    dbc.InputGroupText("Index Column", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                    dbc.Textarea(disabled=True, value=dataset['index'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                ], className="mb-3 lg"),
+                dbc.InputGroup([
+                    dbc.InputGroupText("Target Column", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                    dbc.Textarea(disabled=True, value=dataset['target'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                ], className="mb-3 lg"),
+            ]),
+            html.Table(
+                [
+                    html.Tr([
+                        html.Th('Column'),
+                        html.Th('Datatype'),
+                        html.Th('Invalid (%)'),
+                        html.Th('Result'),
+                    ])
+                ] + 
+                [
+                    html.Tr([
+                        html.Td(html.P(col), id={'type':id('col_column'), 'index': i}),
+                        html.Td(html.P(dtype)),
+                        html.Td(html.P('%', id={'type':id('col_invalid'), 'index': i})),
+                        html.Td(html.P('-', id={'type':id('col_result'), 'index': i})),
+                    ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(datatype.items())
+                ],
+                style={'width':'100%', 'height':'800px'}, id=id('table_data_profile')
+            )
+        ])
+    )
+
+def display_action(action_id):
+    action = get_document('action', action_id)
+    return (
+        html.Div([
+            dbc.InputGroup([
+                dbc.InputGroupText("Action ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                dbc.Textarea(disabled=True, value=action['id'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+            ], className="mb-3 lg"),
+            dbc.InputGroup([
+                dbc.InputGroupText("Action", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                dbc.Textarea(disabled=True, value=action['action'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+            ], className="mb-3 lg"),
+            dbc.InputGroup([
+                dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                dbc.Textarea(disabled=True, value=action['description'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+            ], className="mb-3 lg"),
+            dbc.InputGroup([
+                dbc.InputGroupText("Action Details", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                dbc.Textarea(disabled=True, value=str(action['action_details']), style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+            ], className="mb-3 lg"),
+        ])
+    )
+
+
 # Select Node Single
 @app.callback(Output('display_current_dataset', 'value'),
                 Output(id('display_node_type'), 'children'),
                 Output(id('display_node_id'), 'children'),
+                Output(id('display_node_profile'), 'children'),
                 Input(id('cytoscape'), 'tapNodeData'))
 def select_node(tapNodeData):
     if tapNodeData is None: 
         store_session('dataset_id', None)
-        return no_update
+        return 'None', 'Node Type: None', 'Node ID: None', ''
     pprint(tapNodeData)
-    if tapNodeData['type'] == 'dataset' or tapNodeData['type'] == 'dataset_api':
-        # TODO on select add profile on right panel
-        # pprint(get_document('dataset', tapNodeData['id']))
-        store_session('dataset_id', tapNodeData['id'])
-        return tapNodeData['id'], 'Node Type: '+tapNodeData['type'], 'Node ID: '+tapNodeData['id']
+
+    if tapNodeData['type'] == 'action':
+        store_session('dataset_id', None)
+        return no_update, 'Node Type: '+tapNodeData['type'], 'Node Type: '+tapNodeData['id'], display_action(tapNodeData['id'])
     else:
-        return no_update, 'Node Type: '+tapNodeData['type'], 'Node Type: '+tapNodeData['id']
+        store_session('dataset_id', tapNodeData['id'])
+        # dataset = get_document('dataset', tapNodeData['id'])
+        return tapNodeData['id'], 'Node Type: '+tapNodeData['type'], 'Node ID: '+tapNodeData['id'], display_profile(tapNodeData['id'])
+        
 
 # Select Node Multiple 
 @app.callback(Output('modal_confirm', 'children'),
@@ -263,6 +330,10 @@ def button_inspect_action(n_clicks_inspect, tapNodeData):
                         dbc.InputGroup([
                             dbc.InputGroupText("Action ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
                             dbc.Textarea(disabled=True, value=action['id'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                        ], className="mb-3 lg"),
+                        dbc.InputGroup([
+                            dbc.InputGroupText("Action", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                            dbc.Textarea(disabled=True, value=action['action'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
                         ], className="mb-3 lg"),
                         dbc.InputGroup([
                             dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
