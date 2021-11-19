@@ -8,7 +8,6 @@ from pprint import pprint
 from jsondiff import diff
 from dash import no_update
 from apps.util import *
-from apps.graph import *
 import plotly.graph_objects as go
 import pandas as pd
 import base64

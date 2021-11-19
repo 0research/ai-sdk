@@ -190,23 +190,47 @@ def upload_dataset(project_id, dataset_id, dataset_data, description, source,
     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
     
 
-def delete(project_id, node_id):
+def remove(project_id, node_id):
     project = get_document('project', project_id)
     edge_source_list = [edge.split('_')[0] for edge in project['edge_list']]
 
-    # TODO delete action = deletes multiple nodes
+    # Remove action
     if node_id in project['action_list']:
-        print('TODO delete action')
-    elif node_id in project['dataset_list']:
+        # project['action_list'].remove(node_id)
+        # for edge in project['edge_list']:
+        #     if node_id in edge:
+        #         project['edge_list'].remove(edge)
+        return
+
+    # Remove Dataset Leaf Node, Edges and Actions(if needed)
+    else:
         if node_id in edge_source_list:
-            print('[Error] Node selected is not a leaf node.')
+            print('[Error] Selected Node is not a leaf node.')
         else:
-            print('TODO delete')
-            # project['dataset_list'].remove(node_id)
-            # for edge in project['edge_list']:
-            #     if edge.split('_')[1] == node_id:
-            #         project['edge_list'].remove(node_id)
-            upsert('project', project)
+            # Remove Dataset Leaf Node
+            project['dataset_list'].remove(node_id)
+
+            # Remove Edge to Leaf Node & Update Source Edges Variable
+            for edge in project['edge_list']:
+                if node_id in edge:
+                    project['edge_list'].remove(edge)
+            edge_source_list = [edge.split('_')[0] for edge in project['edge_list']]
+
+            # Remove Action if action is leaf node
+            deleted_action_id = None
+            for action_id in project['action_list']:
+                if action_id not in edge_source_list:
+                    deleted_action_id = action_id
+                    project['action_list'].remove(action_id)
+
+            # Remove Edges with no target
+            if deleted_action_id is not None:
+                for edge in project['edge_list']:
+                    if deleted_action_id in edge:
+                        project['edge_list'].remove(edge)
+            
+    upsert('project', project)
+
 
 def action(project_id, source_id, action, description, action_details, changed_dataset, dataset_data):
     # New id

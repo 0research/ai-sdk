@@ -5,7 +5,7 @@
 SIDEBAR_2_LIST = [
     {'label': 'Upload Dataset',     'value': '/apps/upload_dataset',     'multiple':None,  'className': 'fas fa-upload'},
     {'label': 'Profile',            'value': '/apps/profile',            'multiple':False, 'className': 'fas fa-chess-knight'},
-    # {'label': 'Impute Data',        'value': '/apps/impute_data',        'multiple':False, 'className': 'fas fa-search-plus'},
+    {'label': 'Impute Data',        'value': '/apps/impute_data',        'multiple':False, 'className': 'fas fa-search-plus'},
     {'label': 'Join',               'value': '/apps/join',               'multiple':True,   'className': 'fas fa-search-plus'},
 ]
 SIDEBAR_3_LIST = [

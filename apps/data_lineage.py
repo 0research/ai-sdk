@@ -91,21 +91,22 @@ stylesheet = [
 
 # cyto.load_extra_layouts()
 layout = html.Div([
-    dcc.Interval(id=id('interval'), interval=1000, n_intervals=0),
+    # dcc.Interval(id=id('interval'), interval=1000, n_intervals=0),
 
     html.Div([
         dbc.Row(dbc.Col(html.H1('Data Lineage (Data Flow Experiments)', style={'text-align':'center'}))),
 
         dbc.Row([
             dbc.Col([
-                html.Button('Upload Dataset', id=id('button_upload'), className='btn btn-success btn-lg', style={'margin-right':'3px'}), 
-                html.Button('Inspect', id=id('button_inspect'), className='btn btn-info btn-lg', style={'margin-right':'3px'}), 
-                html.Button('Add Graph', id=id('button_add_graph'), className='btn btn-secondary btn-lg', style={'margin-right':'3px'}),
-                html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'3px'}), 
-                html.Button('Remove Node', id=id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'3px'}),
-                html.Button('Reset', id=id('button_reset'), className='btn btn-secondary btn-lg', style={'margin-right':'3px'}),
+                html.Button('Inspect', id=id('button_inspect'), className='btn btn-info btn-lg', style={'margin-right':'1px'}), 
+                html.Button('Plot Graph', id=id('button_plot_graph'), className='btn btn-success btn-lg', style={'margin-right':'15px'}),
 
-                dbc.DropdownMenu(label="Action", children=[], id=id('dropdown_action'), style={'float':'right'}),
+                html.Button('Upload Dataset', id=id('button_upload'), className='btn btn-primary btn-lg', style={'margin-right':'1px'}), 
+                html.Button('Remove Node', id=id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'15px'}),
+                html.Button('Reset', id=id('button_reset'), className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
+                # html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'1px'}), 
+
+                dbc.DropdownMenu(label="Action", children=[], id=id('dropdown_action'), style={'float':'right'}, size='lg', color='warning'),
 
                 cyto.Cytoscape(id=id('cytoscape'),
                                 minZoom=0.2,
@@ -118,7 +119,7 @@ layout = html.Div([
                                         },
                                 style={'height': '1000px','width': '100%'},
                                 stylesheet=stylesheet)
-            ], width=9),
+            ], width=7),
 
             dbc.Col([
                 # dbc.Card([
@@ -131,7 +132,7 @@ layout = html.Div([
                 dbc.Card([
                     dbc.CardHeader(html.H5('Node: None'), style={'text-align':'center'}),
                     dbc.CardBody('Node Type: None', id=id('display_node_type')),
-                    dbc.CardBody('Node Profile: None', id=id('action_inputs')),
+                    dbc.CardBody('Node Profile: None', id=id('display_node_profile')),
                 ], className='bg-primary', style={'min-height': '250px'}, inverse=True),
                 
                 
@@ -141,7 +142,7 @@ layout = html.Div([
                     dbc.CardFooter('Buttons'),
                 ], className='bg-info', style={'height': '500px'}),
 
-            ], width=3),
+            ], width=5),
         ]),
 
         # Modal
@@ -177,19 +178,21 @@ def generate_cytoscape(n_clicks, pathname):
     
     
 
-# @app.callback(Output(id('experiments'), 'children'),
-#                 Input('url', 'pathname'),
-#                 State('current_dataset', 'data'))
-# def generate_experiments(pathname, dataset_id):
-#     if dataset_id is None or dataset_id == '': return no_update
-#     dataset = get_document('dataset', dataset_id)
 
-#     return [dbc.Card(children=(dbc.CardHeader(experiment['name']), dbc.CardBody(experiment['description'])), color="info", inverse=True) for experiment in dataset['experiment']]
+# # Load Selected Node from session
+# @app.callback(Output(id('cytoscape'), 'tapNodeData'),
+#                 Input('url', 'pathname'))
+# def show_selected_node(pathname):
+#     print('123123')
+#     return {'action': None,
+#             'id': 'ff8326fe-476a-11ec-b504-dc719685b14a',
+#             'isAPI': True,
+#             'type': 'dataset_api'}
 
 
 # Select Node Single
 @app.callback(Output('display_current_dataset', 'value'),
-                Input(id('cytoscape'), 'tapNodeData'),)
+                Input(id('cytoscape'), 'tapNodeData'))
 def select_node(tapNodeData):
     if tapNodeData is None: 
         store_session('dataset_id', None)
@@ -282,14 +285,19 @@ def button_inspect_action(n_clicks_inspect, tapNodeData):
 
 # Add Graph
 @app.callback(Output('url', 'pathname'),
-                Input(id('button_add_graph'), 'n_clicks'))
-def button_add_graph(n_clicks):
+                Input(id('button_plot_graph'), 'n_clicks'),
+                State(id('cytoscape'), 'selectedNodeData'))
+def button_plot_graph(n_clicks, selectedNodeData):
     if n_clicks is None: return no_update
+    if len(selectedNodeData) != 1: return no_update
+    if selectedNodeData[0]['type'] == 'action': return no_update
+
     return '/apps/upload_graph'
 
 
 # Remove Node
 @app.callback(Output('modal_confirm', 'children'),
+                Output('url', 'pathname'),
                 Input(id('button_remove'), 'n_clicks'),
                 State(id('cytoscape'), 'tapNodeData'),
                 prevent_initial_call=True)
@@ -297,9 +305,9 @@ def button_remove(n_clicks, tapNodeData):
     if n_clicks is None: return no_update
     if tapNodeData is None: return no_update
 
-    delete(get_session['project_id'], tapNodeData['id'])
+    remove(get_session('project_id'), tapNodeData['id'])
 
-    return ''
+    return no_update, '/apps/data_lineage'
 
 
 # Generate options in dropdown and button 
@@ -314,6 +322,7 @@ def generate_dropdown_actions(selected_nodes):
     multiple = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==True ]
     
     # Generate Options
+    options = []
     if len(selected_nodes) == 1:
         options = [dbc.DropdownMenuItem(nav['label'], href=nav['value']) for nav in single]
     elif len(selected_nodes) > 1:
@@ -484,10 +493,14 @@ def generate_dropdown_actions(selected_nodes):
 #     return triggered, json.dumps(data, indent=2)
 
 
-# @app.callback(Output(id('profile_output'), 'children'),
-#               [Input(id('cytoscape'), 'tapNodeData')])
-# def displayTapNodeData(data):
-#     return json.dumps(data, indent=2)
 
 
 
+# @app.callback(Output(id('experiments'), 'children'),
+#                 Input('url', 'pathname'),
+#                 State('current_dataset', 'data'))
+# def generate_experiments(pathname, dataset_id):
+#     if dataset_id is None or dataset_id == '': return no_update
+#     dataset = get_document('dataset', dataset_id)
+
+#     return [dbc.Card(children=(dbc.CardHeader(experiment['name']), dbc.CardBody(experiment['description'])), color="info", inverse=True) for experiment in dataset['experiment']]

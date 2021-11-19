@@ -210,6 +210,7 @@ def update_output(datatype, n_click_index, n_click_target, n_click_remove, colum
                 prevent_initial_call=True)
 def generate_action_details(_, _2, _3, _4):
     if get_session('changed_dataset_profile') is None: return no_update
+    time.sleep(0.5)
 
     # Get changes in updated original vs dataset document in the relevant keys
     keys = ['column', 'datatype', 'expectation', 'index', 'target']
