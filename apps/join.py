@@ -25,6 +25,7 @@ import time
 import ast
 from pathlib import Path
 import uuid
+from jsonmerge import Merger
 
 options_join_type = [
     {'label': 'Append as New Rows', 'value':'append'},
@@ -159,9 +160,38 @@ def generate_datatable3(selection_list, join_type):
 
 @app.callback(Output('modal_confirm', "children"),
                 Input(id('button_confirm'), 'n_clicks'),
-                State(id('datatable_3'), 'data'),)
-def button_confirm(n_clicks, datatable_data):
+                State(id('datatable_3'), 'data'),
+                State(id('join_type'), 'value'),
+                State(id('selection_list_store'), 'data'),)
+def button_confirm(n_clicks, datatable_data, join_type, columns):
     if n_clicks is None: return no_update
     dataset_id_mulitple = ast.literal_eval(get_session('dataset_id_multiple'))
-    join(get_session('project_id'), dataset_id_mulitple, '', datatable_data, 'action_details')
+    dataset_id_1 = ast.literal_eval(get_session('dataset_id_multiple'))[0]
+    dataset_id_2 = ast.literal_eval(get_session('dataset_id_multiple'))[1]
+    dataset_1 = get_document('dataset', dataset_id_1)
+    dataset_2 = get_document('dataset', dataset_id_2)
+
+
+    # merger = Merger(schema)
+
+    if join_type == 'append': 
+        # dataset = merge(dataset_1, dataset_2)
+        columns = [None, None]
+    # if join_type == 'inner': dataset = merge(dataset_1, dataset_2)
+    # if join_type == 'outer': dataset = merge(dataset_1, dataset_2)
+    # if join_type == 'left': dataset = merge(dataset_1, dataset_2)
+    # if join_type == 'right': dataset = merge(dataset_2, dataset_1)
+
+    dataset = dataset_1
+
+    action_details = {
+        'join_type': join_type,
+        'column_1': columns[0],
+        'column_2': columns[1]
+    }
+        
+    print('dataset'*10)
+    pprint(dataset)
+
+    join(get_session('project_id'), dataset_id_mulitple, '', datatable_data, dataset, action_details)
     return no_update

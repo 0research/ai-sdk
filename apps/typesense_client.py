@@ -246,7 +246,7 @@ def action(project_id, source_id, action, description, action_details, changed_d
 
 
 
-def join(project_id, source_id_list, description, dataset_data, action_details):
+def join(project_id, source_id_list, description, dataset_data, dataset, action_details):
     # New id
     action_id = str(uuid.uuid1())
     dataset_id = str(uuid.uuid1())
@@ -260,7 +260,6 @@ def join(project_id, source_id_list, description, dataset_data, action_details):
         project['edge_list'].append(edge_id)
     project['edge_list'].append(action_id + '_' + dataset_id)
 
-
     # Dataset Data Collection
     df = json_normalize(dataset_data)
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
@@ -269,16 +268,8 @@ def join(project_id, source_id_list, description, dataset_data, action_details):
     action = Action(action_id, 'join', description, action_details)
 
     # Dataset Document
-    dataset = Dataset(
-            id=dataset_id,
-            description=description, 
-            api_data=None, 
-            column=list(df.columns), 
-            datatype = [],
-            expectation = [],
-            index = [], 
-            target = []
-    )
+    dataset['id'] =  dataset_id # Overwrite previous dataset ID
+    dataset['api_data'] = None
     
     # Upload
     upsert('project', project)

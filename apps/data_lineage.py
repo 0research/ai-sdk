@@ -125,7 +125,6 @@ layout = html.Div([
                 dbc.Card([
                     dbc.CardHeader([
                         html.H6('Node Type: None', id=id('display_node_type')),
-                        html.P('Node ID: None', id=id('display_node_id')),
                     ], style={'text-align':'center'}),
                     dbc.CardBody('Profile/ActionDetails', id=id('display_node_profile')),
                 ], className='bg-primary', style={'height': '450px', 'overflow-y':'auto'}, inverse=True),
@@ -192,15 +191,17 @@ def display_profile(dataset_id):
     return (
         html.Div([
             html.Div([
-                # html.P('Index Column(s): ' + str(dataset['index'])[1:-1]),
-                # html.P('Target Column(s): ' + str(dataset['target'])[1:-1]),
+                dbc.InputGroup([
+                    dbc.InputGroupText("Dataset ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                    dbc.Input(disabled=True, value=dataset_id, style={'font-size': '12px', 'text-align':'center'}),
+                ], className="mb-3 lg"),
                 dbc.InputGroup([
                     dbc.InputGroupText("Index Column", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                    dbc.Textarea(disabled=True, value=dataset['index'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                    dbc.Input(disabled=True, value=dataset['index'], style={'font-size': '12px', 'text-align':'center'}),
                 ], className="mb-3 lg"),
                 dbc.InputGroup([
                     dbc.InputGroupText("Target Column", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                    dbc.Textarea(disabled=True, value=dataset['target'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                    dbc.Input(disabled=True, value=dataset['target'], style={'font-size': '12px', 'text-align':'center'}),
                 ], className="mb-3 lg"),
             ]),
             html.Table(
@@ -231,11 +232,11 @@ def display_action(action_id):
         html.Div([
             dbc.InputGroup([
                 dbc.InputGroupText("Action ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                dbc.Textarea(disabled=True, value=action['id'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                dbc.Input(disabled=True, value=action['id'], style={'font-size': '12px', 'text-align':'center'}),
             ], className="mb-3 lg"),
             dbc.InputGroup([
                 dbc.InputGroupText("Action", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                dbc.Textarea(disabled=True, value=action['action'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                dbc.Input(disabled=True, value=action['action'], style={'font-size': '12px', 'text-align':'center'}),
             ], className="mb-3 lg"),
             dbc.InputGroup([
                 dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
@@ -252,22 +253,22 @@ def display_action(action_id):
 # Select Node Single
 @app.callback(Output('display_current_dataset', 'value'),
                 Output(id('display_node_type'), 'children'),
-                Output(id('display_node_id'), 'children'),
+                # Output(id('display_node_id'), 'children'),
                 Output(id('display_node_profile'), 'children'),
                 Input(id('cytoscape'), 'tapNodeData'))
 def select_node(tapNodeData):
     if tapNodeData is None: 
         store_session('dataset_id', None)
-        return 'None', 'Node Type: None', 'Node ID: None', ''
+        return 'None', 'Node Type: None', ''
     pprint(tapNodeData)
 
     if tapNodeData['type'] == 'action':
         store_session('dataset_id', None)
-        return no_update, 'Node Type: '+tapNodeData['type'], 'Node Type: '+tapNodeData['id'], display_action(tapNodeData['id'])
+        return no_update, 'Node Type: '+tapNodeData['type'], display_action(tapNodeData['id'])
     else:
         store_session('dataset_id', tapNodeData['id'])
         # dataset = get_document('dataset', tapNodeData['id'])
-        return tapNodeData['id'], 'Node Type: '+tapNodeData['type'], 'Node ID: '+tapNodeData['id'], display_profile(tapNodeData['id'])
+        return tapNodeData['id'], 'Node Type: '+tapNodeData['type'], display_profile(tapNodeData['id'])
         
 
 # Select Node Multiple 
@@ -315,11 +316,11 @@ def button_inspect_action(n_clicks_inspect, tapNodeData):
             modal_body = (dbc.ModalBody([
                         dbc.InputGroup([
                             dbc.InputGroupText("Dataset ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                            dbc.Textarea(disabled=True, value=dataset['id'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                            dbc.Input(disabled=True, value=dataset['id'], style={'font-size': '12px', 'text-align':'center'}),
                         ], className="mb-3 lg"),
                         dbc.InputGroup([
                             dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                            dbc.Textarea(disabled=True, value=dataset['description'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                            dbc.Textarea(disabled=True, value=dataset['description'], style={'font-size': '12px', 'text-align':'center','padding': '30px 0'}),
                         ], className="mb-3 lg"),
                         html.Div(generate_datatable(id('inspect_modal_datatable'), df.to_dict('records'), df.columns, height='700px')),
                     ]))
@@ -329,11 +330,11 @@ def button_inspect_action(n_clicks_inspect, tapNodeData):
             modal_body = (dbc.ModalBody([
                         dbc.InputGroup([
                             dbc.InputGroupText("Action ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                            dbc.Textarea(disabled=True, value=action['id'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                            dbc.Input(disabled=True, value=action['id'], style={'font-size': '12px', 'text-align':'center'}),
                         ], className="mb-3 lg"),
                         dbc.InputGroup([
                             dbc.InputGroupText("Action", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                            dbc.Textarea(disabled=True, value=action['action'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                            dbc.Input(disabled=True, value=action['action'], style={'font-size': '12px', 'text-align':'center'}),
                         ], className="mb-3 lg"),
                         dbc.InputGroup([
                             dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
@@ -393,7 +394,7 @@ def generate_dropdown_actions(selected_nodes):
     options = []
     if len(selected_nodes) == 1:
         options = [dbc.DropdownMenuItem(nav['label'], href=nav['value']) for nav in single]
-    elif len(selected_nodes) > 1:
+    elif len(selected_nodes) > 1 and all(node['type'] != 'action' for node in selected_nodes):
         options = [dbc.DropdownMenuItem(nav['label'], href=nav['value']) for nav in multiple]
 
     return options
