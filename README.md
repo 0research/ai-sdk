@@ -70,6 +70,12 @@ jobs:
 # Feedback
 * We would love to receive feedback on the action from users to understand how we can improve.
 
+# Other Underlying Licenses of Open Source Products used
+
+1. Typesense [License](https://github.com/typesense/typesense/blob/master/LICENSE.txt)
+2. HasuraGQL [License](https://github.com/hasura/graphql-engine/blob/master/LICENSE)
+3. Clickhouse [License](https://github.com/ClickHouse/ClickHouse/blob/master/LICENSE)
+4. Postgres [License](https://www.postgresql.org/about/licence/)
 
 <!-- Features to be implemented / to be implemented
 - [x] (for checked checkbox)
