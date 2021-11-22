@@ -54,3 +54,11 @@ jobs:
 # Feedback
 * We would love to receive feedback on the action from users to understand how we can improve.
 
+# MIT License
+At [0Research](https://0research.com), we offer our flagship open-source software through the MIT license. Why? It’s simple: we want to provide developers with the intellectual freedom to share their contributions in whatever manner they see fit. If they work hard on a AI-SDK project, they should be able to freely share their insight without any worry of legal repercussions.
+
+MIT (Massachusetts Institute of Technology) License is a “permissive” license like BSD (Berkeley Software Distribution) and Apache licenses. These licenses are less restrictive when it comes to the release of source code. 
+
+If a developer writes a million lines of code for a project and then incorporates even a few lines of GPL-licensed code, then all the code must be revealed under the GPL. The developer can’t mix their own proprietary software and GPL software together. This is precisely why the GPL has drawn the ire of many professional developers. **(This does not hold true for MIT License)**
+
+Needless to say, we don’t think there’s anything scary about AI-SDK. When developer’s use AI-SDK and its permissive MIT license, they can put it on the internet without sharing app source code with anyone and not worry about a thing. 
