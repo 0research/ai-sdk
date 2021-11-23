@@ -37,14 +37,11 @@ app.index_string = '''
         {%scripts%}
     </head>
     <body>
-        <div>My Custom header</div>
         {%app_entry%}
         <footer>
             {%config%}
-            
             {%renderer%}
         </footer>
-        <div>My Custom footer</div>
     </body>
 </html>
 '''

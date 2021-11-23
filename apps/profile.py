@@ -100,8 +100,8 @@ def generate_profile(pathname):
     #         datatype[col] = val
     #     else:
     #         datatype[col] = val
-    print(dataset['column'])
-    print(type(dataset['column']['convicts']))
+    # print(dataset['column'])
+    # print(type(dataset['column']['convicts']))
     for col, dtype in datatype.items():
         print(col, dataset['column'][col])
 

@@ -45,7 +45,6 @@ layout = html.Div([
     dcc.Store(id=id('selection_list_store'), storage_type='session'),
 
     dbc.Container([
-
         dbc.Row([
             html.Br(),
             dbc.Col(html.H5('Step 1: Select type of join'), width=12),
