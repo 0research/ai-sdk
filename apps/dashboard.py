@@ -26,7 +26,7 @@ from apps.typesense_client import *
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 
-id = id_factory('overview')
+id = id_factory('dashboard')
 
 
 def bar_graph(component_id, barmode, x=None, y=None, data=None, orientation='v', showlegend=True):
@@ -78,25 +78,23 @@ layout = html.Div([
     dcc.Store(id='input_datatype_store', storage_type='session'),
     
     dbc.Container([
-        dbc.Row(dbc.Col(html.H1('Overview')), style={'text-align':'center'}),
+        dbc.Row(dbc.Col(html.H1('Dashboard')), style={'text-align':'center'}),
         dbc.Row(html.Div(id=id('graphs')), className="mb-4"),
 
-            # dbc.Col(dbc.Card(card_content('Data Frequency', [
-            #     html.Div(generate_dropdown(id('dropdown_data_frequency'), option_date, placeholder='Select Unit of Time')),
-            #     html.Div(bar_graph(id('bar_graph_data_frequency'), 'stack', showlegend=False)),
-            # ]), color="primary", inverse=True)),
+        # dbc.Col(dbc.Card(card_content('Data Frequency', [
+        #     html.Div(generate_dropdown(id('dropdown_data_frequency'), option_date, placeholder='Select Unit of Time')),
+        #     html.Div(bar_graph(id('bar_graph_data_frequency'), 'stack', showlegend=False)),
+        # ]), color="primary", inverse=True)),
 
-            # dbc.Col(dbc.Card(card_content('Frequency Distribution', [
-            #     html.Div(generate_dropdown(id('dropdown_frequency_distribution'), option_date, placeholder='Select Column')),
-            #     html.Div(bar_graph(id('bar_graph_data_frequency'), 'stack', orientation='h', showlegend=False)),
-            # ]), color="secondary", inverse=True)),
+        # dbc.Col(dbc.Card(card_content('Frequency Distribution', [
+        #     html.Div(generate_dropdown(id('dropdown_frequency_distribution'), option_date, placeholder='Select Column')),
+        #     html.Div(bar_graph(id('bar_graph_data_frequency'), 'stack', orientation='h', showlegend=False)),
+        # ]), color="secondary", inverse=True)),
 
-            # dbc.Col(dbc.Card(card_content('Seasonality', [
-            #     html.Div(generate_dropdown(id('dropdown_frequency_distribution'), option_date, placeholder='Select Column')),
-            #     # html.Div(bar_graph(id('bar_graph_data_frequency'), 'stack', orientation='h', showlegend=False)),
-            # ]), color="info", inverse=True)),
-
-        
+        # dbc.Col(dbc.Card(card_content('Seasonality', [
+        #     html.Div(generate_dropdown(id('dropdown_frequency_distribution'), option_date, placeholder='Select Column')),
+        #     # html.Div(bar_graph(id('bar_graph_data_frequency'), 'stack', orientation='h', showlegend=False)),
+        # ]), color="info", inverse=True)),
 
     ], fluid=True),
     
@@ -128,6 +126,6 @@ layout = html.Div([
                 Input('url', 'pathname'))
 def generate_graphs(pathname):
     graph_id = get_session('graph_id')
-    
+
     return graph_id
 

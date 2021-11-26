@@ -7,7 +7,7 @@ from app import app
 from app import server 
 from app import dbc
 from apps.typesense_client import *
-from apps import (new_project, upload_dataset, join, search, plot_graph, overview, profile, merge_strategy, temporal_evolution, temporal_merge, 
+from apps import (new_project, upload_dataset, join, search, extract_transform, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage,
                 page2, page3, page6, page6,page7, page8, page9, page10)
 import ast
@@ -72,7 +72,7 @@ navbar = dbc.Navbar([
 
         # dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "4", 'offset':3}),
         # dbc.Col(dbc.Button("Data Lineage", href='/apps/data_lineage', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "5", 'offset':0}),
-        dbc.Col(dbc.Input(type="search", id='search', debounce=False, placeholder="Search...", style={'text-align':'center'}), width={"size": 3, "order": "5", 'offset':0})
+        dbc.Col(dbc.Input(type="search", id='search', debounce=True, placeholder="Search...", style={'text-align':'center'}), width={"size": 3, "order": "5", 'offset':0})
     ], className='g-0', style={'width':'100%'}),
 
     # Tool tips for each Icon
@@ -90,7 +90,7 @@ navbar = dbc.Navbar([
 sidebar_1 = [
     dbc.NavLink("New Project", href="/apps/new_project", id=id('nav_upload'), active="exact", className="fas fa-upload"),
     dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
-    dbc.NavLink("Overview", href="/apps/overview", active="exact", className="fas fa-chart-pie"),
+    dbc.NavLink("Dashboard", href="/apps/dashboard", active="exact", className="fas fa-chart-pie"),
 ]
 sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_2_LIST]
 sidebar_3 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_3_LIST]
@@ -143,13 +143,14 @@ app.layout = serve_layout
 def display_page(pathname):
     if pathname.startswith('/apps/new_project'): return new_project.layout
     if pathname.startswith('/apps/upload_dataset'): return upload_dataset.layout
-    if pathname.startswith('/apps/overview'): return overview.layout
+    if pathname.startswith('/apps/dashboard'): return dashboard.layout
     if pathname.startswith('/apps/profile'): return profile.layout
     if pathname.startswith('/apps/join'): return join.layout
-    if pathname.startswith('/apps/upload_graph'): return plot_graph.layout
+    if pathname.startswith('/apps/plot_graph'): return plot_graph.layout
     if pathname.startswith('/apps/search'): return search.layout
-
+    
     if pathname.startswith('/apps/impute_data'): return impute_data.layout
+    if pathname.startswith('/apps/extract_transform'): return extract_transform.layout
     
     if pathname.startswith('/apps/merge_strategy'): return merge_strategy.layout
     if pathname.startswith('/apps/temporal_evolution'): return temporal_evolution.layout
@@ -199,7 +200,7 @@ def load_project_id(pathname):
 @app.callback(Output('url', 'pathname'),
                 Input('search', 'value'))
 def load_project_id(value):
-    print('sadasw')
+    if value == '' or value is None: return no_update
     return '/apps/search'
 
 if __name__ == '__main__':

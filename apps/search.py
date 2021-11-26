@@ -32,72 +32,78 @@ app.css.config.serve_locally = True
 id = id_factory('search')
 
 options_search = [
-    {"label": "Project", "value": 0},
-    {"label": "Dataset", "value": 1},
-    {"label": "Action", "value": 2},
-],
+    {"label": "Dataset", "value": 'dataset'},
+    {"label": "Project", "value": 'project', "disabled": True},
+    {"label": "Question", "value": 'question', "disabled": True},
+]
 
 # Layout
 layout = html.Div([
     dbc.Container([
+        
         dbc.Row([
             html.Br(),
             dbc.Col([
-                # dbc.RadioItems(
-                #     options=options_search,
-                #     value=0,
-                #     id=id("search_type"),
-                #     inline=True,
-                #     persistence=True,
-                # ),
                 dbc.RadioItems(
-                    options=[
-                        {"label": "Option 1", "value": 1},
-                        {"label": "Option 2", "value": 2},
-                    ],
-                    value=1,
-                    id="radioitems-inline-input",
+                    options=options_search,
+                    value=options_search[0]['value'],
+                    id=id('search_type'),
                     inline=True,
+                    style={'float':'right'}
                 ),
             ], width=12),
-        ], className='text-center bg-light'),
+        ], className='bg-light'),
 
         dbc.Row([
             html.Div(id=id('search_result')),
         ], className='text-center', style={'margin': '1px'}),
-
-        
     ], fluid=True, id=id('content')),
 ])
 
 
 
-@app.callback(Output('search_result', 'children'),
-                Input('search', 'value'))
-def search(search_value):
-    return no_update
-    # return html.Table(
-    #     [
-    #         html.Tr([
-    #             html.Th('Column'),
-    #             html.Th('Datatype'),
-    #             html.Th('Invalid (%)'),
-    #             html.Th('Result'),
-    #             html.Th(''),
-    #         ])
-    #     ] + 
-    #     [
-    #         html.Tr([
-    #             html.Td(html.H6(col), id={'type':id('col_column'), 'index': i}),
-    #             html.Td(generate_dropdown({'type':id('col_dropdown_datatype'), 'index': i}, option_datatype, value=dtype)),
-    #             html.Td(html.H6('%', id={'type':id('col_invalid'), 'index': i})),
-    #             html.Td(html.H6('-', id={'type':id('col_result'), 'index': i})),
-    #             html.Td([
-    #                 html.Button('Index', id={'type':id('col_button_index'), 'index': i}, className=('btn btn-warning' if col in dataset['index'] else '')),
-    #                 html.Button('Target', id={'type':id('col_button_target'), 'index': i}, className=('btn btn-success' if col in dataset['target'] else '')),
-    #                 html.Button('Remove', id={'type':id('col_button_remove'), 'index': i}, className=('btn btn-danger' if dataset['column'][col] == False else ''))
-    #             ]),
-    #         ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(datatype.items())
-    #     ],
-    #     style={'width':'100%', 'height':'800px'}, id=id('table_data_profile')
-    # )
+@app.callback(Output(id('search_result'), 'children'),
+                Input('search', 'value'),
+                Input(id('search_type'), 'value'))
+def search(search_value, search_type):
+    if search_value == '' or search_value is None: return no_update
+
+    if search_type == 'dataset': query_by = ['description', 'column']
+    elif search_type == 'project': query_by = ['description']
+    elif search_type == 'question': query_by = ['description']
+
+    search_parameters = {
+        'q': search_value,
+        'query_by'  : query_by,
+        'per_page': 250,
+    }
+    dataset_list = search_documents(search_type, 250, search_parameters)
+    
+    out = html.Table(
+        [
+            html.Tr([
+                html.Th('No.'),
+                html.Th('Description'),
+                html.Th('Column'),
+                html.Th('Index'),
+                html.Th('Target'),
+                html.Th(''),
+            ])
+        ] + 
+        [
+            html.Tr([
+                html.Td(i+1),
+                html.Td(dataset['description'], id={'type':id('col_description'), 'index': i}),
+                html.Td(str(list(ast.literal_eval(dataset_list[0]['column']).keys())), id={'type':id('col_column'), 'index': i}),
+                html.Td(dataset['index'][1:-1], id={'type':id('col_index'), 'index': i}),
+                html.Td(dataset['target'][1:-1], id={'type':id('col_target'), 'index': i}),
+                html.Td([
+                    dbc.Button('View', id={'type':id('col_button'), 'index': i}),
+                    # dbc.Button('View', id={'type':id('col_button'), 'index': i}),
+                ]),
+            ], id={'type':id('row'), 'index': i}) for i, dataset in enumerate(dataset_list)
+        ],
+        style={'width':'100%', 'height':'800px'}, id=id('table_data_profile')
+    )
+
+    return out

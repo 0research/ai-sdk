@@ -9,7 +9,7 @@ FA = {
     "crossorigin": "anonymous",
     "referrerpolicy": "no-referrer",
 }
-external_stylesheets = [dbc.themes.BOOTSTRAP, FA]
+external_stylesheets = [dbc.themes.BOOTSTRAP, FA, 'https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 
 

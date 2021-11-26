@@ -171,7 +171,7 @@ def json_merge(base, new, merge_strategy):
     return base
 
 
-def generate_dropdown(component_id, options, value=None, placeholder='Select...'):
+def generate_dropdown(component_id, options, value=None, multi=False, placeholder=None, style=None):
     # if value == None: value = options[0]['value']
     return dcc.Dropdown(
         id=component_id,
@@ -179,8 +179,9 @@ def generate_dropdown(component_id, options, value=None, placeholder='Select...'
         value=value,
         searchable=False,
         clearable=False,
+        multi=multi,
         placeholder=placeholder,
-        style={'color': 'black'},
+        style=style,
     )
 
 

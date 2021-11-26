@@ -69,11 +69,12 @@ def upsert(collection_id, document):
     document = {k:str(v) for k, v in document.items()}
     client.collections[collection_id].documents.upsert(document)
 
-def search_documents(collection_id, per_page):
-    search_parameters = {
-        'q': '*',
-        'per_page': per_page,
-    }
+def search_documents(collection_id, per_page, search_parameters=None):
+    if search_parameters is None:
+        search_parameters = {
+            'q': '*',
+            'per_page': per_page,
+        }
     result = client.collections[collection_id].documents.search(search_parameters)
     return [d['document'] for d in result['hits']]
 def get_dataset_data(dataset_id):

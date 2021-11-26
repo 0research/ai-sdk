@@ -185,8 +185,8 @@ def browse_drag_drop_files(isCompleted, files_selected, dropdown_delimiter, chec
         data = []
         for file in file_name_list_full:
             if file.endswith('.json'):
-                with open(file, 'r') as f:
-                    json_file = json.load(f)
+                file_str = open(file,"r").read().replace('None', '""')
+                json_file = json.loads(file_str)
                 json_file = flatten(json_file)
                 data.append(json_file)
                 df = json_normalize(data)

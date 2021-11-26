@@ -125,6 +125,13 @@ def display_selected_column(selected_columns):
     return 'Selection: ', str(selected_columns)[1:-1]
 
 
+def join_datasets(df_list, how, on):
+    try:
+        df = pd.merge(df_list[0], df_list[1], how="inner", on=[selection_list[0], selection_list[1]])
+    except Exception as e:
+        print(e)
+
+    return df
 
 @app.callback(Output(id('datatable_3'), "data"), 
                 Output(id('datatable_3'), 'columns'), 
@@ -144,15 +151,17 @@ def generate_datatable3(selection_list, join_type):
 
     if selection_list is None or len(selection_list) != 2: return [], []
     elif join_type == 'inner':
-        df = pd.merge(df1, df2, how="inner", on=[selection_list[0], selection_list[1]])
+        df = join_datasets([df1, df2], how='inner', on=[selection_list[0], selection_list[1]])
     elif join_type == 'outer':
-        df = pd.merge(df1, df2, how="outer", on=[selection_list[0], selection_list[1]])
+        df = join_datasets([df1, df2], how='inner', on=[selection_list[0], selection_list[1]])
     elif join_type == 'left':
-        df = pd.merge(df1, df2, how="left", on=[selection_list[0], selection_list[1]])
+        df = join_datasets([df1, df2], how='inner', on=[selection_list[0], selection_list[1]])
     elif join_type == 'right':
-        df = pd.merge(df1, df2, how="right", on=[selection_list[0], selection_list[1]])
+        df = join_datasets([df1, df2], how='inner', on=[selection_list[0], selection_list[1]])
     json_dict = df.to_dict('records')
     columns = [{"name": i, "id": i, "deletable": False, "selectable": False} for i in df.columns]
+
+    print(df.shape)
 
     return json_dict, columns
 

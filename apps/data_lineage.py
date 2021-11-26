@@ -126,8 +126,8 @@ layout = html.Div([
                     dbc.CardHeader([
                         html.H6('Node Type: None', id=id('display_node_type')),
                     ], style={'text-align':'center'}),
-                    dbc.CardBody('Profile/ActionDetails', id=id('display_node_profile')),
-                ], className='bg-primary', style={'height': '450px', 'overflow-y':'auto'}, inverse=True),
+                    dbc.CardBody('Profile/ActionDetails', id=id('display_node_profile'), style={'overflow-y':'auto'}),
+                ], className='bg-primary', style={'height': '450px'}, inverse=True),
                 
                 
                 dbc.Card([
@@ -358,10 +358,11 @@ def button_inspect_action(n_clicks_inspect, tapNodeData):
                 State(id('cytoscape'), 'selectedNodeData'))
 def button_plot_graph(n_clicks, selectedNodeData):
     if n_clicks is None: return no_update
+    if selectedNodeData is None: return no_update
     if len(selectedNodeData) != 1: return no_update
     if selectedNodeData[0]['type'] == 'action': return no_update
 
-    return '/apps/upload_graph'
+    return '/apps/plot_graph'
 
 
 # Remove Node
