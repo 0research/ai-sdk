@@ -21,7 +21,7 @@ import os
 from pandas import json_normalize
 import pandas as pd
 import uuid
-
+from apps.constants import *
 
 
 
@@ -185,24 +185,42 @@ def generate_dropdown(component_id, options, value=None, multi=False, placeholde
     )
 
 
-def generate_datatable(component_id, data=[], columns=[], height='450px'):
-    # df = pd.DataFrame(OrderedDict([
-    #     ('climate', ['Sunny', 'Snowy', 'Sunny', 'Rainy']),
-    #     ('temperature', [13, 43, 50, 30]),
-    #     ('city', ['NYC', 'Montreal', 'Miami', 'NYC'])
-    # ]))
-    columns = [{"name": col, "id": col, "deletable": False, "selectable": False} for col in columns]
 
-    return dash_table.DataTable(
+
+def generate_datatable(component_id, data=[], columns=[], height='450px',
+                        cell_editable=False,
+                        row_deletable=False, row_selectable=False, 
+                        col_selectable=False, col_deletable=False,):
+    datatable_columns = [{"name": c, "id": c, "deletable": col_deletable, "selectable": col_selectable} for c in columns]
+
+    info_height = 100
+    selected_height = 35
+
+    selected = html.Div()
+    if col_selectable is not False:
+        info_height = info_height - selected_height
+        selected = dbc.Card([
+            dbc.CardHeader('Selected'),
+            dbc.CardBody(dcc.Dropdown(multi=True), style={'height':'100px'})
+        ], style={'height':str(selected_height)+'%'})
+
+    info = dbc.Card([
+        dbc.CardHeader('Metadata'),
+        dbc.CardBody('Body')
+    ], style={'height': str(info_height)+'%', 'overflow-y': 'auto'})
+
+    datatable = dash_table.DataTable(
         id=component_id,
         data=data,
-        columns=columns,
-        selected_rows=[],
-        column_selectable="single",
-        row_selectable="multi",
-        row_deletable=True,
-        editable=True,
-        page_size= 50,
+        columns=datatable_columns,
+        editable=cell_editable,
+        filter_action="native",
+        sort_action="native",
+        sort_mode="multi",
+        column_selectable=col_selectable,
+        row_selectable=row_selectable,
+        row_deletable=row_deletable,
+        page_size= 100,
         style_table={'height': height, 'overflowY': 'auto'},
         style_data={
             'whiteSpace': 'normal',
@@ -216,7 +234,16 @@ def generate_datatable(component_id, data=[], columns=[], height='450px'):
                 overflow-y: hidden;
             '''
         }],
+        style_data_conditional=style_data_conditional,
     ),
+
+    return dbc.Row([
+        dbc.Col(datatable, width=9),
+        dbc.Col([
+            info,
+            selected,
+        ], width=3),
+    ])
 
 
 def generate_radio(id, options, label, default_value=0, inline=False):

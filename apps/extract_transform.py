@@ -55,7 +55,7 @@ layout = html.Div([
         # Datatable
         dbc.Row([
             dbc.Col(html.H5('Step 1: Select Column'), width=12),
-            dbc.Col(generate_datatable(id('datatable'), height='450px'), width={"size": 10, 'offset': 1}),
+            dbc.Col(generate_datatable(id('datatable'), col_selectable="multi", height='450px'), width=12),
         ], className='text-center bg-light'),
         
         # Body
@@ -115,6 +115,26 @@ layout = html.Div([
 
 
 
+@app.callback(
+    Output(id('datatable'), "style_data_conditional"),
+    [Input(id('datatable'), "active_cell")]
+)
+def update_selected_row_color(active):
+    pprint(active)
+    style = style_data_conditional.copy()
+    if active:
+        style.append(
+            {
+                "if": {"column_id": active["column_id"]},
+                "backgroundColor": "rgba(150, 180, 225, 0.2)",
+                "border": "1px solid blue",
+            },
+        )
+    return style
+
+
+
+
 # Datatable
 @app.callback(Output(id('datatable'), "data"),
                 Output(id('datatable'), 'columns'),
@@ -125,7 +145,7 @@ def generate_datatable(pathname):
     df = get_dataset_data(dataset_id)
     columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
     options = [{'label':c, 'value':c} for c in df.columns]
-
+    
     return df.to_dict('records'), columns, options
 
 
@@ -138,17 +158,17 @@ def generate_datatable(pathname):
 #     return no_update
 
 
-# Datatable
-@app.callback(Output(id('datatable2'), "data"),
-                Output(id('datatable2'), 'columns'),
-                Output(id('datatable3'), "data"),
-                Output(id('datatable3'), 'columns'),
-                Input(id('dropdown_selected_columns'), "value"), 
-                Input(id('dropdown_function'), "value"))
-def generate_datatable(columns, function):
-    dataset_id = get_session('dataset_id')
-    df = get_dataset_data(dataset_id)
-    columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
-    options = [{'label':c, 'value':c} for c in df.columns]
+# # Datatable
+# @app.callback(Output(id('datatable2'), "data"),
+#                 Output(id('datatable2'), 'columns'),
+#                 Output(id('datatable3'), "data"),
+#                 Output(id('datatable3'), 'columns'),
+#                 Input(id('dropdown_selected_columns'), "value"), 
+#                 Input(id('dropdown_function'), "value"))
+# def generate_datatable(selected_columns, function):
+#     dataset_id = get_session('dataset_id')
+#     df = get_dataset_data(dataset_id)
+#     columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
+#     options = [{'label':c, 'value':c} for c in df.columns]
 
-    return df.to_dict('records'), columns, df.to_dict('records'), columns
+#     return df.to_dict('records'), columns, df.to_dict('records'), columns

@@ -127,11 +127,12 @@ def display_selected_column(selected_columns):
 
 def join_datasets(df_list, how, on):
     try:
-        df = pd.merge(df_list[0], df_list[1], how="inner", on=[selection_list[0], selection_list[1]])
+        df = pd.merge(df_list[0], df_list[1], how=how, on=on)
+        return df
     except Exception as e:
         print(e)
 
-    return df
+    
 
 @app.callback(Output(id('datatable_3'), "data"), 
                 Output(id('datatable_3'), 'columns'), 

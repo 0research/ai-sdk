@@ -187,8 +187,14 @@ def browse_drag_drop_files(isCompleted, files_selected, dropdown_delimiter, chec
             if file.endswith('.json'):
                 file_str = open(file,"r").read().replace('None', '""')
                 json_file = json.loads(file_str)
-                json_file = flatten(json_file)
-                data.append(json_file)
+                if type(json_file) == list:
+                    for i in range(len(json_file)):
+                        json_file[i] = flatten(json_file[i])
+                    data = json_file
+                elif type(json_file) == dict:
+                    json_file = flatten(json_file)
+                    data.append(json_file)
+
                 df = json_normalize(data)
                 
             elif file.endswith('.csv'):
