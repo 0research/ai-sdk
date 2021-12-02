@@ -55,44 +55,26 @@ layout = html.Div([
         # Datatable
         dbc.Row([
             dbc.Col(html.H5('Step 1: Select Column'), width=12),
-            dbc.Col(generate_datatable(id('datatable'), col_selectable="multi", height='450px'), width=12),
+            dbc.Col(generate_datatable(id('datatable'), col_selectable="multi", height='450px', metadata_id=id('metadata'), selected_column_id=id('selected_columns')), width=12),
         ], className='text-center bg-light'),
         
         # Body
         dbc.Row([
-            dbc.CardHeader(html.H5('Step 2: Settings')),
-            dbc.Col([
-                dbc.Card([
-                    dbc.CardBody([
-                        dbc.InputGroup([
-                            dbc.InputGroupText("Selected Columns", style={'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-                            dcc.Dropdown(options=options_functions, id=id('dropdown_selected_columns'), value=None, multi=True, style={'font-size': '12px', 'width':'75%'}),
-                        ]),
-                    ], id=id('function'), style={'height':'100px'}),
-                ])
-            ], width=5),
-            dbc.Col([
-                dbc.Card([
-                    dbc.CardBody([
-                        dbc.InputGroup([
-                            dbc.InputGroupText("Function", style={'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px', 'width':'20%'}),
-                            dcc.Dropdown(options=options_functions, id=id('dropdown_function'), value=options_functions[0]['value'], multi=False, clearable=False, style={'font-size': '12px', 'width':'80%'}),
-                        ]),
-                    ], id=id('function'), style={'height':'100px'}),
-                ])
-            ], width=7),
+            dbc.CardHeader(html.H5('Step 2: Select Function')),
+            html.Hr(),
+            dbc.Col(dcc.Dropdown(options=options_functions, id=id('dropdown_function'), value=options_functions[0]['value'], multi=False, clearable=False, style={'font-size': '20px', 'width':'100%'}), width={'size':10, 'offset':1}),
             html.Hr(),
 
             dbc.Col([
                 dbc.Card([
                     dbc.CardHeader(html.H6('Before')),
-                    dbc.CardBody(html.Div(generate_datatable(id('datatable2'), height='380px')), id=id('before'), style={'height':'300px'}),
+                    dbc.CardBody(html.Div(generate_datatable(id('datatable2'), height='380px')), id=id('before'), style={'min-height':'300px'}),
                 ])
             ], width=6),
             dbc.Col([
                 dbc.Card([
                     dbc.CardHeader(html.H6('After')),
-                    dbc.CardBody(html.Div(generate_datatable(id('datatable3'), height='380px')), style={'height':'300px'}),
+                    dbc.CardBody(html.Div(generate_datatable(id('datatable3'), height='380px')), style={'min-height':'300px'}),
                 ])
             ], width=6),
             html.Hr(),
@@ -117,20 +99,31 @@ layout = html.Div([
 
 @app.callback(
     Output(id('datatable'), "style_data_conditional"),
-    [Input(id('datatable'), "active_cell")]
+    Output(id('datatable'), "selected_columns"),
+    Input(id('datatable'), "active_cell"),
+    State(id('datatable'), "style_data_conditional"),
+    State(id('datatable'), "selected_columns"),
 )
-def update_selected_row_color(active):
-    pprint(active)
-    style = style_data_conditional.copy()
+def update_selected_column(active, current_style, selected_columns):
     if active:
-        style.append(
-            {
-                "if": {"column_id": active["column_id"]},
-                "backgroundColor": "rgba(150, 180, 225, 0.2)",
-                "border": "1px solid blue",
-            },
-        )
-    return style
+        tmp = [row['if'] == {'column_id': active['column_id']} for row in current_style]
+        # Remove Column
+        if any(tmp):
+            del current_style[tmp.index(True)]
+            selected_columns.remove(active["column_id"])
+
+        # Select Column
+        else:
+            current_style.append(
+                {
+                    "if": {"column_id": active["column_id"]},
+                    "backgroundColor": "rgba(150, 180, 225, 0.2)",
+                    "border": "1px solid blue",
+                },
+            )
+            selected_columns.append(active["column_id"])
+            
+    return current_style, selected_columns
 
 
 
@@ -138,15 +131,13 @@ def update_selected_row_color(active):
 # Datatable
 @app.callback(Output(id('datatable'), "data"),
                 Output(id('datatable'), 'columns'),
-                Output(id('dropdown_selected_columns'), "options"), 
                 Input('url', 'pathname'))
 def generate_datatable(pathname):
     dataset_id = get_session('dataset_id')
     df = get_dataset_data(dataset_id)
     columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
-    options = [{'label':c, 'value':c} for c in df.columns]
     
-    return df.to_dict('records'), columns, options
+    return df.to_dict('records'), columns
 
 
 # # Select Column 

@@ -59,8 +59,8 @@ layout = html.Div([
         dbc.Row([
             dbc.Col(html.Hr(style={'border': '1px dotted black', 'margin': '30px 0px 30px 0px'}), width=12),
             dbc.Col(html.H5('Step 2: Select Columns to join'), width=12),
-            dbc.Col(html.Div(generate_datatable(id('datatable_1'), height='300px')), width=6),
-            dbc.Col(html.Div(generate_datatable(id('datatable_2'), height='300px')), width=6),
+            dbc.Col(html.Div(generate_datatable(id('datatable_1'), height='300px', col_selectable='single')), width=6),
+            dbc.Col(html.Div(generate_datatable(id('datatable_2'), height='300px', col_selectable='single')), width=6),
             dbc.Col(html.H5('Selection: None', id=id('selection_list')), width=12, style={'text-align':'center', 'background-color':'silver'}),
         ], className='text-center', style={'margin': '1px'}),
 

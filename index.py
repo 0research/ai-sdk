@@ -7,7 +7,7 @@ from app import app
 from app import server 
 from app import dbc
 from apps.typesense_client import *
-from apps import (new_project, upload_dataset, join, search, extract_transform, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
+from apps import (new_project, new_api, upload_dataset, join, search, extract_transform, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage,
                 page2, page3, page6, page6,page7, page8, page9, page10)
 import ast
@@ -32,8 +32,8 @@ SIDEBAR_STYLE = {
 # add some padding.
 CONTENT_STYLE = {
     "margin-left": "18rem",
-    "margin-right": "2rem",
-    "padding": "2rem 1rem",
+    "margin-right": "10px",
+    "padding": "1rem 0rem",
 }
 
 # Define path for images used
@@ -65,10 +65,10 @@ navbar = dbc.Navbar([
             dbc.Select(options=[], id='dropdown_current_project', style={'min-width':'120px'}, persistence_type='session', persistence=True),
         ]), width={"size": 2, "order": "4", 'offset': 2}),
 
-        dbc.Col(dbc.InputGroup([
-            dbc.InputGroupText("Dataset"),
-            dbc.Input(id='display_current_dataset', disabled=True, style={'text-align':'center'})
-        ]), width={"size": 2, "order": "4", 'offset': 0}, style={'margin-right':'30px', 'height':'100%'}),
+        # dbc.Col(dbc.InputGroup([
+        #     dbc.InputGroupText("Dataset"),
+        #     dbc.Input(id='display_current_dataset', disabled=True, style={'text-align':'center'})
+        # ]), width={"size": 2, "order": "4", 'offset': 0}, style={'margin-right':'30px', 'height':'100%'}),
 
         # dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "4", 'offset':3}),
         # dbc.Col(dbc.Button("Data Lineage", href='/apps/data_lineage', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "5", 'offset':0}),
@@ -87,8 +87,11 @@ navbar = dbc.Navbar([
 
 
 # Sidebar
+sidebar_0 = [
+    dbc.NavLink("New Project", href="/apps/new_project", active="exact", className="fas fa-upload"),
+    dbc.NavLink("New API", href="/apps/new_api", active="exact", className="fas fa-upload"),
+]
 sidebar_1 = [
-    dbc.NavLink("New Project", href="/apps/new_project", id=id('nav_upload'), active="exact", className="fas fa-upload"),
     dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
     dbc.NavLink("Dashboard", href="/apps/dashboard", active="exact", className="fas fa-chart-pie"),
 ]
@@ -106,12 +109,14 @@ sidebar_4 = [
 sidebar = html.Div([
     dbc.Nav(
         [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
+        sidebar_0 +
+        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
         sidebar_1 +
         [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
         sidebar_2 +
         [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
         sidebar_3 +
-        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
+        # [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
         sidebar_4 +
         [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] 
         
@@ -142,6 +147,7 @@ app.layout = serve_layout
 @app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
 def display_page(pathname):
     if pathname.startswith('/apps/new_project'): return new_project.layout
+    if pathname.startswith('/apps/new_api'): return new_api.layout
     if pathname.startswith('/apps/upload_dataset'): return upload_dataset.layout
     if pathname.startswith('/apps/dashboard'): return dashboard.layout
     if pathname.startswith('/apps/profile'): return profile.layout
@@ -190,11 +196,10 @@ def load_dataset_dropdown(project_id):
     return no_update
 
 # Load Project ID and Node ID
-@app.callback(Output('dropdown_current_project', 'value'), 
-                Output('display_current_dataset', 'value'),
+@app.callback(Output('dropdown_current_project', 'value'),
                 Input('url', 'pathname'))
 def load_project_id(pathname):
-    return get_session('project_id'), get_session('dataset_id')
+    return get_session('project_id')
 
 # Search Function
 @app.callback(Output('url', 'pathname'),

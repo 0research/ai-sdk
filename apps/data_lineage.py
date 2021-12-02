@@ -32,18 +32,6 @@ app.css.config.serve_locally = True
 
 id = id_factory('data_lineage')
 
-
-def get_current_valid_edges(current_nodes, all_edges):
-    """Returns edges that are present in Cytoscape:
-    its source and target nodes are still present in the graph.
-    """
-    valid_edges = []
-    node_ids = {n['data']['id'] for n in current_nodes}
-
-    for e in all_edges:
-        if e['data']['source'] in node_ids and e['data']['target'] in node_ids:
-            valid_edges.append(e)
-    return valid_edges
     
 
 # Creating styles
@@ -88,19 +76,14 @@ stylesheet = [
 ]
 
 
-
-# cyto.load_extra_layouts()
 layout = html.Div([
-    # dcc.Interval(id=id('interval'), interval=1000, n_intervals=0),
-
     html.Div([
-        dbc.Row(dbc.Col(html.H1('Data Lineage (Data Flow Experiments)', style={'text-align':'center'}))),
+        dbc.Row(dbc.Col(html.H5('Data Lineage (Data Flow Experiments)', style={'text-align':'center'}))),
 
         dbc.Row([
             dbc.Col([
                 html.Button('Inspect', id=id('button_inspect'), className='btn btn-info btn-lg', style={'margin-right':'1px'}), 
                 html.Button('Plot Graph', id=id('button_plot_graph'), className='btn btn-success btn-lg', style={'margin-right':'15px'}),
-
                 html.Button('Upload Dataset', id=id('button_upload'), className='btn btn-primary btn-lg', style={'margin-right':'1px'}), 
                 html.Button('Remove Node', id=id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'15px'}),
                 html.Button('Reset', id=id('button_reset'), className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
@@ -117,26 +100,24 @@ layout = html.Div([
                                         'directed': True,
                                         'padding': 10,
                                         },
-                                style={'height': '1000px','width': '100%'},
+                                style={'height': '815px','width': '100%'},
                                 stylesheet=stylesheet)
-            ], width=7),
+            ], width=8),
 
             dbc.Col([
+                dbc.Tabs([], id=id("tabs_node")), 
                 dbc.Card([
-                    dbc.CardHeader([
-                        html.H6('Node Type: None', id=id('display_node_type')),
-                    ], style={'text-align':'center'}),
-                    dbc.CardBody('Profile/ActionDetails', id=id('display_node_profile'), style={'overflow-y':'auto'}),
-                ], className='bg-primary', style={'height': '450px'}, inverse=True),
-                
-                
-                dbc.Card([
-                    dbc.CardHeader(html.H5('Experiments'), style={'text-align':'center'}),
-                    dbc.CardBody(html.P('experiments'), id=id('experiments')),
-                    dbc.CardFooter('Buttons'),
-                ], className='bg-info', style={'height': '450px'}),
+                    dbc.CardHeader(html.P(id=id('node_name'), style={'text-align':'center', 'font-size':'22px', 'font-weight':'bold', 'width':'100%'})),
+                    dbc.CardBody(html.Div(id=id('node_content'), style={'height': '750px'})),
+                ], className='bg-primary', inverse=True),
+                # , style={'overflow-x':'scroll'}
+                # dbc.Card([
+                #     dbc.CardHeader(html.H5('Experiments'), style={'text-align':'center'}),
+                #     dbc.CardBody(html.P('experiments'), id=id('experiments')),
+                #     dbc.CardFooter('Buttons'),
+                # ], className='bg-info', style={'height': '450px'}),
 
-            ], width=5),
+            ], width=4),
         ]),
 
         # Modal
@@ -148,6 +129,7 @@ layout = html.Div([
 
     ], style={'width':'100%'}),
 ])
+
 
 
 # Load Cytoscape & Button Reset
@@ -172,19 +154,7 @@ def generate_cytoscape(n_clicks, pathname):
     
     
 
-
-# # Load Selected Node from session
-# @app.callback(Output(id('cytoscape'), 'tapNodeData'),
-#                 Input('url', 'pathname'))
-# def show_selected_node(pathname):
-#     print('123123')
-#     return {'action': None,
-#             'id': 'ff8326fe-476a-11ec-b504-dc719685b14a',
-#             'isAPI': True,
-#             'type': 'dataset_api'}
-
-
-def display_profile(dataset_id):
+def display_metadata(dataset_id):
     dataset = get_document('dataset', dataset_id)
     columns = [col for col, show in dataset['column'].items() if show == True]
     datatype = {col:dtype for col, dtype in dataset['datatype'].items() if col in columns}
@@ -250,26 +220,113 @@ def display_action(action_id):
     )
 
 
-# Select Node Single
-@app.callback(Output('display_current_dataset', 'value'),
-                Output(id('display_node_type'), 'children'),
-                # Output(id('display_node_id'), 'children'),
-                Output(id('display_node_profile'), 'children'),
-                Input(id('cytoscape'), 'tapNodeData'))
-def select_node(tapNodeData):
-    if tapNodeData is None: 
-        store_session('dataset_id', None)
-        return 'None', 'Node Type: None', ''
-    pprint(tapNodeData)
 
-    if tapNodeData['type'] == 'action':
-        store_session('dataset_id', None)
-        return no_update, 'Node Type: '+tapNodeData['type'], display_action(tapNodeData['id'])
-    else:
-        store_session('dataset_id', tapNodeData['id'])
-        # dataset = get_document('dataset', tapNodeData['id'])
-        return tapNodeData['id'], 'Node Type: '+tapNodeData['type'], display_profile(tapNodeData['id'])
+# Generate Tabs & Store Selected Node into Session
+@app.callback(
+    Output(id('tabs_node'), 'children'),
+    Output(id('tabs_node'), 'active_tab'),
+    Input(id('cytoscape'), 'selectedNodeData'),
+    State(id('tabs_node'), 'active_tab')
+)
+def generate_tabs(selectedNodeData, current_active_tab):
+    active_tab = None
+    tab1_disabled = False
+    tab2_disabled = False
+    tab_list = [
+        dbc.Tab(label="Data", tab_id="tab1", disabled=tab1_disabled),
+        dbc.Tab(label="Metadata", tab_id="tab2", disabled=tab2_disabled),
+    ]
+
+    if selectedNodeData is None: return tab_list, active_tab
+    
+    # Only one action Selected
+    if len(selectedNodeData) == 1 and selectedNodeData[0]['type'] == 'action':
+        tab1_disabled = True
+        active_tab = "tab2"
+    
+    # All nodes selected are 'dataset' or 'dataset_api'
+    if len(selectedNodeData) > 0 and all( (node['type'] == 'dataset' or node['type'] == 'dataset_api') for node in selectedNodeData):
+        if len(selectedNodeData) == 1:
+            active_tab = current_active_tab if current_active_tab is not None else 'tab1'
+        if len(selectedNodeData) > 1:
+            tab2_disabled = True
+            active_tab = "tab1"
         
+
+        # Only change selected node if only 1 node selected
+        if len(selectedNodeData) == 1: 
+            store_session('dataset_id', selectedNodeData[0]['id'])
+
+    # Invalid Node Combinations Selected
+    else:
+        tab1_disabled = True
+        tab2_disabled = True
+        store_session('dataset_id', None)
+
+    tab_list = [
+        dbc.Tab(label="Data", tab_id="tab1", disabled=tab1_disabled),
+        dbc.Tab(label="Metadata", tab_id="tab2", disabled=tab2_disabled),
+    ]
+    
+    return tab_list, active_tab
+
+
+# Generate Node Data
+@app.callback(Output(id('node_name'), 'children'),
+                Output(id('node_name'), 'contentEditable'),
+                Output(id('node_content'), 'children'),
+                Input(id('tabs_node'), 'active_tab'),
+                State(id('cytoscape'), 'selectedNodeData'),)
+def select_node(active_tab, selectedNodeData):
+    pprint(selectedNodeData)
+    contentEditable = 'false'
+
+    if active_tab == 'tab1':
+        # out = [html.Button('View In Tabular Format', id=id('button_tabular'), className='btn btn-info btn-lg', style={'margin-right':'1px'})]
+        out = []
+        for node in selectedNodeData:
+            dataset_data = get_dataset_data(node['id']).to_dict('records')
+            out.append(html.Pre(json.dumps(dataset_data, indent=2), style={'height': '750px', 'font-size':'12px', 'overflow-y':'auto', 'overflow-x':'scroll'}))
+        name = selectedNodeData[0]['type']
+        contentEditable = 'true'
+
+    elif active_tab == 'tab2':
+        if selectedNodeData[0]['type'] == 'action': 
+            name = selectedNodeData[0]['type']
+            out = display_action(selectedNodeData[0]['id'])
+        else: 
+            name = selectedNodeData[0]['type']
+            out = display_metadata(selectedNodeData[0]['id'])
+
+    else:
+        name = ''
+        out = ''
+
+    return name, contentEditable, out
+
+
+    # if len(selectedNodeData) == 0 and selectedNodeData[0]['type'] == 'action':
+    #     store_session('dataset_id', None)
+    #     return no_update, selectedNodeData[0]['type'], display_action(selectedNodeData[0]['id'])
+        
+    # if all( (node['type'] == 'dataset' or node['type'] == 'dataset_api') for node in selectedNodeData):
+    #     store_session('dataset_id', selectedNodeData['id'])
+        
+    #     return tapNodeData['id'], tapNodeData['type'], display_metadata(tapNodeData['id'])
+            
+        
+
+# @app.callback(Output(id('node_content'), 'children'),
+#                 Input(id('tabs_node'), 'active_tab'))
+# def generate_node_tabs(active_tab):
+#     if active_tab == 'tab1':
+#         out = html.P('asdasd'*100)
+
+#     elif active_tab == 'tab2':
+#         out = html.P('22'*100)
+#     return out
+
+
 
 # Select Node Multiple 
 @app.callback(Output('modal_confirm', 'children'),

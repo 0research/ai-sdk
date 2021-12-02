@@ -188,27 +188,12 @@ def generate_dropdown(component_id, options, value=None, multi=False, placeholde
 
 
 def generate_datatable(component_id, data=[], columns=[], height='450px',
+                        metadata_id = None, 
                         cell_editable=False,
-                        row_deletable=False, row_selectable=False, 
-                        col_selectable=False, col_deletable=False,):
+                        row_deletable=False, row_selectable=False, selected_row_id = None,
+                        col_selectable=False, col_deletable=False, selected_column_id = None,):
+    # Datatable            
     datatable_columns = [{"name": c, "id": c, "deletable": col_deletable, "selectable": col_selectable} for c in columns]
-
-    info_height = 100
-    selected_height = 35
-
-    selected = html.Div()
-    if col_selectable is not False:
-        info_height = info_height - selected_height
-        selected = dbc.Card([
-            dbc.CardHeader('Selected'),
-            dbc.CardBody(dcc.Dropdown(multi=True), style={'height':'100px'})
-        ], style={'height':str(selected_height)+'%'})
-
-    info = dbc.Card([
-        dbc.CardHeader('Metadata'),
-        dbc.CardBody('Body')
-    ], style={'height': str(info_height)+'%', 'overflow-y': 'auto'})
-
     datatable = dash_table.DataTable(
         id=component_id,
         data=data,
@@ -220,6 +205,8 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
         column_selectable=col_selectable,
         row_selectable=row_selectable,
         row_deletable=row_deletable,
+        selected_columns=[],
+        selected_rows=[],
         page_size= 100,
         style_table={'height': height, 'overflowY': 'auto'},
         style_data={
@@ -237,12 +224,20 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
         style_data_conditional=style_data_conditional,
     ),
 
+    # Metadata
+    if metadata_id is not None:
+        metadata = dbc.Card([
+            dbc.CardHeader('Metadata'),
+            dbc.CardBody('Body')
+        ], style={'height': '100%', 'overflow-y': 'auto'})
+        width = (9, 3)
+    else:
+        metadata = html.Div()
+        width = (12, 0)
+
     return dbc.Row([
-        dbc.Col(datatable, width=9),
-        dbc.Col([
-            info,
-            selected,
-        ], width=3),
+        dbc.Col(datatable, width=width[0]),
+        dbc.Col(metadata, width=width[1]),
     ])
 
 
