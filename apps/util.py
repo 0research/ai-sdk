@@ -22,7 +22,7 @@ from pandas import json_normalize
 import pandas as pd
 import uuid
 from apps.constants import *
-
+from apps.typesense_client import *
 
 
 
@@ -184,8 +184,80 @@ def generate_dropdown(component_id, options, value=None, multi=False, placeholde
         style=style,
     )
 
+def display_dataset_data(dataset_data):
+    return html.Pre(json.dumps(dataset_data, indent=2), style={'height': '750px', 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
 
+def display_metadata(dataset):
+    columns = [col for col, show in dataset['column'].items() if show == True]
+    datatype = {col:dtype for col, dtype in dataset['datatype'].items() if col in columns}
+    return (
+        html.Div([
+            html.Div([
+                dbc.InputGroup([
+                    dbc.InputGroupText("Dataset ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                    dbc.Input(disabled=True, value=dataset['id'], style={'font-size': '12px', 'text-align':'center'}),
+                ], className="mb-3 lg"),
+                dbc.InputGroup([
+                    dbc.InputGroupText("Index Column", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                    dbc.Input(disabled=True, value=dataset['index'], style={'font-size': '12px', 'text-align':'center'}),
+                ], className="mb-3 lg"),
+                dbc.InputGroup([
+                    dbc.InputGroupText("Target Column", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                    dbc.Input(disabled=True, value=dataset['target'], style={'font-size': '12px', 'text-align':'center'}),
+                ], className="mb-3 lg"),
+            ]),
+            html.Table(
+                [
+                    html.Tr([
+                        html.Th('Column'),
+                        html.Th('Datatype'),
+                        html.Th('Invalid (%)'),
+                        html.Th('Result'),
+                    ])
+                ] + 
+                [
+                    html.Tr([
+                        html.Td(html.P(col), id={'type':id('col_column'), 'index': i}),
+                        html.Td(html.P(dtype)),
+                        html.Td(html.P('%', id={'type':id('col_invalid'), 'index': i})),
+                        html.Td(html.P('-', id={'type':id('col_result'), 'index': i})),
+                    ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(datatype.items())
+                ],
+            )
+        ], style={'overflow-x':'scroll', 'overflow-y':'auto'})
+    )
 
+def display_action(action):
+    return (
+        html.Div([
+            dbc.InputGroup([
+                dbc.InputGroupText("Action ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                dbc.Input(disabled=True, value=action['id'], style={'font-size': '12px', 'text-align':'center'}),
+            ], className="mb-3 lg"),
+            dbc.InputGroup([
+                dbc.InputGroupText("Action", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                dbc.Input(disabled=True, value=action['action'], style={'font-size': '12px', 'text-align':'center'}),
+            ], className="mb-3 lg"),
+            dbc.InputGroup([
+                dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                dbc.Textarea(disabled=True, value=action['description'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+            ], className="mb-3 lg"),
+            dbc.InputGroup([
+                dbc.InputGroupText("Action Details", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                dbc.Textarea(disabled=True, value=str(action['action_details']), style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+            ], className="mb-3 lg"),
+        ])
+    )
+
+def generate_options(label_list, input_list):
+    return [
+        (
+            dbc.InputGroup([
+                dbc.InputGroupText(label, style={'width':'25%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'10px'}), 
+                inp
+            ], className="mb-3 lg", style={'display': ('none' if label is None else 'flex')})
+        ) for label, inp in zip(label_list, input_list)
+    ]
 
 def generate_datatable(component_id, data=[], columns=[], height='450px',
                         metadata_id = None, 

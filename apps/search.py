@@ -42,7 +42,7 @@ layout = html.Div([
     dbc.Container([
         
         dbc.Row([
-            html.Br(),
+            dbc.Col(dbc.CardBody(dbc.Input(type="search", id='search2', debounce=True, placeholder="Search...", style={'text-align':'center'})), width=9),
             dbc.Col([
                 dbc.RadioItems(
                     options=options_search,
@@ -51,11 +51,28 @@ layout = html.Div([
                     inline=True,
                     style={'float':'right'}
                 ),
-            ], width=12),
+            ], width=3),
         ], className='bg-light'),
 
         dbc.Row([
-            html.Div(id=id('search_result')),
+            
+            # Left Panel
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader(html.H6('API Catalog')),
+                    
+                    dbc.CardBody(html.Div(id=id('search_result'))),
+                ])
+            ], width=8),
+
+            # Right Panel
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader(html.H6('View')),
+                    dbc.CardBody([], id=id('right_panel'), style={'height':'800px'}),
+                ]),
+            ], width=4),
+            
         ], className='text-center', style={'margin': '1px'}),
     ], fluid=True, id=id('content')),
 ])

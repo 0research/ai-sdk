@@ -96,6 +96,17 @@ layout = html.Div([
 
 
 
+# Datatable
+@app.callback(Output(id('datatable'), "data"),
+                Output(id('datatable'), 'columns'),
+                Input('url', 'pathname'))
+def generate_datatable(pathname):
+    dataset_id = get_session('dataset_id')
+    df = get_dataset_data(dataset_id)
+    columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
+    
+    return df.to_dict('records'), columns
+
 
 @app.callback(
     Output(id('datatable'), "style_data_conditional"),
@@ -126,18 +137,21 @@ def update_selected_column(active, current_style, selected_columns):
     return current_style, selected_columns
 
 
+@app.callback(
+    Output(id('metadata'), 'children'),
+    Input('url', 'pathname')
+)
+def update_metadata(pathname):
+
+    columns = ['No.', 'Column', 'dType']
+    data 
+    return html.Div([
+        html.P('content'),
+        generate_datatable(data, columns)
+    ])
 
 
-# Datatable
-@app.callback(Output(id('datatable'), "data"),
-                Output(id('datatable'), 'columns'),
-                Input('url', 'pathname'))
-def generate_datatable(pathname):
-    dataset_id = get_session('dataset_id')
-    df = get_dataset_data(dataset_id)
-    columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
-    
-    return df.to_dict('records'), columns
+
 
 
 # # Select Column 

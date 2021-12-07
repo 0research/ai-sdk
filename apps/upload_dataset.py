@@ -45,7 +45,7 @@ app.css.config.serve_locally = True
 
 # Initialize Variables
 UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"
-du.configure_upload(app, UPLOAD_FOLDER_ROOT)
+# du.configure_upload(app, UPLOAD_FOLDER_ROOT)
 id = id_factory('upload')
 
 datatype_list = ['object', 'Int64', 'float64', 'bool', 'datetime64', 'category']

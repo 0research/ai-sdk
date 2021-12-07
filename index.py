@@ -7,7 +7,7 @@ from app import app
 from app import server 
 from app import dbc
 from apps.typesense_client import *
-from apps import (new_project, new_api, upload_dataset, join, search, extract_transform, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
+from apps import (new_project, new_dataset, upload_dataset, join, search, extract_transform, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage,
                 page2, page3, page6, page6,page7, page8, page9, page10)
 import ast
@@ -31,7 +31,7 @@ SIDEBAR_STYLE = {
 # the styles for the main content position it to the right of the sidebar and
 # add some padding.
 CONTENT_STYLE = {
-    "margin-left": "18rem",
+    "margin-left": "14rem",
     "margin-right": "10px",
     "padding": "1rem 0rem",
 }
@@ -85,17 +85,18 @@ navbar = dbc.Navbar([
 ], color="dark", dark=True,)
     
 
-
 # Sidebar
 sidebar_0 = [
     dbc.NavLink("New Project", href="/apps/new_project", active="exact", className="fas fa-upload"),
-    dbc.NavLink("New API", href="/apps/new_api", active="exact", className="fas fa-upload"),
+    dbc.NavLink("New Dataset", href="/apps/new_dataset", active="exact", className="fas fa-upload"),
 ]
 sidebar_1 = [
     dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
     dbc.NavLink("Dashboard", href="/apps/dashboard", active="exact", className="fas fa-chart-pie"),
+    dbc.NavLink("Add Dataset", href="/apps/upload_dataset", active="exact", className="fas fa-upload"),
+    dbc.NavLink("Plot Graph", href="/apps/plot_graph", active="exact", className="fas fa-upload"),
 ]
-sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_2_LIST]
+sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className'], disabled=nav['disabled']) for nav in SIDEBAR_2_LIST]
 sidebar_3 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_3_LIST]
 sidebar_4 = [
     dbc.NavLink("Workflow", href="/apps/workflow", active="exact", className="fas fa-arrow-alt-circle-right"),
@@ -126,7 +127,7 @@ sidebar = html.Div([
         # dcc.Link('Temporal Merge | ', href='/apps/page8'),
         # dcc.Link('Temporal Evolution | ', href='/apps/page9'),
         # dcc.Link('Page 10 | ', href='/apps/page10'),
-    , vertical=True, pills=True),
+    , vertical=True, pills=True, id='sidebar'),
 ], style=SIDEBAR_STYLE)
 
 
@@ -147,7 +148,7 @@ app.layout = serve_layout
 @app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
 def display_page(pathname):
     if pathname.startswith('/apps/new_project'): return new_project.layout
-    if pathname.startswith('/apps/new_api'): return new_api.layout
+    if pathname.startswith('/apps/new_dataset'): return new_dataset.layout
     if pathname.startswith('/apps/upload_dataset'): return upload_dataset.layout
     if pathname.startswith('/apps/dashboard'): return dashboard.layout
     if pathname.startswith('/apps/profile'): return profile.layout
@@ -176,6 +177,22 @@ def display_page(pathname):
     # if pathname == '/apps/git_graph': return git_graph.layout
     else: return merge_strategy.layout
 
+
+
+# Highlight Active Navigation
+@app.callback(
+    Output('sidebar', 'children'),
+    Input('url', 'pathname'),
+    State('sidebar', 'children'),
+)
+def highlight_active_nav(pathname, sidebar):
+    print('highlight')
+    for i in range(len(sidebar)):
+        if 'className' in sidebar[i]['props']:
+            if sidebar[i]['props']['href'] == pathname:
+                sidebar[i]['props']['className'] + ' active'
+
+    return sidebar
 
 
 # Load Projects Options in dropdown

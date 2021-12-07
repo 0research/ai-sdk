@@ -79,13 +79,12 @@ stylesheet = [
 layout = html.Div([
     html.Div([
         dbc.Row(dbc.Col(html.H5('Data Lineage (Data Flow Experiments)', style={'text-align':'center'}))),
-
+        
         dbc.Row([
             dbc.Col([
-                html.Button('Inspect', id=id('button_inspect'), className='btn btn-info btn-lg', style={'margin-right':'1px'}), 
-                html.Button('Plot Graph', id=id('button_plot_graph'), className='btn btn-success btn-lg', style={'margin-right':'15px'}),
-                html.Button('Upload Dataset', id=id('button_upload'), className='btn btn-primary btn-lg', style={'margin-right':'1px'}), 
-                html.Button('Remove Node', id=id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'15px'}),
+                # html.Button('Plot Graph', id=id('button_plot_graph'), className='btn btn-success btn-lg', style={'margin-right':'15px'}),
+                html.Button('Add Dataset', id=id('button_upload'), className='btn btn-primary btn-lg', style={'margin-right':'1px'}), 
+                # html.Button('Remove Node', id=id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'15px'}),
                 html.Button('Reset', id=id('button_reset'), className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
                 # html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'1px'}), 
 
@@ -95,6 +94,7 @@ layout = html.Div([
                                 minZoom=0.2,
                                 maxZoom=2,
                                 elements=[], 
+                                selectedNodeData=[],
                                 layout={'name': 'breadthfirst',
                                         'fit': True,
                                         'directed': True,
@@ -107,7 +107,17 @@ layout = html.Div([
             dbc.Col([
                 dbc.Tabs([], id=id("tabs_node")), 
                 dbc.Card([
-                    dbc.CardHeader(html.P(id=id('node_name'), style={'text-align':'center', 'font-size':'22px', 'font-weight':'bold', 'width':'100%'})),
+                    dbc.CardHeader([
+                        html.P(id=id('node_name_list'), style={'text-align':'center', 'font-size':'20px', 'font-weight':'bold', 'float':'left', 'width':'75%'}),
+                        html.Div([
+                            dbc.Button(html.I(n_clicks=0, className='fa fa-table'), id=id('button_tabular'), className='btn btn-info'),
+                            dbc.Button(html.I(n_clicks=0, className='fas fa-chart-area'), id=id('button_chart'), className='btn btn-success', style={'margin-left':'1px'}),
+                            dbc.Button(html.I(n_clicks=0, className='fas fa-times'), id=id('button_remove'), className='btn btn-danger', style={'margin-left':'1px'}),
+                            dbc.Tooltip('View in Tabular Format', target=id('button_tabular')),
+                            dbc.Tooltip('Chart', target=id('button_chart')),
+                            dbc.Tooltip('Remove Action or Raw Dataset', target=id('button_remove')),
+                        ], style={'width': '25%', 'float':'right', 'text-align':'right'}),
+                    ]),
                     dbc.CardBody(html.Div(id=id('node_content'), style={'height': '750px'})),
                 ], className='bg-primary', inverse=True),
                 # , style={'overflow-x':'scroll'}
@@ -153,72 +163,20 @@ def generate_cytoscape(n_clicks, pathname):
     return elements, layout
     
     
-
-def display_metadata(dataset_id):
-    dataset = get_document('dataset', dataset_id)
-    columns = [col for col, show in dataset['column'].items() if show == True]
-    datatype = {col:dtype for col, dtype in dataset['datatype'].items() if col in columns}
-    return (
-        html.Div([
-            html.Div([
-                dbc.InputGroup([
-                    dbc.InputGroupText("Dataset ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                    dbc.Input(disabled=True, value=dataset_id, style={'font-size': '12px', 'text-align':'center'}),
-                ], className="mb-3 lg"),
-                dbc.InputGroup([
-                    dbc.InputGroupText("Index Column", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                    dbc.Input(disabled=True, value=dataset['index'], style={'font-size': '12px', 'text-align':'center'}),
-                ], className="mb-3 lg"),
-                dbc.InputGroup([
-                    dbc.InputGroupText("Target Column", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                    dbc.Input(disabled=True, value=dataset['target'], style={'font-size': '12px', 'text-align':'center'}),
-                ], className="mb-3 lg"),
-            ]),
-            html.Table(
-                [
-                    html.Tr([
-                        html.Th('Column'),
-                        html.Th('Datatype'),
-                        html.Th('Invalid (%)'),
-                        html.Th('Result'),
-                    ])
-                ] + 
-                [
-                    html.Tr([
-                        html.Td(html.P(col), id={'type':id('col_column'), 'index': i}),
-                        html.Td(html.P(dtype)),
-                        html.Td(html.P('%', id={'type':id('col_invalid'), 'index': i})),
-                        html.Td(html.P('-', id={'type':id('col_result'), 'index': i})),
-                    ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(datatype.items())
-                ],
-                style={'width':'100%', 'height':'800px'}, id=id('table_data_profile')
-            )
-        ])
-    )
-
-def display_action(action_id):
-    action = get_document('action', action_id)
-    return (
-        html.Div([
-            dbc.InputGroup([
-                dbc.InputGroupText("Action ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                dbc.Input(disabled=True, value=action['id'], style={'font-size': '12px', 'text-align':'center'}),
-            ], className="mb-3 lg"),
-            dbc.InputGroup([
-                dbc.InputGroupText("Action", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                dbc.Input(disabled=True, value=action['action'], style={'font-size': '12px', 'text-align':'center'}),
-            ], className="mb-3 lg"),
-            dbc.InputGroup([
-                dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                dbc.Textarea(disabled=True, value=action['description'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
-            ], className="mb-3 lg"),
-            dbc.InputGroup([
-                dbc.InputGroupText("Action Details", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                dbc.Textarea(disabled=True, value=str(action['action_details']), style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
-            ], className="mb-3 lg"),
-        ])
-    )
-
+# Disable/Enable Right Panel Buttons
+@app.callback(
+    Output(id('button_tabular'), 'disabled'),
+    Output(id('button_chart'), 'disabled'),
+    Output(id('button_remove'), 'disabled'),
+    Input(id('tabs_node'), 'active_tab'),
+    Input('url', 'pathname'),
+)
+def button_disable_enable(active_tab, pathname):
+    if active_tab == 'tab1': return False, False, False
+    elif active_tab == 'tab2': return True, True, False
+    elif active_tab == 'tab3': return False, True, True
+    elif active_tab == 'tab4': return True, True, True
+    else: return True, True, True
 
 
 # Generate Tabs & Store Selected Node into Session
@@ -226,95 +184,126 @@ def display_action(action_id):
     Output(id('tabs_node'), 'children'),
     Output(id('tabs_node'), 'active_tab'),
     Input(id('cytoscape'), 'selectedNodeData'),
+    Input('url', 'pathname'),
     State(id('tabs_node'), 'active_tab')
 )
-def generate_tabs(selectedNodeData, current_active_tab):
-    active_tab = None
-    tab1_disabled = False
-    tab2_disabled = False
-    tab_list = [
-        dbc.Tab(label="Data", tab_id="tab1", disabled=tab1_disabled),
-        dbc.Tab(label="Metadata", tab_id="tab2", disabled=tab2_disabled),
-    ]
+def generate_tabs(selectedNodeData, pathname, active_tab):
+    tab1_disabled, tab2_disabled, tab3_disabled = True, True, True
 
-    if selectedNodeData is None: return tab_list, active_tab
-    
-    # Only one action Selected
+    # One 'action' Selected
     if len(selectedNodeData) == 1 and selectedNodeData[0]['type'] == 'action':
-        tab1_disabled = True
+        tab2_disabled = False
         active_tab = "tab2"
+
+    # One 'dataset' or 'dataset_api' node selected
+    elif len(selectedNodeData) == 1 and (selectedNodeData[0]['type'] == 'dataset' or selectedNodeData[0]['type'] == 'dataset_api'):
+        store_session('dataset_id', selectedNodeData[0]['id'])
+        active_tab = 'tab1' if (active_tab == 'tab3' or active_tab == 'tab4' or active_tab is None) else active_tab
+        tab1_disabled = False
+        tab2_disabled = False
     
-    # All nodes selected are 'dataset' or 'dataset_api'
-    if len(selectedNodeData) > 0 and all( (node['type'] == 'dataset' or node['type'] == 'dataset_api') for node in selectedNodeData):
-        if len(selectedNodeData) == 1:
-            active_tab = current_active_tab if current_active_tab is not None else 'tab1'
-        if len(selectedNodeData) > 1:
-            tab2_disabled = True
-            active_tab = "tab1"
+    # More than one 'dataset' or 'dataset_api' node selected
+    elif len(selectedNodeData) > 1 and all((node['type'] == 'dataset' or node['type'] == 'dataset_api') for node in selectedNodeData):
+        store_session('dataset_id', None)
+        active_tab = 'tab3' if (active_tab == 'tab1' or active_tab == 'tab2' or active_tab is None) else active_tab
+        tab3_disabled = False
         
-
-        # Only change selected node if only 1 node selected
-        if len(selectedNodeData) == 1: 
-            store_session('dataset_id', selectedNodeData[0]['id'])
-
     # Invalid Node Combinations Selected
     else:
-        tab1_disabled = True
-        tab2_disabled = True
+        active_tab = None
         store_session('dataset_id', None)
 
     tab_list = [
-        dbc.Tab(label="Data", tab_id="tab1", disabled=tab1_disabled),
+        dbc.Tab(label="JSON", tab_id="tab1", disabled=tab1_disabled),
         dbc.Tab(label="Metadata", tab_id="tab2", disabled=tab2_disabled),
+        dbc.Tab(label="Merged", tab_id="tab3", disabled=tab3_disabled),
+        dbc.Tab(label="Merged Metadata", tab_id="tab4", disabled=tab3_disabled),
     ]
-    
     return tab_list, active_tab
 
 
+
+
 # Generate Node Data
-@app.callback(Output(id('node_name'), 'children'),
-                Output(id('node_name'), 'contentEditable'),
+@app.callback(Output(id('node_name_list'), 'children'),
+                # Output(id('node_name_list'), 'contentEditable'),
                 Output(id('node_content'), 'children'),
                 Input(id('tabs_node'), 'active_tab'),
                 State(id('cytoscape'), 'selectedNodeData'),)
 def select_node(active_tab, selectedNodeData):
+    if len(selectedNodeData) == 0: return '', ''
     pprint(selectedNodeData)
-    contentEditable = 'false'
+    name, base = [], []
+    out = [dbc.Input(id=id('search'), placeholder='Search', style={'text-align':'center'})]
 
     if active_tab == 'tab1':
-        # out = [html.Button('View In Tabular Format', id=id('button_tabular'), className='btn btn-info btn-lg', style={'margin-right':'1px'})]
-        out = []
-        for node in selectedNodeData:
-            dataset_data = get_dataset_data(node['id']).to_dict('records')
-            out.append(html.Pre(json.dumps(dataset_data, indent=2), style={'height': '750px', 'font-size':'12px', 'overflow-y':'auto', 'overflow-x':'scroll'}))
-        name = selectedNodeData[0]['type']
-        contentEditable = 'true'
+        name = html.Div(selectedNodeData[0]['type'], id=id(selectedNodeData[-1]['id']), contentEditable='true', className="badge border border-info text-wrap")
+        dataset_data = get_dataset_data(selectedNodeData[-1]['id']).to_dict('records')
+        out = out + [display_dataset_data(dataset_data)]
+        
 
     elif active_tab == 'tab2':
+        name = html.Div(selectedNodeData[0]['type'], id=id(selectedNodeData[-1]['id']), contentEditable='true', className="badge border border-info text-wrap")
         if selectedNodeData[0]['type'] == 'action': 
-            name = selectedNodeData[0]['type']
-            out = display_action(selectedNodeData[0]['id'])
+            action = get_document('action', selectedNodeData[-1]['id'])
+            out = out + [display_action(action)]
+
         else: 
-            name = selectedNodeData[0]['type']
-            out = display_metadata(selectedNodeData[0]['id'])
+            dataset = get_document('dataset', selectedNodeData[-1]['id'])
+            out = out + [display_metadata(dataset)]
+
+    elif active_tab == 'tab3':
+        for node in selectedNodeData:
+            name = name + [html.Div([
+                html.P(str(len(name)+1)+')', style={'display':'inline-block', 'font-size':'13px'}),
+                html.P(node['type'], id=id(node['id']), contentEditable='true', style={'margin':'5px', 'display':'inline-block'}),
+            ], style={'display':'inline-block'}, className="badge border border-info text-wrap")]
+
+            base = json_merge(base, get_dataset_data(node['id']).to_dict('records'), 'overwrite')
+
+        out = out + [display_dataset_data(base)]
+        out = [dbc.CardBody(dbc.Button('Perform Merge Action', id=id('button_merge'), className='btn btn-warning btn-lg', style={'width':'100%'}))] + out
+    
+    elif active_tab == 'tab4':
+        for node in selectedNodeData:
+            dataset = get_document('dataset', node['id'])
+            name = name + [html.Div([
+                html.P(str(len(name)+1)+')', style={'display':'inline-block', 'font-size':'13px'}),
+                html.P(node['type'], id=id(node['id']), contentEditable='true', style={'margin':'5px', 'display':'inline-block'}),
+            ], style={'display':'inline-block'}, className="badge border border-info text-wrap")]
+
+            base = json_merge(base, dataset, 'overwrite')
+
+        out = out + [display_dataset_data(base)]
+        out = [dbc.CardBody(dbc.Button('Perform Merge Action', id=id('button_merge'), className='btn btn-warning btn-lg', style={'width':'100%'}))] + out
 
     else:
-        name = ''
-        out = ''
+        name, out  = [], []
 
-    return name, contentEditable, out
+    return name, out
 
 
-    # if len(selectedNodeData) == 0 and selectedNodeData[0]['type'] == 'action':
-    #     store_session('dataset_id', None)
-    #     return no_update, selectedNodeData[0]['type'], display_action(selectedNodeData[0]['id'])
-        
-    # if all( (node['type'] == 'dataset' or node['type'] == 'dataset_api') for node in selectedNodeData):
-    #     store_session('dataset_id', selectedNodeData['id'])
-        
-    #     return tapNodeData['id'], tapNodeData['type'], display_metadata(tapNodeData['id'])
-            
-        
+# # Merge Dataset
+# @app.callback(
+#     Output(id('cytoscape'), 'elements'),
+#     Output(id('cytoscape'), 'tapNodeData'),
+#     Input(id('button_merge'), 'n_clicks'),
+#     State(id('cytoscape'), 'selectedNodeData'),
+#     State(id('cytoscape'), 'elements'),
+# )
+# def merge_datasets(n_clicks, selectedNodeData, elements):
+#     print(n_clicks)
+#     pprint(elements)
+
+#     for node in selectedNodeData:
+#         name = name + [html.Div([
+#             html.P(str(len(name)+1)+')', style={'display':'inline-block', 'font-size':'13px'}),
+#             html.P(node['type'], id=id(node['id']), contentEditable='true', style={'margin':'5px', 'display':'inline-block'}),
+#         ], style={'display':'inline-block'}, className="badge border border-info text-wrap")]
+#         base = json_merge(base, get_dataset_data(node['id']).to_dict('records'), 'overwrite')
+
+#     return no_update
+
 
 # @app.callback(Output(id('node_content'), 'children'),
 #                 Input(id('tabs_node'), 'active_tab'))
@@ -350,70 +339,46 @@ def button_add(n_clicks):
     return '/apps/upload_dataset'
 
 # Inspect Button
-@app.callback(Output(id('modal'), 'is_open'),
-                Output(id('modal_title'), 'children'),
-                Output(id('modal_body'), 'children'),
-                Output(id('modal_footer'), 'children'),
-                Input(id('button_inspect'), 'n_clicks'),
-                Input(id('cytoscape'), 'tapNodeData'))
-def button_inspect_action(n_clicks_inspect, tapNodeData):
-    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-    if triggered == '': return no_update
-    if tapNodeData is None: return no_update
-    
-    if triggered == id('button_inspect'):
-        node_id = tapNodeData['id']
-        modal_title = "Inspect"
+@app.callback(
+    Output(id('modal'), 'is_open'),
+    Output(id('modal_title'), 'children'),
+    Output(id('modal_body'), 'children'),
+    Output(id('modal_footer'), 'children'),
+    Input(id('button_tabular'), 'n_clicks'),
+    State(id('cytoscape'), 'selectedNodeData')
+)
+def button_inspect_action(n_clicks, selectedNodeData):
+    if n_clicks is None: return no_update
+    if selectedNodeData is None: return no_update
+    if len(selectedNodeData) == 0: return no_update
+
+    # Retrieve Dataset Data
+    if all(node['type'] == 'dataset' or node['type'] == 'dataset_api' for node in selectedNodeData):
+        if len(selectedNodeData) == 1:
+            df = get_dataset_data(selectedNodeData[-1]['id'])
+            out = df.to_dict('records')
+        elif len(selectedNodeData) > 1:
+            base = []
+            for node in selectedNodeData:
+                base = json_merge(base, get_dataset_data(node['id']).to_dict('records'), 'overwrite')
+            df = json_normalize(base)
+            out = base
+
+        modal_title = ""
         modal_footer = ''
-
-        # Retrieve Dataset Data
-        if tapNodeData['type'] == 'dataset' or tapNodeData['type'] == 'dataset_api':
-            dataset = get_document('dataset', node_id)
-            df = get_dataset_data(node_id)
-            modal_body = (dbc.ModalBody([
-                        dbc.InputGroup([
-                            dbc.InputGroupText("Dataset ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                            dbc.Input(disabled=True, value=dataset['id'], style={'font-size': '12px', 'text-align':'center'}),
-                        ], className="mb-3 lg"),
-                        dbc.InputGroup([
-                            dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                            dbc.Textarea(disabled=True, value=dataset['description'], style={'font-size': '12px', 'text-align':'center','padding': '30px 0'}),
-                        ], className="mb-3 lg"),
-                        html.Div(generate_datatable(id('inspect_modal_datatable'), df.to_dict('records'), df.columns, height='700px')),
-                    ]))
-        # Retrieve Action Data
-        elif tapNodeData['type'] == 'action':
-            action = get_document('action', node_id)
-            modal_body = (dbc.ModalBody([
-                        dbc.InputGroup([
-                            dbc.InputGroupText("Action ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                            dbc.Input(disabled=True, value=action['id'], style={'font-size': '12px', 'text-align':'center'}),
-                        ], className="mb-3 lg"),
-                        dbc.InputGroup([
-                            dbc.InputGroupText("Action", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                            dbc.Input(disabled=True, value=action['action'], style={'font-size': '12px', 'text-align':'center'}),
-                        ], className="mb-3 lg"),
-                        dbc.InputGroup([
-                            dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                            dbc.Textarea(disabled=True, value=action['description'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
-                        ], className="mb-3 lg"),
-                        dbc.InputGroup([
-                            dbc.InputGroupText("Action Details", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                            dbc.Textarea(disabled=True, value=str(action['action_details']), style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
-                        ], className="mb-3 lg"),
-                    ]))
-
+        modal_body = html.Div(generate_datatable(id('inspect_modal_datatable'), out, df.columns, height='800px'))  
         return True, modal_title, modal_body, modal_footer
 
     else:
         return no_update
 
 
-# Add Graph
+
+# Button Chart
 @app.callback(Output('url', 'pathname'),
-                Input(id('button_plot_graph'), 'n_clicks'),
+                Input(id('button_chart'), 'n_clicks'),
                 State(id('cytoscape'), 'selectedNodeData'))
-def button_plot_graph(n_clicks, selectedNodeData):
+def button_chart(n_clicks, selectedNodeData):
     if n_clicks is None: return no_update
     if selectedNodeData is None: return no_update
     if len(selectedNodeData) != 1: return no_update
