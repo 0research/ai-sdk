@@ -77,7 +77,7 @@ def search_documents(collection_id, per_page, search_parameters=None):
         }
     result = client.collections[collection_id].documents.search(search_parameters)
     return [d['document'] for d in result['hits']]
-def get_dataset_data(dataset_id):
+def get_dataset_data_store(dataset_id):
     dataset = get_document('dataset', dataset_id)
     columns = [col for col, show in dataset['column'].items() if show == True]
     data = search_documents(dataset_id, '250')
@@ -112,31 +112,34 @@ def Project(id, type, dataset, action, edge, experiment):
         'edge_list': edge,
         'experiment': experiment
     }
-def Dataset(id, description, api_data, column, datatype, expectation, index, target):
+def Dataset(id, name, description, type, details, column, datatype, expectation, index, target, graphs):
     return {
         'id': id,
+        'name': name,
         'description': description,
-        'api_data': api_data, # None or {source, delimiter, remove_space, remove_header}
+        'type': type,
+        'details': details, 
         'column': column,
         'datatype': datatype,
         'expectation': expectation,
         'index': index, 
         'target': target,
+        'graphs': graphs
     }
-def Action(id, action, description, action_details):
+def Action(id, action, description, details):
     return {
         'id': id,
         'action': action,
         'description': description,
-        'action_details': action_details
+        'details': details
     }
 
 
 # Cytoscape Object 
-def cNode(id, node_type, action=None, isAPI=False):
+def cNode(id, name, type, action=None):
     return {
-        'data': {'id': id, 'type': node_type, 'action': action, 'isAPI':isAPI},
-        'classes': node_type,
+        'data': {'id': id, 'name': name, 'type': type, 'action': action},
+        'classes': type,
     }
 def cEdge(source_id, destination_id):
     return {
@@ -154,42 +157,80 @@ def new_project(project_id, project_type):
     document = Project(id=project_id, type=project_type, dataset=[], action=[], edge=[], experiment=[])
     create('project', document)
 
-def upload_dataset(project_id, dataset_id, dataset_data, description, source, 
-                    delimiter, remove_space, remove_header):
-    # Project
-    project_id = get_session('project_id')
-    project = get_document('project', project_id)
-    project['dataset_list'].append(dataset_id)
+# def upload_dataset(project_id, dataset_id, dataset_data_store, description, source, 
+#                     delimiter, remove_space, remove_header):
+#     # Project
+#     project_id = get_session('project_id')
+#     project = get_document('project', project_id)
+#     project['dataset_list'].append(dataset_id)
 
+#     # Dataset
+#     df = json_normalize(dataset_data_store)
+#     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+
+#     # Node
+#     api_data = {
+#         'source': source, 
+#         'delimiter': delimiter,
+#         'remove_space': remove_space,
+#         'remove_header': remove_header,
+#     }
+
+#     dataset = Dataset(
+#             id=dataset_id,
+#             description=description, 
+#             api_data=api_data, 
+#             column={col:True for col in df.columns}, 
+#             datatype={col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
+#             expectation = {col:None for col in df.columns}, 
+#             index = [], 
+#             target = []
+#     )
+
+#     # Upload to Typesense
+#     upsert('project', project)
+#     upsert('dataset', dataset)
+#     client.collections.create(generate_schema_auto(dataset_id))
+#     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
+
+def new_dataset(dataset_data_store, name, description, type, details):
     # Dataset
-    df = json_normalize(dataset_data)
+    dataset_id = str(uuid.uuid1())
+    df = json_normalize(dataset_data_store)
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-
-    # Node
-    api_data = {
-        'source': source, 
-        'delimiter': delimiter,
-        'remove_space': remove_space,
-        'remove_header': remove_header,
-    }
 
     dataset = Dataset(
             id=dataset_id,
+            name=name,
             description=description, 
-            api_data=api_data, 
+            type=type,
+            details=details, 
             column={col:True for col in df.columns}, 
             datatype={col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
             expectation = {col:None for col in df.columns}, 
             index = [], 
-            target = []
+            target = [],
+            graphs = [],
     )
 
     # Upload to Typesense
-    upsert('project', project)
     upsert('dataset', dataset)
     client.collections.create(generate_schema_auto(dataset_id))
     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
-    
+
+
+def add_dataset(project_id, dataset_id):
+    project = get_document('project', project_id)
+    # project['dataset_list'].append(dataset_id)
+    # upsert('project', project)
+    if dataset_id not in project['dataset_list']:
+        project['dataset_list'].append(dataset_id)
+        # Upload to Typesense
+        upsert('project', project)
+        return True
+    else:
+        return False
+
 
 def remove(project_id, node_id):
     project = get_document('project', project_id)
@@ -207,13 +248,14 @@ def remove(project_id, node_id):
                 project['dataset_list'].remove(edge.split('_')[1])
         upsert('project', project)
 
+    
     else:
         print('[Error] Node is not an Action')
             
     
 
 
-def action(project_id, source_id, action, description, action_details, changed_dataset, dataset_data):
+def action(project_id, source_id, action, description, details, changed_dataset, dataset_data_store):
     # New id
     action_id = str(uuid.uuid1())
     dataset_id = str(uuid.uuid1())
@@ -228,14 +270,14 @@ def action(project_id, source_id, action, description, action_details, changed_d
     project['edge_list'].append(edge2)
 
     # Action Document
-    action = Action(id=action_id, action=action, description=description, action_details=action_details)
+    action = Action(id=action_id, action=action, description=description, details=details)
 
     # Dataset Document
     changed_dataset['id'] =  dataset_id # Overwrite previous dataset ID
-    changed_dataset['api_data'] = None
+    changed_dataset['details'] = None
 
     # Dataset Data Collection
-    df = json_normalize(dataset_data)
+    df = json_normalize(dataset_data_store)
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
     
     # Upload
@@ -247,7 +289,7 @@ def action(project_id, source_id, action, description, action_details, changed_d
 
 
 
-def join(project_id, source_id_list, description, dataset_data, dataset, action_details):
+def merge(project_id, source_id_list, description, dataset_data_store, dataset, details):
     # New id
     action_id = str(uuid.uuid1())
     dataset_id = str(uuid.uuid1())
@@ -262,15 +304,16 @@ def join(project_id, source_id_list, description, dataset_data, dataset, action_
     project['edge_list'].append(action_id + '_' + dataset_id)
 
     # Dataset Data Collection
-    df = json_normalize(dataset_data)
+    df = json_normalize(dataset_data_store)
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
 
     # Action Document
-    action = Action(action_id, 'join', description, action_details)
+    action = Action(action_id, 'merge', description, details)
 
     # Dataset Document
     dataset['id'] =  dataset_id # Overwrite previous dataset ID
-    dataset['api_data'] = None
+    dataset['type'] = 'processed'
+    dataset['details'] = None
     
     # Upload
     upsert('project', project)
@@ -288,12 +331,8 @@ def generate_cytoscape_elements(project_id):
     action_list = [get_document('action', id) for id in project['action_list']]
     dataset_list = [get_document('dataset', id) for id in project['dataset_list']]
 
-    cAction_list = [cNode(action['id'], node_type='action', action=action['action']) for action in action_list]
-    cDataset_list = ([cNode(dataset['id'], 
-                        node_type=('dataset_api' if (dataset['api_data'] != 'None') else 'dataset'), 
-                        isAPI=(True if (dataset['api_data'] != 'None') else False)) 
-                        for dataset in dataset_list])
+    cAction_list = [cNode(action['id'], name='', type='action', action=action['action']) for action in action_list]
+    cDataset_list = ([cNode(dataset['id'], name=dataset['name'], type=dataset['type']) for dataset in dataset_list])
     cEdge_list = [cEdge(id.split('_')[0], id.split('_')[1]) for id in project['edge_list']]
-
 
     return cAction_list + cDataset_list + cEdge_list

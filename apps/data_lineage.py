@@ -10,7 +10,7 @@ from dash import dash_table
 from dash import no_update, callback_context
 import json
 from flatten_json import flatten, unflatten, unflatten_list
-from jsonmerge import Merger
+from jsonmerge import Merger, merge
 from pprint import pprint
 from genson import SchemaBuilder
 from jsondiff import diff
@@ -48,16 +48,27 @@ stylesheet = [
         }
     },
 
-    # Dataset_API Node
+    # Dataset Nodes
     {
-        'selector': '.dataset_api',
+        'selector': '.raw_userinput',
         'style': {
         #     'background-color': 'black',
         #     # 'width': 25,
         #     # 'height': 25,
         #     # 'background-fit': 'cover',
         #     # 'background-image': "/assets/static/api.png"
-            'content': 'API'
+            'content': 'data(name)'
+        }
+    },
+    {
+        'selector': '.raw_restapi',
+        'style': {
+        #     'background-color': 'black',
+        #     # 'width': 25,
+        #     # 'height': 25,
+        #     # 'background-fit': 'cover',
+        #     # 'background-image': "/assets/static/api.png"
+            'content': 'data(name)'
         }
     },
     # Action
@@ -82,9 +93,7 @@ layout = html.Div([
         
         dbc.Row([
             dbc.Col([
-                # html.Button('Plot Graph', id=id('button_plot_graph'), className='btn btn-success btn-lg', style={'margin-right':'15px'}),
                 html.Button('Add Dataset', id=id('button_upload'), className='btn btn-primary btn-lg', style={'margin-right':'1px'}), 
-                # html.Button('Remove Node', id=id('button_remove'), className='btn btn-danger btn-lg', style={'margin-right':'15px'}),
                 html.Button('Reset', id=id('button_reset'), className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
                 # html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'1px'}), 
 
@@ -118,7 +127,7 @@ layout = html.Div([
                             dbc.Tooltip('Remove Action or Raw Dataset', target=id('button_remove')),
                         ], style={'width': '25%', 'float':'right', 'text-align':'right'}),
                     ]),
-                    dbc.CardBody(html.Div(id=id('node_content'), style={'height': '750px'})),
+                    dbc.CardBody(html.Div(id=id('node_content'), style={'min-height': '750px'})),
                 ], className='bg-primary', inverse=True),
                 # , style={'overflow-x':'scroll'}
                 # dbc.Card([
@@ -140,44 +149,7 @@ layout = html.Div([
     ], style={'width':'100%'}),
 ])
 
-
-
-# Load Cytoscape & Button Reset
-@app.callback(Output(id('cytoscape'), 'elements'),
-                Output(id('cytoscape'), 'layout'),
-                # Output(id('cytoscape'), 'zoom'),
-                # Input(id('interval'), 'n_intervals'),
-                Input(id('button_reset'), 'n_clicks'),
-                Input('url', 'pathname'))
-def generate_cytoscape(n_clicks, pathname):
-    project_id = get_session('project_id')
-    if project_id is None: return no_update
     
-    elements = generate_cytoscape_elements(project_id)
-    roots = [e['data']['id'] for e in elements if e['classes'] == 'dataset_api']
-    layout={'name': 'breadthfirst',
-        'fit': True,
-        'roots': roots
-    }
-
-    return elements, layout
-    
-    
-# Disable/Enable Right Panel Buttons
-@app.callback(
-    Output(id('button_tabular'), 'disabled'),
-    Output(id('button_chart'), 'disabled'),
-    Output(id('button_remove'), 'disabled'),
-    Input(id('tabs_node'), 'active_tab'),
-    Input('url', 'pathname'),
-)
-def button_disable_enable(active_tab, pathname):
-    if active_tab == 'tab1': return False, False, False
-    elif active_tab == 'tab2': return True, True, False
-    elif active_tab == 'tab3': return False, True, True
-    elif active_tab == 'tab4': return True, True, True
-    else: return True, True, True
-
 
 # Generate Tabs & Store Selected Node into Session
 @app.callback(
@@ -195,15 +167,15 @@ def generate_tabs(selectedNodeData, pathname, active_tab):
         tab2_disabled = False
         active_tab = "tab2"
 
-    # One 'dataset' or 'dataset_api' node selected
-    elif len(selectedNodeData) == 1 and (selectedNodeData[0]['type'] == 'dataset' or selectedNodeData[0]['type'] == 'dataset_api'):
+    # Single Raw/Processed dataset selected
+    elif len(selectedNodeData) == 1 and (selectedNodeData[0]['type'] != 'action'):
         store_session('dataset_id', selectedNodeData[0]['id'])
         active_tab = 'tab1' if (active_tab == 'tab3' or active_tab == 'tab4' or active_tab is None) else active_tab
         tab1_disabled = False
         tab2_disabled = False
     
-    # More than one 'dataset' or 'dataset_api' node selected
-    elif len(selectedNodeData) > 1 and all((node['type'] == 'dataset' or node['type'] == 'dataset_api') for node in selectedNodeData):
+    # Multiple Raw/Processed dataset selected
+    elif len(selectedNodeData) > 1 and all((node['type'] != 'action') for node in selectedNodeData):
         store_session('dataset_id', None)
         active_tab = 'tab3' if (active_tab == 'tab1' or active_tab == 'tab2' or active_tab is None) else active_tab
         tab3_disabled = False
@@ -229,18 +201,17 @@ def generate_tabs(selectedNodeData, pathname, active_tab):
                 # Output(id('node_name_list'), 'contentEditable'),
                 Output(id('node_content'), 'children'),
                 Input(id('tabs_node'), 'active_tab'),
-                State(id('cytoscape'), 'selectedNodeData'),)
+                State(id('cytoscape'), 'selectedNodeData'))
 def select_node(active_tab, selectedNodeData):
     if len(selectedNodeData) == 0: return '', ''
     pprint(selectedNodeData)
-    name, base = [], []
-    out = [dbc.Input(id=id('search'), placeholder='Search', style={'text-align':'center'})]
+    name, out, base = [], [], []
+    
 
     if active_tab == 'tab1':
         name = html.Div(selectedNodeData[0]['type'], id=id(selectedNodeData[-1]['id']), contentEditable='true', className="badge border border-info text-wrap")
-        dataset_data = get_dataset_data(selectedNodeData[-1]['id']).to_dict('records')
-        out = out + [display_dataset_data(dataset_data)]
-        
+        dataset_data_store = get_dataset_data_store(selectedNodeData[-1]['id']).to_dict('records')
+        out = [dbc.Input(id=id('search_json'), placeholder='Search', style={'text-align':'center'})] + [display_dataset_data_store(dataset_data_store)]
 
     elif active_tab == 'tab2':
         name = html.Div(selectedNodeData[0]['type'], id=id(selectedNodeData[-1]['id']), contentEditable='true', className="badge border border-info text-wrap")
@@ -251,31 +222,42 @@ def select_node(active_tab, selectedNodeData):
         else: 
             dataset = get_document('dataset', selectedNodeData[-1]['id'])
             out = out + [display_metadata(dataset)]
+            out = [dbc.CardBody(dbc.Button('Modify Metadata', id=id('button_modify_metadata'), className='btn btn-warning btn-lg', style={'width':'100%'}))] + out
 
     elif active_tab == 'tab3':
+        
         for node in selectedNodeData:
             name = name + [html.Div([
                 html.P(str(len(name)+1)+')', style={'display':'inline-block', 'font-size':'13px'}),
                 html.P(node['type'], id=id(node['id']), contentEditable='true', style={'margin':'5px', 'display':'inline-block'}),
             ], style={'display':'inline-block'}, className="badge border border-info text-wrap")]
+        
+        data = get_dataset_data_store(selectedNodeData[0]['id']).to_dict('records')
+        for node in selectedNodeData[1:]:
+            new_data = get_dataset_data_store(node['id']).to_dict('records')
+            data = [json_merge(row, row_new, 'objectMerge') for row, row_new in zip(data, new_data)]
 
-            base = json_merge(base, get_dataset_data(node['id']).to_dict('records'), 'overwrite')
-
-        out = out + [display_dataset_data(base)]
-        out = [dbc.CardBody(dbc.Button('Perform Merge Action', id=id('button_merge'), className='btn btn-warning btn-lg', style={'width':'100%'}))] + out
+        out = [dbc.Input(id=id('search_json'), placeholder='Search', style={'text-align':'center'})]
+        out = out + [display_dataset_data_store(data)]
+        out = [dbc.CardBody(dbc.Button('Perform Merge Action', id={'type': id('button_merge'), 'index': 0}, className='btn btn-warning btn-lg', style={'width':'100%'}))] + out
     
+
     elif active_tab == 'tab4':
-        for node in selectedNodeData:
-            dataset = get_document('dataset', node['id'])
+
+        for i, node in enumerate(selectedNodeData):
             name = name + [html.Div([
                 html.P(str(len(name)+1)+')', style={'display':'inline-block', 'font-size':'13px'}),
                 html.P(node['type'], id=id(node['id']), contentEditable='true', style={'margin':'5px', 'display':'inline-block'}),
             ], style={'display':'inline-block'}, className="badge border border-info text-wrap")]
 
-            base = json_merge(base, dataset, 'overwrite')
+        dataset = get_document('dataset', selectedNodeData[0]['id'])
+        dataset['details'] = None
+        for node in selectedNodeData[1:]:
+            node['details'] = None
+            dataset = json_merge(dataset, get_document('dataset', node['id']), 'objectMerge')
 
-        out = out + [display_dataset_data(base)]
-        out = [dbc.CardBody(dbc.Button('Perform Merge Action', id=id('button_merge'), className='btn btn-warning btn-lg', style={'width':'100%'}))] + out
+        out = out + [display_dataset_data_store(dataset)]
+        out = [dbc.CardBody(dbc.Button('Perform Merge Action', id={'type': id('button_merge'), 'index': 0}, className='btn btn-warning btn-lg', style={'width':'100%'}))] + out
 
     else:
         name, out  = [], []
@@ -283,51 +265,57 @@ def select_node(active_tab, selectedNodeData):
     return name, out
 
 
-# # Merge Dataset
-# @app.callback(
-#     Output(id('cytoscape'), 'elements'),
-#     Output(id('cytoscape'), 'tapNodeData'),
-#     Input(id('button_merge'), 'n_clicks'),
-#     State(id('cytoscape'), 'selectedNodeData'),
-#     State(id('cytoscape'), 'elements'),
-# )
-# def merge_datasets(n_clicks, selectedNodeData, elements):
-#     print(n_clicks)
-#     pprint(elements)
-
-#     for node in selectedNodeData:
-#         name = name + [html.Div([
-#             html.P(str(len(name)+1)+')', style={'display':'inline-block', 'font-size':'13px'}),
-#             html.P(node['type'], id=id(node['id']), contentEditable='true', style={'margin':'5px', 'display':'inline-block'}),
-#         ], style={'display':'inline-block'}, className="badge border border-info text-wrap")]
-#         base = json_merge(base, get_dataset_data(node['id']).to_dict('records'), 'overwrite')
-
-#     return no_update
-
-
-# @app.callback(Output(id('node_content'), 'children'),
-#                 Input(id('tabs_node'), 'active_tab'))
-# def generate_node_tabs(active_tab):
-#     if active_tab == 'tab1':
-#         out = html.P('asdasd'*100)
-
-#     elif active_tab == 'tab2':
-#         out = html.P('22'*100)
-#     return out
 
 
 
-# Select Node Multiple 
-@app.callback(Output('modal_confirm', 'children'),
-                Input(id('cytoscape'), 'selectedNodeData'),)
-def select_node_multiple(selectedNodeData):
-    if selectedNodeData is None or len(selectedNodeData) == 0: return no_update
+# Load Cytoscape & Button Reset
+@app.callback(
+    Output(id('cytoscape'), 'elements'),
+    Output(id('cytoscape'), 'layout'),
+    Input(id('button_reset'), 'n_clicks'),
+    Input({'type': id('button_merge'), 'index': ALL}, 'n_clicks'),
+    Input('url', 'pathname'),
+    State(id('cytoscape'), 'selectedNodeData'),
+)
+def generate_cytoscape(n_clicks_reset, n_clicks_merge, pathname, selectedNodeData):
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+    project_id = get_session('project_id')
 
-    if all(node['type'] == 'dataset' or node['type'] == 'dataset_api' for node in selectedNodeData):
-        selected_id_list = [node['id'] for node in selectedNodeData]
-        store_session('dataset_id_multiple', selected_id_list)
+    # On Page Load and Reset Button pressed
+    if triggered == '' or triggered == id('button_reset'):
+        pass
 
-    return no_update
+    # Merge Dataset Metadata and Data
+    elif triggered == '{"index":0,"type":"data_lineage-button_merge"}':
+        if n_clicks_merge[0] is None: return no_update
+
+        dataset = get_document('dataset', selectedNodeData[0]['id'])
+        dataset['details'] = None
+        data = get_dataset_data_store(selectedNodeData[0]['id']).to_dict('records')
+        for node in selectedNodeData[1:]:
+            node['details'] = None
+            dataset = json_merge(dataset, get_document('dataset', node['id']), 'objectMerge')
+            new_data = get_dataset_data_store(node['id']).to_dict('records')
+            data = [json_merge(row, row_new, 'objectMerge') for row, row_new in zip(data, new_data)]
+
+        # data = []
+        # for node in selectedNodeData:
+        #     data = json_merge(data, get_dataset_data_store(node['id']).to_dict('records'), 'overwrite')     
+
+        source_id_list = [node['id'] for node in selectedNodeData]
+        details = { 'merge_type': 'objectMerge'}
+        merge(project_id, source_id_list, '', data, dataset, details)
+
+    elements = generate_cytoscape_elements(project_id)
+    pprint(elements)
+    layout={'name': 'breadthfirst',
+        'fit': True,
+        'roots': [e['data']['id'] for e in elements if e['classes'].startswith('raw_')]
+    }
+    return elements, layout
+
+
+
 
 
 
@@ -336,9 +324,27 @@ def select_node_multiple(selectedNodeData):
                 Input(id('button_upload'), 'n_clicks'))
 def button_add(n_clicks):
     if n_clicks is None: return no_update
-    return '/apps/upload_dataset'
+    return '/apps/search'
 
-# Inspect Button
+
+
+
+# Disable/Enable Right Panel Buttons
+@app.callback(
+    Output(id('button_tabular'), 'disabled'),
+    Output(id('button_chart'), 'disabled'),
+    Output(id('button_remove'), 'disabled'),
+    Input(id('tabs_node'), 'active_tab'),
+    Input('url', 'pathname'),
+)
+def button_disable_enable(active_tab, pathname):
+    if active_tab == 'tab1': return False, False, False
+    elif active_tab == 'tab2': return True, True, False
+    elif active_tab == 'tab3': return False, True, True
+    elif active_tab == 'tab4': return True, True, True
+    else: return True, True, True
+
+# View in Tabular Format
 @app.callback(
     Output(id('modal'), 'is_open'),
     Output(id('modal_title'), 'children'),
@@ -347,20 +353,20 @@ def button_add(n_clicks):
     Input(id('button_tabular'), 'n_clicks'),
     State(id('cytoscape'), 'selectedNodeData')
 )
-def button_inspect_action(n_clicks, selectedNodeData):
+def button_tabular(n_clicks, selectedNodeData):
     if n_clicks is None: return no_update
     if selectedNodeData is None: return no_update
     if len(selectedNodeData) == 0: return no_update
 
     # Retrieve Dataset Data
-    if all(node['type'] == 'dataset' or node['type'] == 'dataset_api' for node in selectedNodeData):
+    if all(node['type'] != 'action' for node in selectedNodeData):
         if len(selectedNodeData) == 1:
-            df = get_dataset_data(selectedNodeData[-1]['id'])
+            df = get_dataset_data_store(selectedNodeData[-1]['id'])
             out = df.to_dict('records')
         elif len(selectedNodeData) > 1:
             base = []
             for node in selectedNodeData:
-                base = json_merge(base, get_dataset_data(node['id']).to_dict('records'), 'overwrite')
+                base = json_merge(base, get_dataset_data_store(node['id']).to_dict('records'), 'overwrite')
             df = json_normalize(base)
             out = base
 
@@ -371,8 +377,6 @@ def button_inspect_action(n_clicks, selectedNodeData):
 
     else:
         return no_update
-
-
 
 # Button Chart
 @app.callback(Output('url', 'pathname'),
@@ -385,7 +389,6 @@ def button_chart(n_clicks, selectedNodeData):
     if selectedNodeData[0]['type'] == 'action': return no_update
 
     return '/apps/plot_graph'
-
 
 # Remove Node
 @app.callback(Output('modal_confirm', 'children'),
@@ -400,6 +403,7 @@ def button_remove(n_clicks, tapNodeData):
     remove(get_session('project_id'), tapNodeData['id'])
 
     return no_update, '/apps/data_lineage'
+
 
 
 # Generate options in dropdown and button 
@@ -421,6 +425,29 @@ def generate_dropdown_actions(selected_nodes):
         options = [dbc.DropdownMenuItem(nav['label'], href=nav['value']) for nav in multiple]
 
     return options
+
+
+
+
+
+
+
+
+
+
+# Select Node Multiple 
+# @app.callback(Output('modal_confirm', 'children'),
+#                 Input(id('cytoscape'), 'selectedNodeData'),)
+# def select_node_multiple(selectedNodeData):
+#     if selectedNodeData is None or len(selectedNodeData) == 0: return no_update
+
+#     if all(node['type'] == 'dataset' or node['type'] == 'dataset_api' for node in selectedNodeData):
+#         selected_id_list = [node['id'] for node in selectedNodeData]
+#         store_session('dataset_id_multiple', selected_id_list)
+
+#     return no_update
+
+
 
 # # Generate options in dropdown and button 
 # @app.callback(Output(id('dropdown_action'), 'options'),

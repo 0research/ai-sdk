@@ -147,7 +147,7 @@ def add_dataset(n_clicks_list, col_id_list):
 #     dataset_id_multiple = ast.literal_eval(get_session('dataset_id_multiple'))
 #     if len(dataset_id_multiple) != 2: return no_update
 #     dataset_id = dataset_id_multiple[0]
-#     df = get_dataset_data(dataset_id)
+#     df = get_dataset_data_store(dataset_id)
 #     json_dict = df.to_dict('records')
 #     columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
 
@@ -161,7 +161,7 @@ def add_dataset(n_clicks_list, col_id_list):
 #     dataset_id_multiple = ast.literal_eval(get_session('dataset_id_multiple'))
 #     if len(dataset_id_multiple) != 2: return no_update
 #     dataset_id = dataset_id_multiple[1]
-#     df = get_dataset_data(dataset_id)
+#     df = get_dataset_data_store(dataset_id)
 #     json_dict = df.to_dict('records')
 #     columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
 
@@ -203,8 +203,8 @@ def add_dataset(n_clicks_list, col_id_list):
 # def generate_datatable3(selection_list, join_type):
 #     dataset_id_1 = ast.literal_eval(get_session('dataset_id_multiple'))[0]
 #     dataset_id_2 = ast.literal_eval(get_session('dataset_id_multiple'))[1]
-#     df1 = get_dataset_data(dataset_id_1)
-#     df2 = get_dataset_data(dataset_id_2)
+#     df1 = get_dataset_data_store(dataset_id_1)
+#     df2 = get_dataset_data_store(dataset_id_2)
 
 #     if join_type == 'append':
 #         df = pd.concat([df1, df2], ignore_index=True, sort=False)
@@ -255,7 +255,7 @@ def add_dataset(n_clicks_list, col_id_list):
 
 #     dataset = dataset_1
 
-#     action_details = {
+#     details = {
 #         'join_type': join_type,
 #         'column_1': columns[0],
 #         'column_2': columns[1]
@@ -264,5 +264,5 @@ def add_dataset(n_clicks_list, col_id_list):
 #     print('dataset'*10)
 #     pprint(dataset)
 
-#     join(get_session('project_id'), dataset_id_mulitple, '', datatable_data, dataset, action_details)
+#     join(get_session('project_id'), dataset_id_mulitple, '', datatable_data, dataset, details)
 #     return no_update

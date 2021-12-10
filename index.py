@@ -73,7 +73,7 @@ navbar = dbc.Navbar([
         # dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "4", 'offset':3}),
         # dbc.Col(dbc.Button("Data Lineage", href='/apps/data_lineage', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "5", 'offset':0}),
         dbc.Col(dbc.Input(type="search", id='search', debounce=True, placeholder="Search...", style={'text-align':'center'}), width={"size": 3, "order": "5", 'offset':0})
-    ], className='g-0', style={'width':'100%'}),
+    ], className='g-0', style={'width':'100%'}, id='navbar_top'),
 
     # Tool tips for each Icon
     dbc.Tooltip("0Research Homepage",target="tooltip-homepagelogo"),
@@ -89,11 +89,12 @@ navbar = dbc.Navbar([
 sidebar_0 = [
     dbc.NavLink("New Project", href="/apps/new_project", active="exact", className="fas fa-upload"),
     dbc.NavLink("New Dataset", href="/apps/new_dataset", active="exact", className="fas fa-upload"),
+    dbc.NavLink("Search", href="/apps/search", active="exact", className="fas fa-upload"),
 ]
 sidebar_1 = [
     dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
     dbc.NavLink("Dashboard", href="/apps/dashboard", active="exact", className="fas fa-chart-pie"),
-    dbc.NavLink("Add Dataset", href="/apps/upload_dataset", active="exact", className="fas fa-upload"),
+    # dbc.NavLink("Add Dataset", href="/apps/upload_dataset", active="exact", className="fas fa-upload"),
     dbc.NavLink("Plot Graph", href="/apps/plot_graph", active="exact", className="fas fa-upload"),
 ]
 sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className'], disabled=nav['disabled']) for nav in SIDEBAR_2_LIST]
@@ -136,6 +137,7 @@ sidebar = html.Div([
 def serve_layout():
     return html.Div([
         dcc.Location(id='url', refresh=False),
+        dcc.Store(id='search_str_store', storage_type='session'),
         dbc.Modal('', id='modal_confirm'),
         sidebar,
         navbar,
@@ -186,12 +188,10 @@ def display_page(pathname):
     State('sidebar', 'children'),
 )
 def highlight_active_nav(pathname, sidebar):
-    print('highlight')
     for i in range(len(sidebar)):
         if 'className' in sidebar[i]['props']:
             if sidebar[i]['props']['href'] == pathname:
                 sidebar[i]['props']['className'] + ' active'
-
     return sidebar
 
 
@@ -219,11 +219,14 @@ def load_project_id(pathname):
     return get_session('project_id')
 
 # Search Function
-@app.callback(Output('url', 'pathname'),
-                Input('search', 'value'))
+@app.callback(
+    Output('url', 'pathname'),
+    Output('search_str_store', 'data'),
+    Input('search', 'value')
+)
 def load_project_id(value):
     if value == '' or value is None: return no_update
-    return '/apps/search'
+    return '/apps/search', value
 
 if __name__ == '__main__':
     app.run_server("0.0.0.0", 8889, debug=True)

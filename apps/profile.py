@@ -43,13 +43,13 @@ option_datatype = [
 
 # Layout
 layout = html.Div([
-    dcc.Store(id=id('action_details_store'), storage_type='session'),
+    dcc.Store(id=id('details_store'), storage_type='session'),
 
     dbc.Row(dbc.Col(html.H2('Set Profile'), width=12), style={'text-align':'center'}),
     dbc.Row(dbc.Col(html.Div(id=id('data_profile'), style={'overflow-y': 'auto', 'overflow-x': 'hidden', 'height':'800px'}), width=12)),
     dbc.Row([
         dbc.Col(html.H5('Changes (TODO)'), width=12, style={'text-align':'center'}),
-        dbc.Col(html.Pre([], id=id('action_details'), style={'text-align':'left', 'height':'400px', 'background-color':'silver', 'overflow-y':'auto'}), width=12),
+        dbc.Col(html.Pre([], id=id('details'), style={'text-align':'left', 'height':'400px', 'background-color':'silver', 'overflow-y':'auto'}), width=12),
     ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
     dbc.Row([
         dbc.Col(dbc.Button(html.H6('Confirm'), className='btn-primary', id=id('button_confirm'), style={'width':'100%'}), width={'size':10, 'offset':1}),
@@ -197,14 +197,14 @@ def update_output(datatype, n_click_index, n_click_target, n_click_remove, colum
     return button_index_class, button_target_class, button_remove_class, row_style
 
 
-@app.callback(Output(id('action_details'), 'children'),
-                Output(id('action_details_store'), 'data'),
+@app.callback(Output(id('details'), 'children'),
+                Output(id('details_store'), 'data'),
                 Input({'type':id('col_dropdown_datatype'), 'index': ALL}, 'value'),
                 Input({'type':id('col_button_index'), 'index': ALL}, 'n_clicks'),
                 Input({'type':id('col_button_target'), 'index': ALL}, 'n_clicks'),
                 Input({'type':id('col_button_remove'), 'index': ALL}, 'n_clicks'),
                 prevent_initial_call=True)
-def generate_action_details(_, _2, _3, _4):
+def generate_details(_, _2, _3, _4):
     if get_session('changed_dataset_profile') is None: return no_update
     time.sleep(0.5)
 
@@ -216,9 +216,9 @@ def generate_action_details(_, _2, _3, _4):
     changed_dataset = ast.literal_eval(get_session('changed_dataset_profile'))
     changed_dataset = { k: changed_dataset[k] for k in keys }
 
-    action_details = diff(dataset, changed_dataset, syntax='symmetric', marshal=True)
+    details = diff(dataset, changed_dataset, syntax='symmetric', marshal=True)
 
-    return json.dumps(action_details, indent=2), action_details
+    return json.dumps(details, indent=2), details
 
 
 
@@ -226,8 +226,8 @@ def generate_action_details(_, _2, _3, _4):
 @app.callback(Output('url', 'pathname'),
                 Output('modal_confirm', 'children'),
                 Input(id('button_confirm'), 'n_clicks'),
-                State(id('action_details_store'), 'data'))
-def button_confirm(n_clicks, action_details):
+                State(id('details_store'), 'data'))
+def button_confirm(n_clicks, details):
     if n_clicks is None: return no_update
     
     # Unsuccessful
@@ -238,7 +238,7 @@ def button_confirm(n_clicks, action_details):
     else: 
         changed_dataset = ast.literal_eval(get_session('changed_dataset_profile'))
         dataset_id = get_session('dataset_id')
-        action(get_session('project_id'), dataset_id, 'profile', '', action_details, changed_dataset, search_documents(dataset_id, 250))
-        # action(project_id, source_id, action, description, dataset, dataset_data)
+        action(get_session('project_id'), dataset_id, 'profile', '', details, changed_dataset, search_documents(dataset_id, 250))
+        # action(project_id, source_id, action, description, dataset, dataset_data_store)
 
         return '/apps/data_lineage', 'Success'

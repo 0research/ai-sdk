@@ -184,8 +184,8 @@ def generate_dropdown(component_id, options, value=None, multi=False, placeholde
         style=style,
     )
 
-def display_dataset_data(dataset_data):
-    return html.Pre(json.dumps(dataset_data, indent=2), style={'height': '750px', 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
+def display_dataset_data_store(dataset_data_store):
+    return html.Pre(json.dumps(dataset_data_store, indent=2), style={'height': '750px', 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
 
 def display_metadata(dataset):
     columns = [col for col, show in dataset['column'].items() if show == True]
@@ -243,8 +243,8 @@ def display_action(action):
                 dbc.Textarea(disabled=True, value=action['description'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
             ], className="mb-3 lg"),
             dbc.InputGroup([
-                dbc.InputGroupText("Action Details", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                dbc.Textarea(disabled=True, value=str(action['action_details']), style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                dbc.InputGroupText("Details", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                dbc.Textarea(disabled=True, value=str(action['details']), style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
             ], className="mb-3 lg"),
         ])
     )

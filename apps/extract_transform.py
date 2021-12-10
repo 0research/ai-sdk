@@ -84,7 +84,7 @@ layout = html.Div([
         # Changes 
         dbc.Row([
             dbc.Col(html.H5('Changes (TODO)'), width=12, style={'text-align':'center'}),
-            dbc.Col(html.Pre([], id=id('action_details'), style={'text-align':'left', 'height':'400px', 'background-color':'silver', 'overflow-y':'auto'}), width=12),
+            dbc.Col(html.Pre([], id=id('details'), style={'text-align':'left', 'height':'400px', 'background-color':'silver', 'overflow-y':'auto'}), width=12),
         ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
 
         # Confirm Button
@@ -102,7 +102,7 @@ layout = html.Div([
                 Input('url', 'pathname'))
 def generate_datatable(pathname):
     dataset_id = get_session('dataset_id')
-    df = get_dataset_data(dataset_id)
+    df = get_dataset_data_store(dataset_id)
     columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
     
     return df.to_dict('records'), columns
@@ -172,7 +172,7 @@ def update_metadata(pathname):
 #                 Input(id('dropdown_function'), "value"))
 # def generate_datatable(selected_columns, function):
 #     dataset_id = get_session('dataset_id')
-#     df = get_dataset_data(dataset_id)
+#     df = get_dataset_data_store(dataset_id)
 #     columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
 #     options = [{'label':c, 'value':c} for c in df.columns]
 

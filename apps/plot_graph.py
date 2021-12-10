@@ -107,7 +107,7 @@ layout = html.Div([
 #                 State(id('graphs'), 'children'))
 # def generate_graph(pathname, n_clicks, graphs):
 #     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-#     # On Page Load
+#     # On Page Loadfap
 #     if triggered == '':
 #         return add_graph(0)
 
@@ -116,15 +116,7 @@ layout = html.Div([
 #         return graphs + add_graph(len(graphs)//5) # 5 elements in add_graph()
 
 
-# def generate_options(label_list, input_list):
-#     return [
-#         (
-#             dbc.InputGroup([
-#                 dbc.InputGroupText(label, style={'width':'25%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'10px'}), 
-#                 inp
-#             ], className="mb-3 lg", style={'display': ('none' if label is None else 'flex')})
-#         ) for label, inp in zip(label_list, input_list)
-#     ]
+
     
 
 
@@ -205,7 +197,7 @@ layout = html.Div([
 #     i = graph_type_id['index']
 #     dataset_id = get_session('dataset_id')
 #     dataset = get_document('dataset', dataset_id)
-#     df = get_dataset_data(dataset_id)
+#     df = get_dataset_data_store(dataset_id)
 
 #     if graph_type is None:
 #         fig = px.pie(df, names=input1, values=input2)

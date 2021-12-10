@@ -3,8 +3,8 @@
 
 # Navigation
 SIDEBAR_2_LIST = [
-    {'label': 'Merge Datasets',             'value': '#',                       'multiple':True,    'disabled': True,  'className': 'fas fa-search-plus'},
-    {'label': 'Modify Dataset',             'value': '#',                       'multiple':False,   'disabled': True,  'className': 'fas fa-search-plus'},
+    {'label': 'Modify Metadata',            'value': '#',                       'multiple':False,   'disabled': True,  'className': 'fas fa-search-plus'},
+    {'label': 'Merge Datasets',             'value': '#',                       'multiple':True,    'disabled': False,  'className': 'fas fa-search-plus'},
     {'label': 'Modify Profile',             'value': '/apps/profile',           'multiple':False,   'disabled': False,  'className': 'fas fa-chess-knight'},
     {'label': 'Impute Data',                'value': '/apps/impute_data',       'multiple':False,   'disabled': False,   'className': 'fas fa-search-plus'},
     {'label': 'Extract & Transform',        'value': '/apps/extract_transform', 'multiple':False,   'disabled': False,   'className': 'fas fa-search-plus'},
