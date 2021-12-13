@@ -185,46 +185,48 @@ def generate_dropdown(component_id, options, value=None, multi=False, placeholde
     )
 
 def display_dataset_data_store(dataset_data_store):
-    return html.Pre(json.dumps(dataset_data_store, indent=2), style={'height': '750px', 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
+    return html.Pre(json.dumps(dataset_data_store, indent=2), style={'height': '730px', 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
 
-def display_metadata(dataset):
+def display_metadata(dataset, id, disabled=True):
     columns = [col for col, show in dataset['column'].items() if show == True]
+    # index = dataset['index'] if len(dataset['index']) >= 1 else None
+    # target = dataset['target'] if len(dataset['target']) >= 1 else None
+    # options_columns = [{'label':col, 'value':col} for col in columns]
+    options_datatype = [{'label': d, 'value': d} for d in DATATYPE_LIST]
     datatype = {col:dtype for col, dtype in dataset['datatype'].items() if col in columns}
     return (
         html.Div([
             html.Div([
                 dbc.InputGroup([
-                    dbc.InputGroupText("Dataset ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                    dbc.Input(disabled=True, value=dataset['id'], style={'font-size': '12px', 'text-align':'center'}),
-                ], className="mb-3 lg"),
-                dbc.InputGroup([
-                    dbc.InputGroupText("Index Column", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                    dbc.Input(disabled=True, value=dataset['index'], style={'font-size': '12px', 'text-align':'center'}),
-                ], className="mb-3 lg"),
-                dbc.InputGroup([
-                    dbc.InputGroupText("Target Column", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                    dbc.Input(disabled=True, value=dataset['target'], style={'font-size': '12px', 'text-align':'center'}),
+                    dbc.InputGroupText("Dataset ID", style={'width':'30%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                    dbc.Input(disabled=True, value=dataset['id'], style={'width':'70%', 'font-size': '12px', 'text-align':'center'}),
+                    # dbc.InputGroupText("Index", style={'width':'30%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                    # html.Div(dcc.Dropdown(options=options_columns, value=index, multi=True, id=('dropdown_index'), disabled=disabled, style={'font-size': '12px', 'text-align':'center'}), style={'width':'70%'}),
+                    # dbc.InputGroupText("Target", style={'width':'30%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                    # html.Div(dcc.Dropdown(options=options_columns, value=target, multi=True, id=('dropdown_target'), disabled=disabled, style={'font-size': '12px', 'text-align':'center'}), style={'width':'70%'}),
                 ], className="mb-3 lg"),
             ]),
             html.Table(
                 [
                     html.Tr([
-                        html.Th('Column'),
-                        html.Th('Datatype'),
-                        html.Th('Invalid (%)'),
-                        html.Th('Result'),
+                        html.Th('Feature', style={'width':'40%'}),
+                        html.Th('Datatype', style={'width':'40%'}),
+                        html.Th('Invalid', style={'width':'8%'}),
+                        html.Th('Result', style={'width':'8%'}),
+                        html.Th('', style={'width':'4%'}),
                     ])
                 ] + 
                 [
                     html.Tr([
-                        html.Td(html.P(col), id={'type':id('col_column'), 'index': i}),
-                        html.Td(html.P(dtype)),
+                        html.Td(dbc.Input(value=col, disabled=disabled, id={'type':id('col_feature'), 'index': i}, style={'height':'40px'})),
+                        html.Td(dbc.Select(options=options_datatype, value=dtype, disabled=disabled, id={'type':id('col_datatype'), 'index': i}, style={'height':'40px'})),
                         html.Td(html.P('%', id={'type':id('col_invalid'), 'index': i})),
                         html.Td(html.P('-', id={'type':id('col_result'), 'index': i})),
+                        html.Td(dbc.Button(' X ', id={'type':id('col_button_remove_feature'), 'index': i}, n_clicks=0), style={'display': 'none' if disabled else 'block'}),
                     ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(datatype.items())
                 ],
             )
-        ], style={'overflow-x':'scroll', 'overflow-y':'auto'})
+        ], style={'overflow-x':'scroll', 'overflow-y':'auto', 'height':'750px'})
     )
 
 def display_action(action):

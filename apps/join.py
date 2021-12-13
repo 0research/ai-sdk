@@ -132,8 +132,6 @@ def search(search_value):
 )
 def add_dataset(n_clicks_list, col_id_list):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-    pprint(n_clicks_list)
-    pprint(col_id_list)
     print('triggered:  ', triggered)
     # print(col)
 

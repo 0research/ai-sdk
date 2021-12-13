@@ -123,31 +123,45 @@ def generate_restapi_details():
             dbc.InputGroupText("URL", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
             dbc.Input(id={'type': id('url'), 'index': 0}, placeholder='Enter URL', style={'text-align':'center'}), 
         ]),
-        html.Div([
-            dbc.InputGroup([
-                dbc.InputGroupText("Header", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-                dbc.Input(id={'type': id('header_key'), 'index': 0}, placeholder='Enter Key', list=id('headers_autocomplete'), style={'width':'39%', 'text-align':'center'}),
-                dbc.Input(id={'type': id('header_value'), 'index': 0}, placeholder='Enter Value', style={'width':'39%', 'text-align':'center'}),
-            ]),
-        ], id('header_div')),
-        html.Div([
-            html.Div(dbc.Button(html.I(n_clicks=0, className='fas fa-plus-circle'), id=id('button_add_header'), className='btn btn-secondary'), style={'display':'inline-block'}),
-            html.Div(dbc.Button(html.I(n_clicks=0, className='fas fa-minus-circle'), id=id('button_remove_header'), className='btn btn-secondary'), style={'display':'inline-block'})
-        ], style={'text-align':'center'}),
 
+        # Header
+        dbc.InputGroup([
+            dbc.InputGroupText("Header", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'text-align':'center'}),
+            dbc.Button(' - ', id=id('button_remove_header'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+            dbc.Button(' + ', id=id('button_add_header'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+        ]),
         html.Div([
             dbc.InputGroup([
-                dbc.InputGroupText("Parameter", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.Input(id={'type': id('header_key'), 'index': 0}, placeholder='Enter Key', list=id('headers_autocomplete'), style={'width':'49%', 'text-align':'center'}),
+                dbc.Input(id={'type': id('header_value'), 'index': 0}, placeholder='Enter Value', style={'width':'49%', 'text-align':'center'}),
+            ], style={'text-align':'center'}),
+        ], id=id('header_div')),
+
+        # Param
+        dbc.InputGroup([
+            dbc.InputGroupText("Parameter", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+            dbc.Button(' - ', id=id('button_remove_param'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+            dbc.Button(' + ', id=id('button_add_param'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+        ]),
+        html.Div([
+            dbc.InputGroup([
                 dbc.Input(id={'type': id('param_key'), 'index': 0}, placeholder='Enter Key', style={'width':'39%', 'text-align':'center'}),
-                dbc.Input(id={'type': id('param_value'), 'index': 0}, placeholder='Enter Value', style={'width':'39%', 'text-align':'center'}), 
-            ])  
-        ], id('params_div')),
+                dbc.Input(id={'type': id('param_value'), 'index': 0}, placeholder='Enter Value', style={'width':'39%', 'text-align':'center'}),
+            ]),
+        ], id=id('params_div')),
 
+        # Body
+        dbc.InputGroup([
+            dbc.InputGroupText("Body", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+            dbc.Button(' - ', id=id('button_remove_body'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+            dbc.Button(' + ', id=id('button_add_body'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+        ]),
         html.Div([
-            html.Div(dbc.Button(html.I(n_clicks=0, className='fas fa-plus-circle'), id=id('button_add_param'), className='btn btn-secondary'), style={'display':'inline-block'}),
-            html.Div(dbc.Button(html.I(n_clicks=0, className='fas fa-minus-circle'), id=id('button_remove_param'), className='btn btn-secondary'), style={'display':'inline-block'})
-        ], style={'text-align':'center'}),
-        
+            dbc.InputGroup([
+                dbc.Input(id={'type': id('body_key'), 'index': 0}, placeholder='Enter Key', style={'width':'39%', 'text-align':'center'}),
+                dbc.Input(id={'type': id('body_value'), 'index': 0}, placeholder='Enter Value', style={'width':'39%', 'text-align':'center'}), 
+            ]),
+        ], id=id('body_div')),
     ]
 
 @app.callback(
@@ -176,7 +190,8 @@ def generate_dataset_details(n_clicks_type1, n_clicks_type2, dataset_details):
                 # html.Td([html.Div(str(index+1), id={'type': id('dataset_index'), 'index': index})], style={'width':'5%'}),
                 html.Td([
                     dbc.Input(id=id('name'), placeholder='Enter Dataset Name', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'250px'}), 
-                    dbc.Textarea(id=id('description'), placeholder='Enter Dataset Description', style={'height':'130px', 'text-align':'center', 'width':'250px'}), 
+                    dbc.Textarea(id=id('description'), placeholder='Enter Dataset Description', style={'height':'130px', 'text-align':'center', 'width':'250px'}),
+                    dbc.Input(id=id('source'), placeholder='Enter Source/Documentation (Optional) ', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'250px'}),
                 ], style={'width':'25%'}),
                 html.Td(col_inputs, style={'width':'60%'}),
                 html.Td([
@@ -306,10 +321,10 @@ def button_add_header(n_clicks_add, n_clicks_remove, header_div):
     
     if triggered == id('button_add_header'):
         new = copy.deepcopy(header_div[-1])
+        new['props']['children'][0]['props']['id']['index'] = len(header_div)
         new['props']['children'][1]['props']['id']['index'] = len(header_div)
-        new['props']['children'][2]['props']['id']['index'] = len(header_div)
+        new['props']['children'][0]['props']['value'] = ''
         new['props']['children'][1]['props']['value'] = ''
-        new['props']['children'][2]['props']['value'] = ''
         return header_div + [new]
 
     elif triggered == id('button_remove_header'):
@@ -318,7 +333,6 @@ def button_add_header(n_clicks_add, n_clicks_remove, header_div):
 
     else:
         return no_update
-
 
 # Add/Remove Params
 @app.callback(
@@ -332,10 +346,10 @@ def button_add_param(n_clicks_add, n_clicks_remove, params_div):
     
     if triggered == id('button_add_param'):
         new = copy.deepcopy(params_div[-1])
+        new['props']['children'][0]['props']['id']['index'] = len(params_div)
         new['props']['children'][1]['props']['id']['index'] = len(params_div)
-        new['props']['children'][2]['props']['id']['index'] = len(params_div)
+        new['props']['children'][0]['props']['value'] = ''
         new['props']['children'][1]['props']['value'] = ''
-        new['props']['children'][2]['props']['value'] = ''
         return params_div + [new]
 
     elif triggered == id('button_remove_param'):
@@ -345,6 +359,31 @@ def button_add_param(n_clicks_add, n_clicks_remove, params_div):
     else:
         return no_update
    
+# Add/Remove Body
+@app.callback(
+    Output(id('body_div'), 'children'),
+    Input(id('button_add_body'), 'n_clicks'),
+    Input(id('button_remove_body'), 'n_clicks'),
+    State(id('body_div'), 'children'),
+)
+def button_add_body(n_clicks_add, n_clicks_remove, body_div):
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+    
+    if triggered == id('button_add_body'):
+        new = copy.deepcopy(body_div[-1])
+        new['props']['children'][0]['props']['id']['index'] = len(body_div)
+        new['props']['children'][1]['props']['id']['index'] = len(body_div)
+        new['props']['children'][0]['props']['value'] = ''
+        new['props']['children'][1]['props']['value'] = ''
+        return body_div + [new]
+
+    elif triggered == id('button_remove_body'):
+        if len(body_div) <= 1: return no_update
+        else: return body_div[:-1]
+
+    else:
+        return no_update
+
 
 
 # Button Preview
@@ -376,7 +415,7 @@ def button_preview(active_tab, data):
             target = [],
             graphs = [],
         )
-        out = display_metadata(dataset)
+        out = display_metadata(dataset, id)
 
     return out
 
@@ -389,6 +428,7 @@ def button_preview(active_tab, data):
     State(id('button_preview'), 'value'),
     State(id('name'), 'value'),
     State(id('description'), 'value'),
+    State(id('source'), 'value'),
     State({'type': id('browse_drag_drop'), 'index': ALL}, 'isCompleted'),
     State({'type': id('browse_drag_drop'), 'index': ALL}, 'upload_id'),
     State({'type': id('browse_drag_drop'), 'index': ALL}, 'fileNames'),
@@ -398,12 +438,14 @@ def button_preview(active_tab, data):
     State({'type': id('header_value'), 'index': ALL}, 'value'),
     State({'type': id('param_key'), 'index': ALL}, 'value'),
     State({'type': id('param_value'), 'index': ALL}, 'value'),
+    State({'type': id('body_key'), 'index': ALL}, 'value'),
+    State({'type': id('body_value'), 'index': ALL}, 'value'),
     State(id('tabs_node'), 'active_tab'),
     prevent_initial_call=True
 )
-def button_new_dataset(n_clicks, dataset_type, name, description,
-                isCompleted_list, upload_id_list, fileNames_list,                                               # Tabular / JSON 
-                method_list, url_list, header_key_list, header_value_list, param_key_list, param_value_list,     # REST API
+def button_new_dataset(n_clicks, dataset_type, name, description, source,
+                isCompleted_list, upload_id_list, fileNames_list,               # Tabular / JSON 
+                method_list, url_list, header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list,     # REST API
                 active_tab):
     if n_clicks is None: return no_update
     # User Input
@@ -441,17 +483,17 @@ def button_new_dataset(n_clicks, dataset_type, name, description,
         url = url_list[0]
         headers = dict(zip(header_key_list, header_value_list))
         params = dict(zip(param_key_list, param_value_list))
+        body = dict(zip(body_key_list, body_value_list))
         if '' in headers: headers.pop('') # Remove empty keys
         if '' in params: params.pop('')  # Remove empty keys
+        if '' in body: body.pop('')  # Remove empty keys
         
         # API_KEY = "F2862F3F-C288-447D-A6D7-A9906475D85B"
         # url = 'https://rest.coinapi.io/v1/ohlcv/POLONIEX_SPOT_BTC_USDC/latest?period_id=1MIN'
         # headers = {'X-CoinAPI-Key' : API_KEY}
 
-        url = 'https://rest.coinapi.io/v1/ohlcv/POLONIEX_SPOT_BTC_USDC/latest?'
-
-        if method == 'post': response = requests.get(url=url, headers=headers, params=params)
-        elif method == 'get': response = requests.post(url=url, headers=headers, params=params)
+        if method == 'post': response = requests.get(url=url, headers=headers, params=params, data=body)
+        elif method == 'get': response = requests.post(url=url, headers=headers, params=params, data=body)
 
         try:
             out = json.loads(response.text)
@@ -463,6 +505,6 @@ def button_new_dataset(n_clicks, dataset_type, name, description,
         dataset_type = 'raw_restapi'
         details = {'method': method, 'url': url, 'headers': headers, 'params':params}
         
-    new_dataset(out, name, description, dataset_type, details)
+    new_dataset(out, name, description, source, dataset_type, details)
 
     return '/apps/search'

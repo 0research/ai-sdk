@@ -40,7 +40,7 @@ options_search = [
 
 # Layout
 layout = html.Div([
-    dcc.Store(id=id('current_dataset_id_store'), storage_type='memory'),
+    dcc.Store(id=id('preview_dataset_id_store'), storage_type='memory'),
     dbc.Container([
         dbc.Row([
 
@@ -70,11 +70,9 @@ layout = html.Div([
                 dbc.Tabs([], id=id("tabs_node")), 
                 dbc.Card([
                     dbc.CardHeader([ html.P(id=id('node_name_list'), style={'text-align':'center', 'font-size':'20px', 'font-weight':'bold', 'float':'left', 'width':'100%'}) ]),
-                    dbc.CardBody(html.Div(id=id('node_content'), style={'height': '800px', 'overflow-x': 'scroll', 'overflow-y':'auto'})),
+                    dbc.CardBody(html.Div(id=id('node_content'), style={'min-height': '760px'})),
                 ], className='bg-primary', inverse=True),
             ], width=4),
-            
-
         ], className='text-center', style={'margin': '1px'}),
     ], fluid=True, id=id('content')),
 ])
@@ -111,8 +109,8 @@ def generate_search_value(search_str):
 )
 def search(search_value, search_type):
     if search_value == '' or search_value is None: return no_update
-    print(search_type)
-    if search_type == 'dataset': query_by = ['description', 'column']
+
+    if search_type == 'dataset': query_by = ['name', 'description', 'details']
     elif search_type == 'project': query_by = ['description']
     elif search_type == 'question': query_by = ['description']
 
@@ -128,8 +126,7 @@ def search(search_value, search_type):
             [
                 html.Tr([
                     html.Th('No.'),
-                    html.Th('Name'),
-                    html.Th('Description'),
+                    html.Th('Dataset'),
                     html.Th('Type'),
                     html.Th(''),
                 ])
@@ -137,16 +134,24 @@ def search(search_value, search_type):
             [
                 html.Tr([
                     html.Td(dbc.Input(value=dataset['id'], id={'type':id('col_dataset_id'), 'index': i}), style={'display':'none'}),
-                    html.Td(i+1),
-                    html.Td(dataset['name'], id={'type':id('col_description'), 'index': i}),
-                    html.Td(dataset['description'], id={'type':id('col_description'), 'index': i}),
-                    html.Td(dataset['type'], id={'type':id('col_type'), 'index': i}),
+                    html.Td(i+1, style={'width':'5%'}),
+                    html.Td([
+                        html.P(dataset['name'], id={'type':id('col_name'), 'index': i}, style={'font-weight':'bold'}),
+                        html.P(dataset['description'], id={'type':id('col_description'), 'index': i}),
+                    ], style={'width':'60%'}),
+                    html.Td(dataset['type'], id={'type':id('col_type'), 'index': i}, style={'width':'15%'}),
                     html.Td([
                         dbc.ButtonGroup([
-                            dbc.Button('View', id={'type':id('col_button_view'), 'index': i}, className='btn btn-primary'),
-                            dbc.Button('Add To Project', id={'type':id('col_button_add_dataset'), 'index': i}, className='btn btn-warning'),
-                        ]),
-                    ]),
+                            dbc.Button('Preview', id={'type':id('col_button_preview'), 'index': i}, className='btn btn-info'),
+                            dbc.Button('Add', id={'type':id('col_button_add'), 'index': i}, className='btn btn-primary'),
+                            dbc.Button('Edit', id={'type':id('col_button_edit'), 'index': i}, className='btn btn-success'),
+                            dbc.Button(' X ', id={'type':id('col_button_remove'), 'index': i}, className='btn btn-danger'),
+                            dbc.Tooltip('Preview Dataset Data', target={'type':id('col_button_preview'), 'index': i}),
+                            dbc.Tooltip('Add Dataset to Current Project', target={'type':id('col_button_add'), 'index': i}),
+                            dbc.Tooltip('Edit Dataset Details', target={'type':id('col_button_edit'), 'index': i}),
+                            dbc.Tooltip('Remove Dataset', target={'type':id('col_button_remove'), 'index': i}),
+                        ], vertical=True),
+                    ], style={'width':'20%'}),
                 ], id={'type':id('row'), 'index': i}) for i, dataset in enumerate(dataset_list)
             ],
             style={'width':'100%'}, id=id('table_data_profile')
@@ -157,44 +162,44 @@ def search(search_value, search_type):
     return out
 
 
-# dbc.InputGroup([
-#     dbc.InputGroupText("Params", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-#     dbc.Input(id={'type': id('param_key'), 'index': index}, placeholder='Enter Parameter', style={'width':'39%', 'text-align':'center'}),
-#     dbc.Input(id={'type': id('param_value'), 'index': index}, placeholder='Enter Value', style={'width':'39%', 'text-align':'center'}), 
-# ]),
 
 
 
-# On page load, View
+# Store dataset
 @app.callback(
     Output(id('tabs_node'), 'children'),
     Output(id('tabs_node'), 'active_tab'),
-    Output(id('current_dataset_id_store'), 'data'),
-    Input({'type':id('col_button_view'), 'index': ALL}, 'n_clicks'),
+    Output(id('preview_dataset_id_store'), 'data'),
+    Input({'type':id('col_button_preview'), 'index': ALL}, 'n_clicks'),
+    Input({'type':id('col_button_remove'), 'index': ALL}, 'n_clicks'),
     State(id('tabs_node'), 'active_tab'),
     State({'type':id('col_dataset_id'), 'index': ALL}, 'value'),
     prevent_initial_call=True
 )
-def generate_tabs(n_clicks_view_list, active_tab, col_dataset_id_list):
-    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+def generate_tabs(n_clicks_view_list, n_clicks_remove_list, active_tab, col_dataset_id_list):
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0] if len(callback_context.triggered) == 1 else None
     tab1_disabled, tab2_disabled = True, True
-    try:
+    dataset_id = None
+    
+    if triggered is not None:
         triggered = json.loads(triggered)
         index = triggered['index']
-        if triggered['type'] == id('col_button_view'):
-            if n_clicks_view_list[index] is not None:
-                tab1_disabled, tab2_disabled = False, False
-                active_tab = active_tab if (active_tab is not None) else 'tab1'
-        
-        tab_list = [
-            dbc.Tab(label="JSON", tab_id="tab1", disabled=tab1_disabled),
-            dbc.Tab(label="Metadata", tab_id="tab2", disabled=tab2_disabled),
-        ]
-        return tab_list, active_tab, col_dataset_id_list[index]
+        if triggered['type'] == id('col_button_preview'):
+            tab1_disabled, tab2_disabled = False, False
+            active_tab = active_tab if (active_tab is not None) else 'tab1'
+            dataset_id = col_dataset_id_list[index]
+        elif triggered['type'] == id('col_button_edit'):
+            print('TODO')
+        elif triggered['type'] == id('col_button_remove'):
+            print('TODO')
 
-    except Exception as e:
-        pass
-        
+    tab_list = [
+        dbc.Tab(label="JSON", tab_id="tab1", disabled=tab1_disabled),
+        dbc.Tab(label="Metadata", tab_id="tab2", disabled=tab2_disabled),
+    ]
+    return tab_list, active_tab, dataset_id
+
+
 
 
 
@@ -203,7 +208,7 @@ def generate_tabs(n_clicks_view_list, active_tab, col_dataset_id_list):
     Output(id('node_name_list'), 'children'),
     Output(id('node_content'), 'children'),
     Input(id('tabs_node'), 'active_tab'),
-    State(id('current_dataset_id_store'), 'data'),
+    State(id('preview_dataset_id_store'), 'data'),
 )
 def display(active_tab, dataset_id):
     if dataset_id is None: return no_update
@@ -218,8 +223,7 @@ def display(active_tab, dataset_id):
 
     elif active_tab == 'tab2':
         dataset = get_document('dataset', dataset['id'])
-        out = out + [display_metadata(dataset)]
-        out = [dbc.CardBody(dbc.Button('Modify Metadata', id=id('button_modify_metadata'), className='btn btn-warning btn-lg', style={'width':'100%'}))] + out
+        out = out + [display_metadata(dataset, id)]
 
     return name, out
 
@@ -227,7 +231,7 @@ def display(active_tab, dataset_id):
 # Add to Project Button
 @app.callback(
     Output('url', 'pathname'),
-    Input({'type':id('col_button_add_dataset'), 'index': ALL}, 'n_clicks'),
+    Input({'type':id('col_button_add'), 'index': ALL}, 'n_clicks'),
     State({'type':id('col_dataset_id'), 'index': ALL}, 'value'),
     prevent_initial_call=True
 )
@@ -239,8 +243,7 @@ def button_add_dataset(n_clicks_add_list, col_dataset_id_list):
         if n_clicks_add_list[index] is not None:
             dataset_id = col_dataset_id_list[index]
             add_dataset(get_session('project_id'), dataset_id)
-            return '/apps/data_lineage'
-            
+            return '/apps/data_lineage'    
 
     except Exception as e:
         pass

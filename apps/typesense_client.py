@@ -193,7 +193,7 @@ def new_project(project_id, project_type):
 #     client.collections.create(generate_schema_auto(dataset_id))
 #     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
-def new_dataset(dataset_data_store, name, description, type, details):
+def new_dataset(dataset_data_store, name, description, source, type, details):
     # Dataset
     dataset_id = str(uuid.uuid1())
     df = json_normalize(dataset_data_store)
@@ -275,6 +275,7 @@ def action(project_id, source_id, action, description, details, changed_dataset,
     # Dataset Document
     changed_dataset['id'] =  dataset_id # Overwrite previous dataset ID
     changed_dataset['details'] = None
+    changed_dataset['type'] = 'processed'
 
     # Dataset Data Collection
     df = json_normalize(dataset_data_store)
