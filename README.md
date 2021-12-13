@@ -1,12 +1,28 @@
 # ai-sdk
-AI-SDK is a nocode tool used for doing datasets discovery, exploratory, schema decisions and preparing a data strategy ready for Data Scientists.
+AI-SDK is a nocode tool used for defining and refining the data data strategy by using current and new datasets by doing discovery, exploratory analysis, schema decisions to come to a consesnus of what is the best way to build a data product. This is super useful for Data Scientists, Data Engineers, Data Analysts and Database Administrators to all come on the same page on an ongoing basis while addressing the evolving data needs.
 
+**AI-SDK's Data Strategy tool entails the following features**
+- [x] (Experiments: Live Data Flow Diagram )
+- [x] (Data profiling)
+- [x] (Live Data Merging)
+- [x] (Searching Data and Schema Management)
+- [x] (Data Catalog)
+- [x] (Data Exploration)
+- [x] (Data Cleaning)
+- [x] (Data Limitations & Transformations)
+- [x] (Data Governance)
+- [x] (AI Feature store)
+- [x] (Temporal/Streaming Data Evolutions)
+
+**AI-SDK is a data strategy tool which can we used in 3 Form Factors**
+1. Method1: [Github Action](https://github.com/marketplace/actions/ai-sdk-action) along with [Github Flat Data](https://github.com/githubocto/flat) - 10 minutes to setup and see the value
+2. Method2: [Cloud WebApp](http://app.0research.com) - Nocode solution to 
+3. Method3: [Docker Self Hosted ](https://hub.docker.com/repository/docker/0research/ai-sdk)
 
 # ai-sdk Action
 AI-SDK Action allows users to 
 * Periodically Fetch JSON data from two sources through [Flat Data](https://github.com/githubocto/flat)
 * Merge both JSON data via Merging Strategies 
-
 
 # Usage
 * Under ```on```. Users are required to configure code to their specific needs.
@@ -62,3 +78,17 @@ MIT (Massachusetts Institute of Technology) License is a “permissive” licens
 If a developer writes a million lines of code for a project and then incorporates even a few lines of GPL-licensed code, then all the code must be revealed under the GPL. The developer can’t mix their own proprietary software and GPL software together. This is precisely why the GPL has drawn the ire of many professional developers. **(This does not hold true for MIT License)**
 
 Needless to say, we don’t think there’s anything scary about AI-SDK. When developer’s use AI-SDK and its permissive MIT license, they can put it on the internet without sharing app source code with anyone and not worry about a thing. 
+# Other Underlying Licenses of Open Source Products used
+
+1. Typesense [License](https://github.com/typesense/typesense/blob/master/LICENSE.txt)
+2. HasuraGQL [License](https://github.com/hasura/graphql-engine/blob/master/LICENSE)
+3. Clickhouse [License](https://github.com/ClickHouse/ClickHouse/blob/master/LICENSE)
+4. Postgres [License](https://www.postgresql.org/about/licence/)
+
+<!-- Features to be implemented / to be implemented
+- [x] (for checked checkbox)
+- [ ] (for unchecked checkbox)
+- [ ] (for unchecked checkbox)
+- [ ] (for unchecked checkbox)
+- [ ] (for unchecked checkbox)
+- [ ] (for unchecked checkbox) -->
