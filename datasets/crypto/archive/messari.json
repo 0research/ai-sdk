@@ -1,0 +1,29 @@
+{
+  "created": "2021-05-05T12:30:00.646528Z",
+  "status": {
+    "timestamp": "2018-06-02T22:51:28.209Z",
+    "elapsed": 10
+  },
+  "data": {
+    "id": "1e31218a-e44e-4285-820c-8282ee222035",
+    "symbol": "BTC",
+    "name": "Bitcoin",
+    "slug": "bitcoin",
+    "market_data": {
+      "price_usd": 7184.79746667989,
+      "price_btc": 1,
+      "volume_last_24_hours": 3686422132.4061913,
+      "real_volume_last_24_hours": 213007404.88224277,
+      "volume_last_24_hours_overstatement_multiple": 17.23897417186806,
+      "percent_change_usd_last_24_hours": 0.7429609262723845,
+      "percent_change_btc_last_24_hours": 0,
+      "ohlcv_last_1_hour": {
+        "open": 7197.467535968304,
+        "high": 7208.544343587009,
+        "low": 7179.140622464517,
+        "close": 7184.797466679892,
+        "volume": 9690910.565409226
+      }
+    }
+  }
+}

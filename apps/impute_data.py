@@ -8,7 +8,6 @@ from pprint import pprint
 from jsondiff import diff
 from dash import no_update
 from apps.util import *
-from apps.graph import *
 import plotly.graph_objects as go
 import pandas as pd
 import base64
@@ -86,15 +85,16 @@ layout = html.Div([
                 generate_dropdown(id('dropdown_select_graph'), option_graph, value=option_graph[0]['value']),
                 generate_dropdown(id('dropdown_select_action'), option_action, value=option_action[0]['value']),
             ]), width=9),
+            dbc.Col(dbc.Button('Add Impute', id=id('button_add_impute'), style={'width':'100%'}, className='btn btn-success'), width={'size':10, 'offset':1}),
+
             dbc.Col(html.Div(dcc.Graph(id=id('selected_column_graph'))), width=6),
             dbc.Col(html.Div(dcc.Graph(id=id('impute_col_graph'))), width=6),
-            
         ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
 
         dbc.Row([
             dbc.Col([
                 html.H6('Changes (TODO)', style={'text-align':'center'}),
-            ], id=id('modified'), width=12, style={'min-height':'200px', 'background-color':'silver'}),
+            ], id=id('changes'), width=12, style={'min-height':'200px', 'background-color':'silver'}),
         ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
         
         dbc.Row([
@@ -115,147 +115,154 @@ layout = html.Div([
 
 
 # Left Bar Graph
-# @app.callback(Output(id('left_panel_graph'), 'figure'), 
-#                 Input('current_dataset', 'data'), 
-#                 Input('current_node', 'data'))
-# def generate_left_bar_graph(dataset_id, node_id):
-#     if node_id is None: return no_update
-#     df = get_dataset_data(node_id)
+@app.callback(Output(id('left_panel_graph'), 'figure'), 
+                Input('url', 'pathname'),)
+def generate_left_bar_graph(pathname):
+    df = get_dataset_data_store(get_session('dataset_id'))
     
-#     # stack_types = ['Valid', 'Missing', 'Invalid'] # TODO add Invalid
-#     stack_types = ['Valid', 'Missing']
-#     num_col = len(df.columns)
-#     # invalid_list = []
-#     valid_list = list(df.count().to_dict().values())
-#     null_list = list(df.isna().sum().to_dict().values())
+    # stack_types = ['Valid', 'Missing', 'Invalid'] # TODO add Invalid
+    stack_types = ['Valid', 'Missing']
+    num_col = len(df.columns)
+    # invalid_list = []
+    valid_list = list(df.count().to_dict().values())
+    null_list = list(df.isna().sum().to_dict().values())
     
-#     graph_df = pd.DataFrame({
-#         'column': list(df.columns) * len(stack_types),
-#         'Freq': valid_list + null_list,
-#         'type': [j for i in stack_types for j in (i,)*num_col]
-#     })
+    graph_df = pd.DataFrame({
+        'column': list(df.columns) * len(stack_types),
+        'Freq': valid_list + null_list,
+        'type': [j for i in stack_types for j in (i,)*num_col]
+    })
 
-#     fig = px.bar(graph_df, x="Freq", y="column", color="type", orientation='h', barmode='stack', height=650)
+    fig = px.bar(graph_df, x="Freq", y="column", color="type", orientation='h', barmode='stack', height=650)
 
-#     return fig
-
-
-# # Save & Display selected Column
-# @app.callback(Output(id('selection_list_store'), 'data'), Input(id('left_panel_graph'), 'clickData'))
-# def save_selected_column(selected_columns):
-#     if selected_columns == None: return None
-#     return selected_columns['points'][0]['label']
-# @app.callback(Output(id('selection_list'), 'children'), Input(id('selection_list_store'), 'data'))
-# def generate_selected_column(selected_columns):
-#     if selected_columns is None or selected_columns == []: return 'Column Selected: None'
-#     return 'Column Selected: ', selected_columns
+    return fig
 
 
-# # Right Bar Graph
-# @app.callback(Output(id('right_panel_graph'), 'figure'), 
-#                 Input(id('selection_list_store'), 'data'),
-#                 Input('current_node', 'data'))
-# def generate_right_bar_graph(selected_column, node_id):
-#     if selected_column == None or selected_column == []: return no_update
+# Save & Display selected Column
+@app.callback(Output(id('selection_list_store'), 'data'), Input(id('left_panel_graph'), 'clickData'))
+def save_selected_column(selected_columns):
+    if selected_columns == None: return None
+    return selected_columns['points'][0]['label']
+@app.callback(Output(id('selection_list'), 'children'), Input(id('selection_list_store'), 'data'))
+def generate_selected_column(selected_columns):
+    if selected_columns is None or selected_columns == []: return 'Column Selected: None'
+    return 'Column Selected: ', selected_columns
+
+
+# Right Bar Graph
+@app.callback(Output(id('right_panel_graph'), 'figure'), 
+                Input(id('selection_list_store'), 'data'))
+def generate_right_bar_graph(selected_column):
+    if selected_column == None or selected_column == []: return no_update
     
-#     df = get_dataset_data(node_id)
-#     data = df[selected_column].value_counts(dropna=False)
+    df = get_dataset_data_store(get_session('dataset_id'))
+    data = df[selected_column].value_counts(dropna=False)
 
-#     # TODO add invalid as diff colored bars
-#     colors = ['Valid',] * len(data)
-#     if len(colors) > 2:
-#         colors[1] = 'Invalid'
-#         # colors[2] = 'Missing'
+    # TODO add invalid as diff colored bars
+    colors = ['Valid',] * len(data)
+    if len(colors) > 2:
+        colors[1] = 'Invalid'
+        # colors[2] = 'Missing'
 
-#     graph_df = pd.DataFrame({
-#         'Freq': list(data.values),
-#         'Unique Values': list(data.index),
-#         'type': colors
-#     })
+    graph_df = pd.DataFrame({
+        'Freq': list(data.values),
+        'Unique Values': list(data.index),
+        'type': colors
+    })
 
-#     fig = px.bar(graph_df, x="Freq", y="Unique Values", color='type', orientation='h', barmode='stack', height=650)
+    fig = px.bar(graph_df, x="Freq", y="Unique Values", color='type', orientation='h', barmode='stack', height=650)
 
-#     return fig
-
-
-# def impute_col(df, action, fillna=0):
-#     if action == 'removeNAN':
-#         df.dropna(inplace=True)
-#     elif action == 'replaceNANwithValue':
-#         df.fillna(fillna, inplace=True)
-#     elif action == 'missForest':
-#         imputer = MissForest()
-#         df = imputer.fit_transform(df)
-#     elif action == 'KNNImputer':
-#         imputer = KNNImputer()
-#         df = imputer.fit_transform(df)
-#     return df
+    return fig
 
 
-# @app.callback(Output(id('selected_column_graph'), 'figure'), 
-#                 Output(id('impute_col_graph'), 'figure'),
-#                 Input(id('selection_list_store'), 'data'), 
-#                 Input(id('dropdown_select_graph'), 'value'),  
-#                 Input(id('dropdown_select_action'), 'value'),
-#                 Input('current_node', 'data'))
-# def generate_select_graph(selected_columns, selected_graph, action, node_id):
-#     if selected_columns == None or selected_columns == []: return no_update
-#     if node_id is None: return no_update
+def impute_col(df, action, fillna=0):
+    if action == 'removeNAN':
+        df.dropna(inplace=True)
+    elif action == 'replaceNANwithValue':
+        df.fillna(fillna, inplace=True)
+    # elif action == 'missForest':
+    #     imputer = MissForest()
+    #     df = imputer.fit_transform(df)
+    # elif action == 'KNNImputer':
+    #     imputer = KNNImputer()
+    #     df = imputer.fit_transform(df)
+    return df
+
+
+@app.callback(Output(id('selected_column_graph'), 'figure'), 
+                Output(id('impute_col_graph'), 'figure'),
+                Input(id('selection_list_store'), 'data'), 
+                Input(id('dropdown_select_graph'), 'value'),  
+                Input(id('dropdown_select_action'), 'value'))
+def generate_select_graph(selected_columns, selected_graph, action):
+    if selected_columns == None or selected_columns == []: return no_update
     
-#     # Get Data
-#     df = get_dataset_data(node_id)
-#     col = df[selected_columns]
-#     col_clean = impute_col(col, action)
+    # Get Data
+    df = get_dataset_data_store(get_session('dataset_id'))
+    col = df[selected_columns]
+    col_clean = impute_col(col, action)
 
-#     if selected_graph == 'pie':
-#         df_value_counts = col.value_counts(dropna=False).reset_index().rename(columns={'index':'Unique Value', selected_columns: 'Freq'})
-#         figure = px.pie(df_value_counts, values='Freq', names='Unique Value')
+    if selected_graph == 'pie':
+        df_value_counts = col.value_counts(dropna=False).reset_index().rename(columns={'index':'Unique Value', selected_columns: 'Freq'})
+        figure = px.pie(df_value_counts, values='Freq', names='Unique Value')
         
-#         df_value_counts = col_clean.value_counts(dropna=False).reset_index().rename(columns={'index':'Unique Value', selected_columns: 'Freq'})
-#         figure2 = px.pie(df_value_counts, values='Freq', names='Unique Value')
+        df_value_counts = col_clean.value_counts(dropna=False).reset_index().rename(columns={'index':'Unique Value', selected_columns: 'Freq'})
+        figure2 = px.pie(df_value_counts, values='Freq', names='Unique Value')
 
-#     elif selected_graph == 'line':
-#         df_clean = impute_col(df, action)
-#         figure = px.line(df, x="index", y=selected_columns)
-#         figure2 = px.line(df_clean, x="index", y=selected_columns)
-#     # elif selected_graph == 'bar':
-#     #     figure = px.bar(df_value_counts, x=columns[0], y=columns[1], barmode='stack')
-#     #     figure2 = px.bar(impute_col(df_value_counts, action), x=columns[0],  y=columns[1], barmode='stack')
-#     # elif selected_graph == 'scatter':
-#     #     figure = px.scatter(df_value_counts, x=columns[0], y=columns[1])
-#     #     figure2 = px.scatter(impute_col(df_value_counts, action), x=columns[0], y=columns[1])
-#     # elif selected_graph == 'box':
-#     #     figure = px.box(df_value_counts, x=columns[0], y=columns[1])
-#     #     figure2 = px.scatter(impute_col(df_value_counts, action), x=columns[0], y=columns[1])
-
-
-#     # # Upload temporary output data
-#     # jsonl = col_clean.to_json(orient='records', lines=True) # Convert to jsonl
-#     # try:
-#     #     client.collections['out'].delete()
-#     #     client.collections.create(generate_schema_auto('out'))
-#     # except Exception as e:
-#     #     client.collections.create(generate_schema_auto('out'))
-#     # client.collections['out'].documents.import_(jsonl, {'action': 'create'})
-
-#     return figure, figure2,
+    elif selected_graph == 'line':
+        df_clean = impute_col(df, action)
+        figure = px.line(df, x="index", y=selected_columns)
+        figure2 = px.line(df_clean, x="index", y=selected_columns)
+    # elif selected_graph == 'bar':
+    #     figure = px.bar(df_value_counts, x=columns[0], y=columns[1], barmode='stack')
+    #     figure2 = px.bar(impute_col(df_value_counts, action), x=columns[0],  y=columns[1], barmode='stack')
+    # elif selected_graph == 'scatter':
+    #     figure = px.scatter(df_value_counts, x=columns[0], y=columns[1])
+    #     figure2 = px.scatter(impute_col(df_value_counts, action), x=columns[0], y=columns[1])
+    # elif selected_graph == 'box':
+    #     figure = px.box(df_value_counts, x=columns[0], y=columns[1])
+    #     figure2 = px.scatter(impute_col(df_value_counts, action), x=columns[0], y=columns[1])
 
 
+    # # Upload temporary output data
+    # jsonl = col_clean.to_json(orient='records', lines=True) # Convert to jsonl
+    # try:
+    #     client.collections['out'].delete()
+    #     client.collections.create(generate_schema_auto('out'))
+    # except Exception as e:
+    #     client.collections.create(generate_schema_auto('out'))
+    # client.collections['out'].documents.import_(jsonl, {'action': 'create'})
+
+    return figure, figure2,
 
 
-# # Button Confirm
-# @app.callback(Output('modal_confirm', 'children'),
-#                 Input(id('button_confirm'), 'n_clicks'),
-#                 State('current_dataset', 'data'),
-#                 State('current_node', 'data'),
-#                 State(id('selection_list_store'), 'data'), 
-#                 State(id('dropdown_select_action'), 'value'))
-# def button_confirm(n_clicks, dataset_id, node_id, selected_column, action):
-#     if n_clicks is None: return no_update
-#     print('Source: ', node_id)
-#     df = get_dataset_data(node_id)
-#     df[selected_column] = impute_col(df[selected_column], action)
-#     action(dataset_id, node_id, df.to_dict('records'), label='')
 
-#     return no_update
+# Add Impute to List of Changes
+@app.callback(Output(id('changes'), 'children'),
+                Input(id('button_add_impute'), 'n_clicks'),
+                State(id('selection_list_store'), 'data'),
+                State(id('dropdown_select_action'), 'value'),)
+def button_add_impute(n_clicks, column, impute_action):
+    if n_clicks is None: return no_update
+    print('BUTTON IMPUTE')
+    print(column)
+    print(impute_action)
+    return no_update
+
+
+# Button Confirm
+@app.callback(Output('modal_confirm', 'children'),
+                Input(id('button_confirm'), 'n_clicks'),
+                State('current_dataset', 'data'),
+                State('current_node', 'data'),
+                State(id('selection_list_store'), 'data'), 
+                State(id('dropdown_select_action'), 'value'))
+def button_confirm(n_clicks, dataset_id, node_id, selected_column, action):
+    if n_clicks is None: return no_update
+    print('Source: ', node_id)
+    df = get_dataset_data_store(node_id)
+    df[selected_column] = impute_col(df[selected_column], action)
+    action(dataset_id, node_id, df.to_dict('records'), label='')
+
+    return no_update
 

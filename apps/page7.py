@@ -242,7 +242,7 @@
 # #     base = merger.merge(base, json_dict, merge_options={'version': {'metadata': {'revision': 1}}})
 
 # #     # Get selected merge data
-# #     json_dict = render_tabs_json_data(json_dict, selected_tab)
+# #     json_dict = render_tabs_node_data(json_dict, selected_tab)
 
 # #     # Overwrite Selected data with version data
 # #     schema = {'mergeStrategy': 'overwrite'}

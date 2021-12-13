@@ -7,7 +7,7 @@ from app import app
 from app import server 
 from app import dbc
 from apps.typesense_client import *
-from apps import (new_project, upload_dataset, join, overview, profile, merge_strategy, temporal_evolution, temporal_merge, 
+from apps import (new_project, new_dataset, upload_dataset, join, search, extract_transform, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage,
                 page2, page3, page6, page6,page7, page8, page9, page10)
 import ast
@@ -31,9 +31,9 @@ SIDEBAR_STYLE = {
 # the styles for the main content position it to the right of the sidebar and
 # add some padding.
 CONTENT_STYLE = {
-    "margin-left": "18rem",
-    "margin-right": "2rem",
-    "padding": "2rem 1rem",
+    "margin-left": "14rem",
+    "margin-right": "10px",
+    "padding": "1rem 0rem",
 }
 
 # Define path for images used
@@ -65,15 +65,15 @@ navbar = dbc.Navbar([
             dbc.Select(options=[], id='dropdown_current_project', style={'min-width':'120px'}, persistence_type='session', persistence=True),
         ]), width={"size": 2, "order": "4", 'offset': 2}),
 
-        dbc.Col(dbc.InputGroup([
-            dbc.InputGroupText("Dataset"),
-            dbc.Input(id='display_current_dataset', disabled=True, style={'text-align':'center'})
-        ]), width={"size": 2, "order": "4", 'offset': 0}, style={'margin-right':'30px', 'height':'100%'}),
+        # dbc.Col(dbc.InputGroup([
+        #     dbc.InputGroupText("Dataset"),
+        #     dbc.Input(id='display_current_dataset', disabled=True, style={'text-align':'center'})
+        # ]), width={"size": 2, "order": "4", 'offset': 0}, style={'margin-right':'30px', 'height':'100%'}),
 
         # dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "4", 'offset':3}),
         # dbc.Col(dbc.Button("Data Lineage", href='/apps/data_lineage', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "5", 'offset':0}),
-        dbc.Col(dbc.Input(type="search", placeholder="Search...", style={'text-align':'center'}), width={"size": 3, "order": "5", 'offset':0})
-    ], className='g-0', style={'width':'100%'}),
+        dbc.Col(dbc.Input(type="search", id='search', debounce=True, placeholder="Search...", style={'text-align':'center'}), width={"size": 3, "order": "5", 'offset':0})
+    ], className='g-0', style={'width':'100%'}, id='navbar_top'),
 
     # Tool tips for each Icon
     dbc.Tooltip("0Research Homepage",target="tooltip-homepagelogo"),
@@ -85,17 +85,21 @@ navbar = dbc.Navbar([
 ], color="dark", dark=True,)
     
 
-
 # Sidebar
-sidebar_1 = [
-    dbc.NavLink("New Project", href="/apps/new_project", id=id('nav_upload'), active="exact", className="fas fa-upload"),
-    dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
-    dbc.NavLink("Overview", href="/apps/overview", active="exact", className="fas fa-chart-pie"),
+sidebar_0 = [
+    dbc.NavLink("New Project", href="/apps/new_project", active="exact", className="fas fa-upload"),
+    dbc.NavLink("New Dataset", href="/apps/new_dataset", active="exact", className="fas fa-upload"),
+    dbc.NavLink("Data Catalog", href="/apps/search", active="exact", className="fas fa-upload"),
 ]
-sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_2_LIST]
+sidebar_1 = [
+    dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
+    dbc.NavLink("Dashboard", href="/apps/dashboard", active="exact", className="fas fa-chart-pie"),
+    # dbc.NavLink("Add Dataset", href="/apps/upload_dataset", active="exact", className="fas fa-upload"),
+    dbc.NavLink("Plot Graph", href="/apps/plot_graph", active="exact", className="fas fa-upload"),
+]
+sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className'], disabled=nav['disabled']) for nav in SIDEBAR_2_LIST]
 sidebar_3 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_3_LIST]
 sidebar_4 = [
-    dbc.NavLink("Graph Your Data", href="/apps/graph_your_data", active="exact", className="fas fa-chart-pie"),
     dbc.NavLink("Workflow", href="/apps/workflow", active="exact", className="fas fa-arrow-alt-circle-right"),
     dbc.NavLink("Remove Duplicate", href="/apps/remove_duplicate", active="exact", className='far fa-copy'),
     dbc.NavLink("Decomposition", href="/apps/decomposition", active="exact", className='fas fa-recycle'),
@@ -107,12 +111,14 @@ sidebar_4 = [
 sidebar = html.Div([
     dbc.Nav(
         [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
+        sidebar_0 +
+        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
         sidebar_1 +
         [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
         sidebar_2 +
         [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
         sidebar_3 +
-        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
+        # [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
         sidebar_4 +
         [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] 
         
@@ -122,7 +128,7 @@ sidebar = html.Div([
         # dcc.Link('Temporal Merge | ', href='/apps/page8'),
         # dcc.Link('Temporal Evolution | ', href='/apps/page9'),
         # dcc.Link('Page 10 | ', href='/apps/page10'),
-    , vertical=True, pills=True),
+    , vertical=True, pills=True, id='sidebar'),
 ], style=SIDEBAR_STYLE)
 
 
@@ -131,6 +137,7 @@ sidebar = html.Div([
 def serve_layout():
     return html.Div([
         dcc.Location(id='url', refresh=False),
+        dcc.Store(id='search_str_store', storage_type='session'),
         dbc.Modal('', id='modal_confirm'),
         sidebar,
         navbar,
@@ -143,11 +150,16 @@ app.layout = serve_layout
 @app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
 def display_page(pathname):
     if pathname.startswith('/apps/new_project'): return new_project.layout
+    if pathname.startswith('/apps/new_dataset'): return new_dataset.layout
     if pathname.startswith('/apps/upload_dataset'): return upload_dataset.layout
-    if pathname.startswith('/apps/overview'): return overview.layout
+    if pathname.startswith('/apps/dashboard'): return dashboard.layout
     if pathname.startswith('/apps/profile'): return profile.layout
-    if pathname.startswith('/apps/impute_data'): return impute_data.layout
     if pathname.startswith('/apps/join'): return join.layout
+    if pathname.startswith('/apps/plot_graph'): return plot_graph.layout
+    if pathname.startswith('/apps/search'): return search.layout
+    
+    if pathname.startswith('/apps/impute_data'): return impute_data.layout
+    if pathname.startswith('/apps/extract_transform'): return extract_transform.layout
     
     if pathname.startswith('/apps/merge_strategy'): return merge_strategy.layout
     if pathname.startswith('/apps/temporal_evolution'): return temporal_evolution.layout
@@ -169,6 +181,20 @@ def display_page(pathname):
 
 
 
+# Highlight Active Navigation
+@app.callback(
+    Output('sidebar', 'children'),
+    Input('url', 'pathname'),
+    State('sidebar', 'children'),
+)
+def highlight_active_nav(pathname, sidebar):
+    for i in range(len(sidebar)):
+        if 'className' in sidebar[i]['props']:
+            if sidebar[i]['props']['href'] == pathname:
+                sidebar[i]['props']['className'] + ' active'
+    return sidebar
+
+
 # Load Projects Options in dropdown
 @app.callback([Output('dropdown_current_project', 'options')],
                 Input('url', 'pathname'),)
@@ -187,13 +213,20 @@ def load_dataset_dropdown(project_id):
     return no_update
 
 # Load Project ID and Node ID
-@app.callback(Output('dropdown_current_project', 'value'), 
-                Output('display_current_dataset', 'value'),
+@app.callback(Output('dropdown_current_project', 'value'),
                 Input('url', 'pathname'))
 def load_project_id(pathname):
-    return get_session('project_id'), get_session('dataset_id')
+    return get_session('project_id')
 
-
+# Search Function
+@app.callback(
+    Output('url', 'pathname'),
+    Output('search_str_store', 'data'),
+    Input('search', 'value')
+)
+def load_project_id(value):
+    if value == '' or value is None: return no_update
+    return '/apps/search', value
 
 if __name__ == '__main__':
     app.run_server("0.0.0.0", 8889, debug=True)

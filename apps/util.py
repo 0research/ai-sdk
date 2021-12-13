@@ -21,8 +21,8 @@ import os
 from pandas import json_normalize
 import pandas as pd
 import uuid
-
-
+from apps.constants import *
+from apps.typesense_client import *
 
 
 
@@ -171,7 +171,7 @@ def json_merge(base, new, merge_strategy):
     return base
 
 
-def generate_dropdown(component_id, options, value=None, placeholder='Select...'):
+def generate_dropdown(component_id, options, value=None, multi=False, placeholder=None, style=None):
     # if value == None: value = options[0]['value']
     return dcc.Dropdown(
         id=component_id,
@@ -179,29 +179,109 @@ def generate_dropdown(component_id, options, value=None, placeholder='Select...'
         value=value,
         searchable=False,
         clearable=False,
+        multi=multi,
         placeholder=placeholder,
-        style={'color': 'black'},
+        style=style,
     )
 
+def display_dataset_data_store(dataset_data_store):
+    return html.Pre(json.dumps(dataset_data_store, indent=2), style={'height': '730px', 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
 
-def generate_datatable(component_id, data=[], columns=[], height='450px'):
-    # df = pd.DataFrame(OrderedDict([
-    #     ('climate', ['Sunny', 'Snowy', 'Sunny', 'Rainy']),
-    #     ('temperature', [13, 43, 50, 30]),
-    #     ('city', ['NYC', 'Montreal', 'Miami', 'NYC'])
-    # ]))
-    columns = [{"name": col, "id": col, "deletable": False, "selectable": False} for col in columns]
+def display_metadata(dataset, id, disabled=True):
+    columns = [col for col, show in dataset['column'].items() if show == True]
+    # index = dataset['index'] if len(dataset['index']) >= 1 else None
+    # target = dataset['target'] if len(dataset['target']) >= 1 else None
+    # options_columns = [{'label':col, 'value':col} for col in columns]
+    options_datatype = [{'label': d, 'value': d} for d in DATATYPE_LIST]
+    datatype = {col:dtype for col, dtype in dataset['datatype'].items() if col in columns}
+    return (
+        html.Div([
+            html.Div([
+                dbc.InputGroup([
+                    dbc.InputGroupText("Dataset ID", style={'width':'30%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                    dbc.Input(disabled=True, value=dataset['id'], style={'width':'70%', 'font-size': '12px', 'text-align':'center'}),
+                    # dbc.InputGroupText("Index", style={'width':'30%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                    # html.Div(dcc.Dropdown(options=options_columns, value=index, multi=True, id=('dropdown_index'), disabled=disabled, style={'font-size': '12px', 'text-align':'center'}), style={'width':'70%'}),
+                    # dbc.InputGroupText("Target", style={'width':'30%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                    # html.Div(dcc.Dropdown(options=options_columns, value=target, multi=True, id=('dropdown_target'), disabled=disabled, style={'font-size': '12px', 'text-align':'center'}), style={'width':'70%'}),
+                ], className="mb-3 lg"),
+            ]),
+            html.Table(
+                [
+                    html.Tr([
+                        html.Th('Feature', style={'width':'40%'}),
+                        html.Th('Datatype', style={'width':'40%'}),
+                        html.Th('Invalid', style={'width':'8%'}),
+                        html.Th('Result', style={'width':'8%'}),
+                        html.Th('', style={'width':'4%'}),
+                    ])
+                ] + 
+                [
+                    html.Tr([
+                        html.Td(dbc.Input(value=col, disabled=disabled, id={'type':id('col_feature'), 'index': i}, style={'height':'40px'})),
+                        html.Td(dbc.Select(options=options_datatype, value=dtype, disabled=disabled, id={'type':id('col_datatype'), 'index': i}, style={'height':'40px'})),
+                        html.Td(html.P('%', id={'type':id('col_invalid'), 'index': i})),
+                        html.Td(html.P('-', id={'type':id('col_result'), 'index': i})),
+                        html.Td(dbc.Button(' X ', id={'type':id('col_button_remove_feature'), 'index': i}, n_clicks=0), style={'display': 'none' if disabled else 'block'}),
+                    ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(datatype.items())
+                ],
+            )
+        ], style={'overflow-x':'scroll', 'overflow-y':'auto', 'height':'750px'})
+    )
 
-    return dash_table.DataTable(
+def display_action(action):
+    return (
+        html.Div([
+            dbc.InputGroup([
+                dbc.InputGroupText("Action ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                dbc.Input(disabled=True, value=action['id'], style={'font-size': '12px', 'text-align':'center'}),
+            ], className="mb-3 lg"),
+            dbc.InputGroup([
+                dbc.InputGroupText("Action", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                dbc.Input(disabled=True, value=action['action'], style={'font-size': '12px', 'text-align':'center'}),
+            ], className="mb-3 lg"),
+            dbc.InputGroup([
+                dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                dbc.Textarea(disabled=True, value=action['description'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+            ], className="mb-3 lg"),
+            dbc.InputGroup([
+                dbc.InputGroupText("Details", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                dbc.Textarea(disabled=True, value=str(action['details']), style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+            ], className="mb-3 lg"),
+        ])
+    )
+
+def generate_options(label_list, input_list):
+    return [
+        (
+            dbc.InputGroup([
+                dbc.InputGroupText(label, style={'width':'25%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'10px'}), 
+                inp
+            ], className="mb-3 lg", style={'display': ('none' if label is None else 'flex')})
+        ) for label, inp in zip(label_list, input_list)
+    ]
+
+def generate_datatable(component_id, data=[], columns=[], height='450px',
+                        metadata_id = None, 
+                        cell_editable=False,
+                        row_deletable=False, row_selectable=False, selected_row_id = None,
+                        col_selectable=False, col_deletable=False, selected_column_id = None,):
+    # Datatable            
+    datatable_columns = [{"name": c, "id": c, "deletable": col_deletable, "selectable": col_selectable} for c in columns]
+    datatable = dash_table.DataTable(
         id=component_id,
         data=data,
-        columns=columns,
+        columns=datatable_columns,
+        editable=cell_editable,
+        filter_action="native",
+        sort_action="native",
+        sort_mode="multi",
+        column_selectable=col_selectable,
+        row_selectable=row_selectable,
+        row_deletable=row_deletable,
+        selected_columns=[],
         selected_rows=[],
-        column_selectable="single",
-        row_selectable="multi",
-        row_deletable=True,
-        editable=True,
-        page_size= 50,
+        page_size= 100,
         style_table={'height': height, 'overflowY': 'auto'},
         style_data={
             'whiteSpace': 'normal',
@@ -215,7 +295,24 @@ def generate_datatable(component_id, data=[], columns=[], height='450px'):
                 overflow-y: hidden;
             '''
         }],
+        style_data_conditional=style_data_conditional,
     ),
+
+    # Metadata
+    if metadata_id is not None:
+        metadata = dbc.Card([
+            dbc.CardHeader('Metadata'),
+            dbc.CardBody('Body')
+        ], style={'height': '100%', 'overflow-y': 'auto'})
+        width = (9, 3)
+    else:
+        metadata = html.Div()
+        width = (12, 0)
+
+    return dbc.Row([
+        dbc.Col(datatable, width=width[0]),
+        dbc.Col(metadata, width=width[1]),
+    ])
 
 
 def generate_radio(id, options, label, default_value=0, inline=False):

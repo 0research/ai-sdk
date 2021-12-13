@@ -45,7 +45,7 @@ app.css.config.serve_locally = True
 
 # Initialize Variables
 UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"
-du.configure_upload(app, UPLOAD_FOLDER_ROOT)
+# du.configure_upload(app, UPLOAD_FOLDER_ROOT)
 id = id_factory('upload')
 
 datatype_list = ['object', 'Int64', 'float64', 'bool', 'datetime64', 'category']
@@ -185,10 +185,16 @@ def browse_drag_drop_files(isCompleted, files_selected, dropdown_delimiter, chec
         data = []
         for file in file_name_list_full:
             if file.endswith('.json'):
-                with open(file, 'r') as f:
-                    json_file = json.load(f)
-                json_file = flatten(json_file)
-                data.append(json_file)
+                file_str = open(file,"r").read().replace('None', '""')
+                json_file = json.loads(file_str)
+                if type(json_file) == list:
+                    for i in range(len(json_file)):
+                        json_file[i] = flatten(json_file[i])
+                    data = json_file
+                elif type(json_file) == dict:
+                    json_file = flatten(json_file)
+                    data.append(json_file)
+
                 df = json_normalize(data)
                 
             elif file.endswith('.csv'):
