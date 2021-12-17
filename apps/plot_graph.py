@@ -129,11 +129,11 @@ layout = html.Div([
     
 #     i = graph_type_id['index']
 #     dataset = get_document('dataset', get_session('dataset_id'))
-#     datatype = dataset['datatype']
+#     features = dataset['features']
     
-#     columns = [col for col, isNotDeleted in dataset['column'].items() if isNotDeleted is True]
-#     columns_string = [c for c in columns if is_string_dtype(datatype[c])]
-#     columns_numerical = [c for c in columns if is_numeric_dtype(datatype[c])]
+#     columns = [col for col, isNotDeleted in dataset['features'].items() if isNotDeleted is True]
+#     columns_string = [c for c in columns if is_string_dtype(features[c])]
+#     columns_numerical = [c for c in columns if is_numeric_dtype(features[c])]
 #     options = [ {'label': col, 'value': col} for col in columns]
 #     options_categorical = [ {'label': col, 'value': col} for col in columns_string]
 #     options_numerical = [ {'label': col, 'value': col} for col in columns_numerical]
@@ -197,7 +197,7 @@ layout = html.Div([
 #     i = graph_type_id['index']
 #     dataset_id = get_session('dataset_id')
 #     dataset = get_document('dataset', dataset_id)
-#     df = get_dataset_data_store(dataset_id)
+#     df = get_dataset_data(dataset_id)
 
 #     if graph_type is None:
 #         fig = px.pie(df, names=input1, values=input2)

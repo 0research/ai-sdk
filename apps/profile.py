@@ -96,14 +96,14 @@ def generate_profile(pathname):
     datatype = dataset['datatype']
     # datatype_deleted = {}
     # for col, val in dataset['datatype'].items():
-    #     if dataset['column'][col] == True:
+    #     if dataset['features'][col] == True:
     #         datatype[col] = val
     #     else:
     #         datatype[col] = val
-    # print(dataset['column'])
-    # print(type(dataset['column']['convicts']))
+    # print(dataset['features'])
+    # print(type(dataset['features']['convicts']))
     for col, dtype in datatype.items():
-        print(col, dataset['column'][col])
+        print(col, dataset['features'][col])
 
     return (
         html.Table(
@@ -125,7 +125,7 @@ def generate_profile(pathname):
                     html.Td([
                         html.Button('Index', id={'type':id('col_button_index'), 'index': i}, className=('btn btn-warning' if col in dataset['index'] else '')),
                         html.Button('Target', id={'type':id('col_button_target'), 'index': i}, className=('btn btn-success' if col in dataset['target'] else '')),
-                        html.Button('Remove', id={'type':id('col_button_remove'), 'index': i}, className=('btn btn-danger' if dataset['column'][col] == False else ''))
+                        html.Button('Remove', id={'type':id('col_button_remove'), 'index': i}, className=('btn btn-danger' if dataset['features'][col] == False else ''))
                     ]),
                 ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(datatype.items())
             ],
@@ -188,8 +188,8 @@ def update_output(datatype, n_click_index, n_click_target, n_click_remove, colum
             button_target_class = ''
 
     elif triggered['type'] == id('col_button_remove'):
-        dataset['column'][column] = not dataset['column'][column]
-        button_remove_class = '' if dataset['column'][column] else 'btn btn-danger'
+        dataset['features'][column] = not dataset['features'][column]
+        button_remove_class = '' if dataset['features'][column] else 'btn btn-danger'
 
     # Update Typesense Node
     store_session('changed_dataset_profile', dataset)

@@ -11,7 +11,6 @@ from flatten_json import flatten, unflatten, unflatten_list
 from jsonmerge import Merger
 from pprint import pprint
 from genson import SchemaBuilder
-import json
 from jsondiff import diff, symbols
 from apps.util import *
 import base64
@@ -78,7 +77,7 @@ layout = html.Div([
                                 dbc.Button("REST API", id=id('type2'), outline=True, color="primary"),
                             ], style={'margin': '10px 5px 5px 10px', 'display':'flex', 'width':'100%'})
                         ]),
-                        dbc.CardBody(html.Table([], id=id('dataset_details')), style={'height': '700px', 'overflow-y':'auto'}),
+                        dbc.CardBody(id=id('dataset_details'), style={'height': '700px', 'overflow-y':'auto'}),
 
                         dbc.CardFooter([], id=id('footer')),
                     ])
@@ -113,7 +112,7 @@ def generate_tabularjson_details():
         # html.Div(dcc.Dropdown(options=[], value=[], id=id('uploaded_files'), multi=True, clearable=True, placeholder=None, style={'height':'85px', 'overflow-y':'auto'}), style={'width':'100%'}),
     ]
     
-def generate_restapi_details():
+def generate_restapi_details(extra=True):
     return [
         dbc.InputGroup([
             dbc.InputGroupText("Method", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
@@ -132,8 +131,9 @@ def generate_restapi_details():
         ]),
         html.Div([
             dbc.InputGroup([
-                dbc.Input(id={'type': id('header_key'), 'index': 0}, placeholder='Enter Key', list=id('headers_autocomplete'), style={'width':'49%', 'text-align':'center'}),
-                dbc.Input(id={'type': id('header_value'), 'index': 0}, placeholder='Enter Value', style={'width':'49%', 'text-align':'center'}),
+                dbc.Input(id={'type': id('header_key'), 'index': 0}, placeholder='Enter Key', list=id('headers_autocomplete'), style={'text-align':'center', 'height':'28px'}),
+                dbc.Input(id={'type': id('header_value'), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}),
+                dbc.Button('Use Existing Dataset', id={'type': id('button_header_value'), 'index': 0}, color='info', outline=True, style={'font-size':'12px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
             ], style={'text-align':'center'}),
         ], id=id('header_div')),
 
@@ -145,8 +145,9 @@ def generate_restapi_details():
         ]),
         html.Div([
             dbc.InputGroup([
-                dbc.Input(id={'type': id('param_key'), 'index': 0}, placeholder='Enter Key', style={'width':'39%', 'text-align':'center'}),
-                dbc.Input(id={'type': id('param_value'), 'index': 0}, placeholder='Enter Value', style={'width':'39%', 'text-align':'center'}),
+                dbc.Input(id={'type': id('param_key'), 'index': 0}, placeholder='Enter Key', style={'text-align':'center', 'height':'28px'}),
+                dbc.Input(id={'type': id('param_value'), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}),
+                dbc.Button('Use Existing Dataset', id={'type': id('button_param_value'), 'index': 0}, color='info', outline=True, style={'font-size':'12px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
             ]),
         ], id=id('params_div')),
 
@@ -158,8 +159,9 @@ def generate_restapi_details():
         ]),
         html.Div([
             dbc.InputGroup([
-                dbc.Input(id={'type': id('body_key'), 'index': 0}, placeholder='Enter Key', style={'width':'39%', 'text-align':'center'}),
-                dbc.Input(id={'type': id('body_value'), 'index': 0}, placeholder='Enter Value', style={'width':'39%', 'text-align':'center'}), 
+                dbc.Input(id={'type': id('body_key'), 'index': 0}, placeholder='Enter Key', style={'text-align':'center', 'height':'28px'}),
+                dbc.Input(id={'type': id('body_value'), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}), 
+                dbc.Button('Use Existing Dataset', id={'type': id('button_body_value'), 'index': 0}, color='info', outline=True, style={'font-size':'12px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
             ]),
         ], id=id('body_div')),
     ]
@@ -180,29 +182,30 @@ def generate_dataset_details(n_clicks_type1, n_clicks_type2, dataset_details):
     index = 0
     if triggered == id('type1') or triggered == id('type2'):
         if triggered == id('type1'): 
-            col_inputs = generate_tabularjson_details()
+            dataset_details_2 = generate_tabularjson_details()
         elif triggered == id('type2'): 
-            col_inputs = [html.Div(generate_restapi_details())]
+            dataset_details_2 = [html.Div(generate_restapi_details())]
                 
         dataset_details = [
-            html.Tr([
-                # html.Td(dbc.Input(value=index, id=id('dataset_id')), style={'display':'none'}),
-                # html.Td([html.Div(str(index+1), id={'type': id('dataset_index'), 'index': index})], style={'width':'5%'}),
-                html.Td([
-                    dbc.Input(id=id('name'), placeholder='Enter Dataset Name', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'250px'}), 
-                    dbc.Textarea(id=id('description'), placeholder='Enter Dataset Description', style={'height':'130px', 'text-align':'center', 'width':'250px'}),
-                    dbc.Input(id=id('source'), placeholder='Enter Source/Documentation (Optional) ', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'250px'}),
-                ], style={'width':'25%'}),
-                html.Td(col_inputs, style={'width':'60%'}),
-                html.Td([
+            dbc.Row([
+                dbc.Col([
+                    dbc.Input(id=id('name'), placeholder='Enter Dataset Name', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'100%'}), 
+                    dbc.Textarea(id=id('description'), placeholder='Enter Dataset Description', style={'height':'130px', 'text-align':'center', 'width':'100%'}),
+                    dbc.Input(id=id('documentation'), placeholder='Enter Documentation URL (Optional) ', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'100%'}),
+                ], width=12),
+                dbc.Col(html.Hr(), width=12),
+                dbc.Col(dataset_details_2, width=12),
+                dbc.Col([
                     dbc.ButtonGroup([
-                        # dbc.Button(' X ', className='btn btn-outline-danger', id={'type': id('button_remove'), 'index': index}),
-                        dbc.Button('Preview', className='btn btn-outline-primary', id=id('button_preview'), value=triggered), 
+                         
                     ], style={'height':'100%'}, vertical=True)
-                ], style={'width':'20%'}),
-            ])
+                ], width=12),
+            ]),
         ]
-        out = html.Button('Upload', id=id('button_new_dataset'), className='btn btn-primary', style={'margin':'20px 0px 0px 0px', 'font-size': '13px', 'font-weight': 'bold', 'width':'49%'})
+        out = dbc.ButtonGroup([
+            dbc.Button('Preview', className='btn btn-info', id=id('button_preview'), value=triggered, style={'width':'49%'}),
+            dbc.Button('Upload', className='btn btn-primary', id=id('button_new_dataset'), style={'font-size': '13px', 'font-weight': 'bold', 'width':'49%'}),
+        ], style={'width':'100%'})
     return dataset_details, out
 
 
@@ -234,12 +237,14 @@ def drag_drop(isCompleted, n_clicks):
     State({'type': id('header_value'), 'index': ALL}, 'value'),
     State({'type': id('param_key'), 'index': ALL}, 'value'),
     State({'type': id('param_value'), 'index': ALL}, 'value'),
+    State({'type': id('body_key'), 'index': ALL}, 'value'),
+    State({'type': id('body_value'), 'index': ALL}, 'value'),
     State(id('tabs_node'), 'active_tab'),
     prevent_initial_call=True
 )
 def store_api(n_clicks, dataset_type,
                 isCompleted_list, upload_id_list, fileNames_list,                                               # Tabular / JSON 
-                method_list, url_list, header_key_list, header_value_list, param_key_list, param_value_list,     # REST API
+                method_list, url_list, header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list,     # REST API
                 active_tab):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     if triggered == '': return no_update
@@ -278,26 +283,9 @@ def store_api(n_clicks, dataset_type,
 
         # Rest API
         elif dataset_type == id('type2'):
-            method =method_list[0]
-            url = url_list[0]
-            headers = dict(zip(header_key_list, header_value_list))
-            params = dict(zip(param_key_list, param_value_list))
-            if '' in headers: headers.pop('') # Remove empty keys
-            if '' in params: params.pop('')  # Remove empty keys
+            out, details = process_restapi(method_list[0], url_list[0], header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list)
+
             
-            # API_KEY = "F2862F3F-C288-447D-A6D7-A9906475D85B"
-            # url = 'https://rest.coinapi.io/v1/ohlcv/POLONIEX_SPOT_BTC_USDC/latest?period_id=1MIN'
-            # headers = {'X-CoinAPI-Key' : API_KEY}
-
-            url = 'https://rest.coinapi.io/v1/ohlcv/POLONIEX_SPOT_BTC_USDC/latest?'
-
-            if method == 'post': response = requests.get(url=url, headers=headers, params=params)
-            elif method == 'get': response = requests.post(url=url, headers=headers, params=params)
-
-            try:
-                out = json.loads(response.text)
-            except:
-                out = response.text
 
     # Enable Tabs
     tab_list = [
@@ -405,11 +393,11 @@ def button_preview(active_tab, data):
         dataset = Dataset(
             id=None,
             name=None,
-            description=None, 
-            type=None,
+            description=None,
+            documentation=None,
+            type='raw_userinput',
             details=None, 
-            column={col:True for col in df.columns}, 
-            datatype={col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
+            features={col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
             expectation = {col:None for col in df.columns}, 
             index = [], 
             target = [],
@@ -419,8 +407,6 @@ def button_preview(active_tab, data):
 
     return out
 
-
-
 # Button Upload Dataset
 @app.callback(
     Output('url', 'pathname'),
@@ -428,7 +414,7 @@ def button_preview(active_tab, data):
     State(id('button_preview'), 'value'),
     State(id('name'), 'value'),
     State(id('description'), 'value'),
-    State(id('source'), 'value'),
+    State(id('documentation'), 'value'),
     State({'type': id('browse_drag_drop'), 'index': ALL}, 'isCompleted'),
     State({'type': id('browse_drag_drop'), 'index': ALL}, 'upload_id'),
     State({'type': id('browse_drag_drop'), 'index': ALL}, 'fileNames'),
@@ -443,7 +429,7 @@ def button_preview(active_tab, data):
     State(id('tabs_node'), 'active_tab'),
     prevent_initial_call=True
 )
-def button_new_dataset(n_clicks, dataset_type, name, description, source,
+def button_new_dataset(n_clicks, dataset_type, name, description, documentation,
                 isCompleted_list, upload_id_list, fileNames_list,               # Tabular / JSON 
                 method_list, url_list, header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list,     # REST API
                 active_tab):
@@ -458,14 +444,7 @@ def button_new_dataset(n_clicks, dataset_type, name, description, source,
         if filename.endswith('.json'):
             file_str = open(file,"r").read().replace('None', '""')
             json_file = json.loads(file_str)
-            data = []
-            if type(json_file) == list:
-                for i in range(len(json_file)):
-                    json_file[i] = flatten(json_file[i])
-                data = json_file
-            elif type(json_file) == dict:
-                json_file = flatten(json_file)
-                data.append(json_file)
+            data = do_flatten(json_file)
             df = json_normalize(data)
             
         elif filename.endswith('.csv'):
@@ -473,38 +452,53 @@ def button_new_dataset(n_clicks, dataset_type, name, description, source,
 
         out = df.to_dict('records')
         dataset_type = 'raw_userinput'
-        details = {'source': filename}
-
+        details = {'filename': filename}
 
     # Rest API
     elif dataset_type == id('type2'):
-        
-        method =method_list[0]
-        url = url_list[0]
-        headers = dict(zip(header_key_list, header_value_list))
-        params = dict(zip(param_key_list, param_value_list))
-        body = dict(zip(body_key_list, body_value_list))
-        if '' in headers: headers.pop('') # Remove empty keys
-        if '' in params: params.pop('')  # Remove empty keys
-        if '' in body: body.pop('')  # Remove empty keys
-        
-        # API_KEY = "F2862F3F-C288-447D-A6D7-A9906475D85B"
-        # url = 'https://rest.coinapi.io/v1/ohlcv/POLONIEX_SPOT_BTC_USDC/latest?period_id=1MIN'
-        # headers = {'X-CoinAPI-Key' : API_KEY}
-
-        if method == 'post': response = requests.get(url=url, headers=headers, params=params, data=body)
-        elif method == 'get': response = requests.post(url=url, headers=headers, params=params, data=body)
-
-        try:
-            out = json.loads(response.text)
-        except Exception as e:
-            out = response.text
-            print(e)
-            return no_update
-
+        out, details = process_restapi(method_list[0], url_list[0], header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list)
         dataset_type = 'raw_restapi'
-        details = {'method': method, 'url': url, 'headers': headers, 'params':params}
-        
-    new_dataset(out, name, description, source, dataset_type, details)
+
+    new_dataset(out, name, description, documentation, dataset_type, details)
 
     return '/apps/search'
+
+
+
+def do_flatten(json_file):
+    data = []
+    if type(json_file) == list:
+        for i in range(len(json_file)):
+            json_file[i] = flatten(json_file[i])
+        data = json_file
+    elif type(json_file) == dict:
+        json_file = flatten(json_file)
+        data.append(json_file)
+    return data
+
+def process_restapi(method, url, header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list):
+    headers = dict(zip(header_key_list, header_value_list))
+    params = dict(zip(param_key_list, param_value_list))
+    body = dict(zip(body_key_list, body_value_list))
+    if '' in headers: headers.pop('') # Remove empty keys
+    if '' in params: params.pop('')  # Remove empty keys
+    if '' in body: body.pop('')  # Remove empty keys
+    
+    if method == 'post': response = requests.post(url=url, headers=headers, params=params, data=body)
+    elif method == 'get': response = requests.get(url=url, headers=headers, params=params, data=body)
+
+    try:
+        out = json.loads(response.text)
+    except Exception as e:
+        out = response.text
+        print(e)
+        return no_update
+    
+    shape_before_flatten = json_normalize(out).shape
+    out = do_flatten(out)
+    df = json_normalize(out)
+    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+    jsonl = jsonl.replace('[]', '""').replace('null', '""')
+    details = details = {'method': method, 'url': url, 'headers': headers, 'params':params, 'shape_before_flatten': shape_before_flatten, 'shape_after_flatten': df.shape}
+
+    return jsonl, details

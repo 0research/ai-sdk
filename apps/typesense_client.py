@@ -6,6 +6,8 @@ import uuid
 import pandas as pd
 from pandas import json_normalize
 from pprint import pprint
+from jsondiff import diff, symbols
+import json
 
 def typesense_client(host, port, protocol, api_key, timeout=2):
     return typesense.Client({
@@ -19,10 +21,13 @@ def typesense_client(host, port, protocol, api_key, timeout=2):
     })
 
 def generate_schema_auto(name):
-    return {
-        "name": name,  
-        "fields": [{"name": ".*", "type": "auto" }]
+    out = {
+        "name": name,
+        "fields": [ {"name": ".*", "type": "string*" } ]
     }
+    if name == 'dataset':
+        out['fields'].append({"name": "type", "type": "string", "facet": True })
+    return out
 
 
 def initialize_typesense():
@@ -38,6 +43,7 @@ def initialize_typesense():
     for name in collection_list:
         try:
             client.collections.create(generate_schema_auto(name))
+            print('Create Typesense Collection: ', name)
         except typesense.exceptions.ObjectAlreadyExists:
             pass
         except Exception as e:
@@ -77,13 +83,13 @@ def search_documents(collection_id, per_page, search_parameters=None):
         }
     result = client.collections[collection_id].documents.search(search_parameters)
     return [d['document'] for d in result['hits']]
-def get_dataset_data_store(dataset_id):
+def get_dataset_data(dataset_id):
     dataset = get_document('dataset', dataset_id)
-    columns = [col for col, show in dataset['column'].items() if show == True]
+    features = list(dataset['features'].keys())
     data = search_documents(dataset_id, '250')
     df = json_normalize(data)
 
-    return df[columns]
+    return df[features]
 
 
 # Store & Retrieve Session
@@ -112,26 +118,26 @@ def Project(id, type, dataset, action, edge, experiment):
         'edge_list': edge,
         'experiment': experiment
     }
-def Dataset(id, name, description, type, details, column, datatype, expectation, index, target, graphs):
+def Dataset(id, name, description, type, documentation, details, features, expectation, index, target, graphs):
     return {
         'id': id,
         'name': name,
         'description': description,
+        'documentation': documentation,
         'type': type,
         'details': details, 
-        'column': column,
-        'datatype': datatype,
+        'features': features,
         'expectation': expectation,
         'index': index, 
         'target': target,
         'graphs': graphs
     }
-def Action(id, action, description, details):
+def Action(id, action, description, changes):
     return {
         'id': id,
         'action': action,
         'description': description,
-        'details': details
+        'changes': changes
     }
 
 
@@ -141,11 +147,11 @@ def cNode(id, name, type, action=None):
         'data': {'id': id, 'name': name, 'type': type, 'action': action},
         'classes': type,
     }
-def cEdge(source_id, destination_id):
+def cEdge(dataset_id_source, destination_id):
     return {
         'data': {
-                'id': source_id + '_' + destination_id,
-                'source': source_id,
+                'id': dataset_id_source + '_' + destination_id,
+                'source': dataset_id_source,
                 'target': destination_id,
             },
         'selectable': False,
@@ -157,7 +163,7 @@ def new_project(project_id, project_type):
     document = Project(id=project_id, type=project_type, dataset=[], action=[], edge=[], experiment=[])
     create('project', document)
 
-# def upload_dataset(project_id, dataset_id, dataset_data_store, description, source, 
+# def upload_dataset(project_id, dataset_id, dataset_data_store, description, documentation, 
 #                     delimiter, remove_space, remove_header):
 #     # Project
 #     project_id = get_session('project_id')
@@ -170,7 +176,6 @@ def new_project(project_id, project_type):
 
 #     # Node
 #     api_data = {
-#         'source': source, 
 #         'delimiter': delimiter,
 #         'remove_space': remove_space,
 #         'remove_header': remove_header,
@@ -180,8 +185,7 @@ def new_project(project_id, project_type):
 #             id=dataset_id,
 #             description=description, 
 #             api_data=api_data, 
-#             column={col:True for col in df.columns}, 
-#             datatype={col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
+#             features={col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
 #             expectation = {col:None for col in df.columns}, 
 #             index = [], 
 #             target = []
@@ -193,20 +197,18 @@ def new_project(project_id, project_type):
 #     client.collections.create(generate_schema_auto(dataset_id))
 #     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
-def new_dataset(dataset_data_store, name, description, source, type, details):
+def new_dataset(jsonl, name, description, documentation, type, details):
     # Dataset
+    df = pd.read_json(jsonl, lines=True)
     dataset_id = str(uuid.uuid1())
-    df = json_normalize(dataset_data_store)
-    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-
     dataset = Dataset(
             id=dataset_id,
             name=name,
             description=description, 
+            documentation=documentation,
             type=type,
             details=details, 
-            column={col:True for col in df.columns}, 
-            datatype={col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
+            features={col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
             expectation = {col:None for col in df.columns}, 
             index = [], 
             target = [],
@@ -216,7 +218,10 @@ def new_dataset(dataset_data_store, name, description, source, type, details):
     # Upload to Typesense
     upsert('dataset', dataset)
     client.collections.create(generate_schema_auto(dataset_id))
-    client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
+    result = client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
+    # print('result: ')
+    # pprint(result)
+
 
 
 def add_dataset(project_id, dataset_id):
@@ -234,10 +239,10 @@ def add_dataset(project_id, dataset_id):
 
 def remove(project_id, node_id):
     project = get_document('project', project_id)
+    edge_list = project['edge_list'].copy()
 
     # Remove action
     if node_id in project['action_list']:
-        edge_list = project['edge_list'].copy()
         project['action_list'].remove(node_id)
         for edge in edge_list:
             if node_id in edge:
@@ -246,20 +251,26 @@ def remove(project_id, node_id):
             if node_id == edge.split('_')[0]:
                 print('Dataset: ', node_id)
                 project['dataset_list'].remove(edge.split('_')[1])
-        upsert('project', project)
-
+        
+    # Remove Raw Dataset
+    elif node_id in project['dataset_list']:
+        dataset = get_document('dataset', node_id)
+        if dataset['type'].startswith('raw_'):
+            if all(node_id not in edge for edge in edge_list):
+                project['dataset_list'].remove(node_id)
     
     else:
         print('[Error] Node is not an Action')
-            
+    
+    upsert('project', project)
     
 
 
-def action(project_id, source_id, action, description, details, changed_dataset, dataset_data_store):
+def action(project_id, dataset_id_source, action, description, new_dataset, changed_feature_dict):
     # New id
     action_id = str(uuid.uuid1())
     dataset_id = str(uuid.uuid1())
-    edge1 = source_id + '_' + action_id
+    edge1 = dataset_id_source + '_' + action_id
     edge2 = action_id + '_' + dataset_id
 
     # Project Document
@@ -270,27 +281,32 @@ def action(project_id, source_id, action, description, details, changed_dataset,
     project['edge_list'].append(edge2)
 
     # Action Document
-    action = Action(id=action_id, action=action, description=description, details=details)
+    changes = diff(get_document('dataset', dataset_id_source), new_dataset, syntax='symmetric', marshal=True)
+    action = Action(id=action_id, action=action, description=description, changes=changes)
 
     # Dataset Document
-    changed_dataset['id'] =  dataset_id # Overwrite previous dataset ID
-    changed_dataset['details'] = None
-    changed_dataset['type'] = 'processed'
+    new_dataset['id'] =  dataset_id # Overwrite previous dataset ID
+    new_dataset['type'] = 'processed'
+    new_dataset['details'] = None
+    new_dataset['name'] = 'New Dataset'
 
     # Dataset Data Collection
+    dataset_data_store = search_documents(dataset_id_source, 250)
     df = json_normalize(dataset_data_store)
+    df = df.rename(columns=changed_feature_dict)
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+
     
     # Upload
     upsert('project', project)
     upsert('action', action)
-    upsert('dataset', changed_dataset)
+    upsert('dataset', new_dataset)
     client.collections.create(generate_schema_auto(dataset_id))
     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
 
 
-def merge(project_id, source_id_list, description, dataset_data_store, dataset, details):
+def merge(project_id, dataset_id_source_list, description, dataset_data_store, dataset, changes):
     # New id
     action_id = str(uuid.uuid1())
     dataset_id = str(uuid.uuid1())
@@ -299,8 +315,8 @@ def merge(project_id, source_id_list, description, dataset_data_store, dataset, 
     project = get_document('project', project_id)
     project['action_list'].append(action_id)
     project['dataset_list'].append(dataset_id)
-    for source_id in source_id_list:
-        edge_id = source_id + '_' + action_id
+    for dataset_id_source in dataset_id_source_list:
+        edge_id = dataset_id_source + '_' + action_id
         project['edge_list'].append(edge_id)
     project['edge_list'].append(action_id + '_' + dataset_id)
 
@@ -309,12 +325,13 @@ def merge(project_id, source_id_list, description, dataset_data_store, dataset, 
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
 
     # Action Document
-    action = Action(action_id, 'merge', description, details)
+    action = Action(action_id, 'merge', description, changes)
 
     # Dataset Document
     dataset['id'] =  dataset_id # Overwrite previous dataset ID
     dataset['type'] = 'processed'
     dataset['details'] = None
+    dataset['name'] = 'New Dataset'
     
     # Upload
     upsert('project', project)

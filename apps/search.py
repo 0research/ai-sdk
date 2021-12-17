@@ -108,26 +108,33 @@ def generate_search_value(search_str):
     Input(id('search_type'), 'value')
 )
 def search(search_value, search_type):
-    if search_value == '' or search_value is None: return no_update
-
-    if search_type == 'dataset': query_by = ['name', 'description', 'details']
-    elif search_type == 'project': query_by = ['description']
-    elif search_type == 'question': query_by = ['description']
+    if search_value is None:
+        search_value = '*'
+        query_by = '',
+        filter_by = 'type:=[raw_userinput, raw_restapi]'
+    else:
+        if search_type == 'dataset': 
+            query_by = 'name, description, details',
+            filter_by = 'type:=[raw_userinput, raw_restapi]'
+        elif search_type == 'project': query_by = ['description']
+        elif search_type == 'question': query_by = ['description']
 
     search_parameters = {
         'q': search_value,
         'query_by'  : query_by,
+        'filter_by' : filter_by,
         'per_page': 250,
     }
-    dataset_list = search_documents(search_type, 250, search_parameters)
 
-    if len(dataset_list) > 0:
+    dataset_list = search_documents(search_type, 250, search_parameters)
+    
+    if len(dataset_list) >= 1:
         out = html.Table(
             [
                 html.Tr([
                     html.Th('No.'),
                     html.Th('Dataset'),
-                    html.Th('Type'),
+                    # html.Th('Type'),
                     html.Th(''),
                 ])
             ] + 
@@ -136,10 +143,12 @@ def search(search_value, search_type):
                     html.Td(dbc.Input(value=dataset['id'], id={'type':id('col_dataset_id'), 'index': i}), style={'display':'none'}),
                     html.Td(i+1, style={'width':'5%'}),
                     html.Td([
-                        html.P(dataset['name'], id={'type':id('col_name'), 'index': i}, style={'font-weight':'bold'}),
+                        html.P(dataset['name'] + ' ({})'.format(dataset['type']), id={'type':id('col_name'), 'index': i}, style={'font-weight':'bold'}),
                         html.P(dataset['description'], id={'type':id('col_description'), 'index': i}),
-                    ], style={'width':'60%'}),
-                    html.Td(dataset['type'], id={'type':id('col_type'), 'index': i}, style={'width':'15%'}),
+                        html.P(dataset['documentation']),
+                        html.P(dataset['id']),
+                    ], style={'width':'75%'}),
+                    # html.Td(dataset['type'], id={'type':id('col_type'), 'index': i}, style={'width':'15%'}),
                     html.Td([
                         dbc.ButtonGroup([
                             dbc.Button('Preview', id={'type':id('col_button_preview'), 'index': i}, className='btn btn-info'),
@@ -157,7 +166,7 @@ def search(search_value, search_type):
             style={'width':'100%'}, id=id('table_data_profile')
         )
     else:
-        out = html.H6('No Results Found')
+        out = html.H6('Your search "{}" did not match any documents.'.format(search_value))
 
     return out
 
@@ -215,10 +224,10 @@ def display(active_tab, dataset_id):
     out = []
     
     dataset = get_document('dataset', dataset_id)
-    name = html.Div(dataset['description'], id=id(dataset['id']), contentEditable='true', className="badge border border-info text-wrap")
+    name = html.Div(dataset['name'], id=id(dataset['id']), contentEditable='true', className="badge border border-info text-wrap")
 
     if active_tab == 'tab1':
-        dataset_data_store = get_dataset_data_store(dataset['id']).to_dict('records')
+        dataset_data_store = get_dataset_data(dataset['id']).to_dict('records')
         out = [dbc.Input(id=id('search_json'), placeholder='Search', style={'text-align':'center'})] + [display_dataset_data_store(dataset_data_store)]
 
     elif active_tab == 'tab2':

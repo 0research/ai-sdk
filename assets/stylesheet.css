@@ -33,5 +33,13 @@
 
 /* Top Nav */
 .order-1 {
-	width:auto
+	width:auto;
+}
+
+
+
+
+/* Metadata Table */
+.metadata_table tr td {
+	padding: 3px 3px 3px 3px;
 }

@@ -1,3 +1,4 @@
+from os import times_result
 from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output, State
@@ -9,7 +10,7 @@ from app import dbc
 from apps.typesense_client import *
 from apps import (new_project, new_dataset, upload_dataset, join, search, extract_transform, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage,
-                page2, page3, page6, page6,page7, page8, page9, page10)
+                page2, page3, page6, page6,page7, page8, page9, test)
 import ast
 from apps.constants import *
 
@@ -175,7 +176,7 @@ def display_page(pathname):
     # if pathname == '/apps/page7': return page7.layout
     # if pathname == '/apps/page8': return page8.layout
     # if pathname == '/apps/page9': return page9.layout
-    # if pathname == '/apps/page10': return page10.layout
+    if pathname == '/apps/test': return test.layout
     # if pathname == '/apps/git_graph': return git_graph.layout
     else: return merge_strategy.layout
 
@@ -207,6 +208,7 @@ def load_dataset_dropdown(pathname):
 @app.callback(Output('modal_confirm', 'children'),
                 Input('dropdown_current_project', 'value'))
 def load_dataset_dropdown(project_id):
+    if project_id is None or project_id == '': return no_update
     store_session('project_id', project_id)
     # project_list = search_documents('project', 250)
     
