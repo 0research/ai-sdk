@@ -197,9 +197,9 @@ def new_project(project_id, project_type):
 #     client.collections.create(generate_schema_auto(dataset_id))
 #     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
-def new_dataset(jsonl, name, description, documentation, type, details):
+def new_dataset(df, name, description, documentation, type, details):
     # Dataset
-    df = pd.read_json(jsonl, lines=True)
+    
     dataset_id = str(uuid.uuid1())
     dataset = Dataset(
             id=dataset_id,

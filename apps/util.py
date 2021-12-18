@@ -23,8 +23,8 @@ import pandas as pd
 import uuid
 from apps.constants import *
 from apps.typesense_client import *
-
-
+import requests
+import dash_uploader as du
 
 
 def id_factory(page: str):
@@ -384,3 +384,146 @@ def whitespace_remover(df):
 
 
 
+
+# New Dataset Inputs
+def get_upload_component(component_id, height='100%'):
+    return du.Upload(
+        id=component_id,
+        max_file_size=1,  # 1 Mb
+        filetypes=['csv', 'json', 'jsonl'],
+        upload_id=uuid.uuid1(),  # Unique session id
+        max_files=1,
+        default_style={'height':height},
+    )
+
+def generate_tabularjson_details(id):
+    return [
+        html.Div(get_upload_component(component_id={'type': id('browse_drag_drop'), 'index': 0}), style={'width':'100%', 'margin-bottom':'5px'}),
+        html.P('File Formats Accepted: ', style={'text-align':'center', 'font-size':'11px', 'margin': '0px'}),
+        html.Ol([
+            html.Li('CSV'),
+            html.Li('JSON'),
+            html.Li('List of JSONs'),
+        ], style={'text-align':'center', 'font-size':'11px', 'margin': '0px'})
+        # html.Div(dcc.Dropdown(options=[], value=[], id=id('uploaded_files'), multi=True, clearable=True, placeholder=None, style={'height':'85px', 'overflow-y':'auto'}), style={'width':'100%'}),
+    ]
+
+options_restapi_method =[
+    {'label': 'POST', 'value': 'post'},
+    {'label': 'GET', 'value': 'get'},
+]
+def generate_restapi_details(id, extra=True):
+    return [
+        dbc.InputGroup([
+            dbc.InputGroupText("Method", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+            dbc.Select(options=options_restapi_method, id={'type': id('dropdown_method'), 'index': 0}, value=options_restapi_method[0]['value'], style={'text-align':'center'}, persistence=True, persistence_type='session'),
+        ]),
+        dbc.InputGroup([
+            dbc.InputGroupText("URL", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+            dbc.Input(id={'type': id('url'), 'index': 0}, placeholder='Enter URL', style={'text-align':'center'}, persistence=True, persistence_type='session'), 
+        ]),
+
+        # Header
+        dbc.InputGroup([
+            dbc.InputGroupText("Header", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'text-align':'center'}),
+            dbc.Button(' - ', id=id('button_remove_header'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+            dbc.Button(' + ', id=id('button_add_header'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+        ]),
+        html.Div([
+            dbc.InputGroup([
+                dbc.Input(id={'type': id('header_key'), 'index': 0}, placeholder='Enter Key', list=id('headers_autocomplete'), style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
+                dbc.Input(id={'type': id('header_value'), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'),
+                dbc.Button('Use Existing Dataset', id={'type': id('button_header_value'), 'index': 0}, color='info', outline=True, style={'font-size':'12px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
+            ], style={'text-align':'center'}),
+        ], id=id('header_div')),
+
+        # Param
+        dbc.InputGroup([
+            dbc.InputGroupText("Parameter", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+            dbc.Button(' - ', id=id('button_remove_param'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+            dbc.Button(' + ', id=id('button_add_param'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+        ]),
+        html.Div([
+            dbc.InputGroup([
+                dbc.Input(id={'type': id('param_key'), 'index': 0}, placeholder='Enter Key', style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
+                dbc.Input(id={'type': id('param_value'), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'),
+                dbc.Button('Use Existing Dataset', id={'type': id('button_param_value'), 'index': 0}, color='info', outline=True, style={'font-size':'10px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
+            ]),
+        ], id=id('params_div')),
+
+        # Body
+        dbc.InputGroup([
+            dbc.InputGroupText("Body", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+            dbc.Button(' - ', id=id('button_remove_body'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+            dbc.Button(' + ', id=id('button_add_body'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+        ]),
+        html.Div([
+            dbc.InputGroup([
+                dbc.Input(id={'type': id('body_key'), 'index': 0}, placeholder='Enter Key', style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
+                dbc.Input(id={'type': id('body_value'), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'), 
+                dbc.Button('Use Existing Dataset', id={'type': id('button_body_value'), 'index': 0}, color='info', outline=True, style={'font-size':'12px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
+            ]),
+        ], id=id('body_div')),
+    ]
+
+
+def generate_new_dataset_inputs(id, input_type, extra=False):
+    if input_type == id('type1'):  dataset_details_2 = generate_tabularjson_details(id)
+    elif input_type == id('type2'): dataset_details_2 = [html.Div(generate_restapi_details(id))]
+
+    dataset_details = [
+        dbc.Row([
+            dbc.Col([
+                dbc.Input(id=id('name'), placeholder='Enter Dataset Name', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'), 
+                dbc.Textarea(id=id('description'), placeholder='Enter Dataset Description', style={'height':'130px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'),
+                dbc.Input(id=id('documentation'), placeholder='Enter Documentation URL (Optional) ', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'),
+            ], width=12),
+            dbc.Col(html.Hr(), width=12),
+            dbc.Col(dataset_details_2, width=12),
+        ]),
+    ]
+    buttons = dbc.ButtonGroup([
+        dbc.Button('Preview', color='success', outline=True, id=id('button_preview'), value=input_type, style={'width':'49%'}),
+        dbc.Button('Upload', color='warning', outline=True, id=id('button_new_dataset'), style={'font-size': '13px', 'font-weight': 'bold', 'width':'49%'}),
+    ], style={'width':'100%'})
+
+    return dataset_details, buttons
+
+def do_flatten(json_file):
+    data = []
+    if type(json_file) == list:
+        for i in range(len(json_file)):
+            json_file[i] = flatten(json_file[i])
+        data = json_file
+    elif type(json_file) == dict:
+        json_file = flatten(json_file)
+        data.append(json_file)
+    return data
+
+def process_restapi(method, url, header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list):
+    headers = dict(zip(header_key_list, header_value_list))
+    params = dict(zip(param_key_list, param_value_list))
+    body = dict(zip(body_key_list, body_value_list))
+    if '' in headers: headers.pop('') # Remove empty keys
+    if '' in params: params.pop('')  # Remove empty keys
+    if '' in body: body.pop('')  # Remove empty keys
+    
+    if method == 'post': response = requests.post(url=url, headers=headers, params=params, data=body)
+    elif method == 'get': response = requests.get(url=url, headers=headers, params=params, data=body)
+
+    try:
+        out = json.loads(response.text)
+    except Exception as e:
+        out = response.text
+        print(e)
+        return no_update
+    
+    shape_before_flatten = json_normalize(out).shape
+    out = do_flatten(out)
+    df = json_normalize(out)
+    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+    jsonl = jsonl.replace('[]', '""').replace('null', '""')
+    df = pd.read_json(jsonl, lines=True)
+    details = details = {'method': method, 'url': url, 'headers': headers, 'params':params, 'shape_before_flatten': shape_before_flatten, 'shape_after_flatten': df.shape}
+
+    return df, details

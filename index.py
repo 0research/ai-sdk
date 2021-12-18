@@ -178,7 +178,7 @@ def display_page(pathname):
     # if pathname == '/apps/page9': return page9.layout
     if pathname == '/apps/test': return test.layout
     # if pathname == '/apps/git_graph': return git_graph.layout
-    else: return merge_strategy.layout
+    else: return data_lineage.layout
 
 
 

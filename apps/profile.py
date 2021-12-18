@@ -93,7 +93,7 @@ def generate_profile(pathname):
 
     dataset = get_document('dataset', get_session('dataset_id'))
     store_session('changed_dataset_profile', dataset) # Clear Changes Session on page load
-    datatype = dataset['datatype']
+    datatype = dataset['features']
     # datatype_deleted = {}
     # for col, val in dataset['datatype'].items():
     #     if dataset['features'][col] == True:
