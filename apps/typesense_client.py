@@ -199,7 +199,6 @@ def new_project(project_id, project_type):
 
 def new_dataset(df, name, description, documentation, type, details):
     # Dataset
-    
     dataset_id = str(uuid.uuid1())
     dataset = Dataset(
             id=dataset_id,
@@ -214,13 +213,14 @@ def new_dataset(df, name, description, documentation, type, details):
             target = [],
             graphs = [],
     )
-
+    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+    
     # Upload to Typesense
     upsert('dataset', dataset)
     client.collections.create(generate_schema_auto(dataset_id))
     result = client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
-    # print('result: ')
-    # pprint(result)
+    
+    return dataset_id
 
 
 

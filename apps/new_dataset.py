@@ -34,8 +34,7 @@ app.css.config.serve_locally = True
 
 # Initialize Variables
 id = id_factory('new_dataset')
-UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"
-du.configure_upload(app, UPLOAD_FOLDER_ROOT)
+
 
 
 
@@ -310,7 +309,7 @@ def button_preview(active_tab, data):
     out = no_update    
 
     if active_tab == 'tab1':
-        out = display_dataset_data_store(data)
+        out = display_dataset_data(data)
 
     elif active_tab == 'tab2':
         df = json_normalize(data)
@@ -336,9 +335,9 @@ def button_preview(active_tab, data):
     Output('url', 'pathname'),
     Input(id('button_new_dataset'), 'n_clicks'),
     State(id('button_preview'), 'value'),
-    State(id('name'), 'value'),
-    State(id('description'), 'value'),
-    State(id('documentation'), 'value'),
+    State({'type': id('name'), 'index': ALL}, 'value'),
+    State({'type': id('description'), 'index': ALL}, 'value'),
+    State({'type': id('documentation'), 'index': ALL}, 'value'),
     State({'type': id('browse_drag_drop'), 'index': ALL}, 'isCompleted'),
     State({'type': id('browse_drag_drop'), 'index': ALL}, 'upload_id'),
     State({'type': id('browse_drag_drop'), 'index': ALL}, 'fileNames'),
@@ -353,7 +352,7 @@ def button_preview(active_tab, data):
     State(id('tabs_node'), 'active_tab'),
     prevent_initial_call=True
 )
-def button_new_dataset(n_clicks, dataset_type, name, description, documentation,
+def button_new_dataset(n_clicks, dataset_type, name_list, description_list, documentation_list,
                 isCompleted_list, upload_id_list, fileNames_list,               # Tabular / JSON 
                 method_list, url_list, header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list,     # REST API
                 active_tab):
@@ -383,6 +382,10 @@ def button_new_dataset(n_clicks, dataset_type, name, description, documentation,
         df, details = process_restapi(method_list[0], url_list[0], header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list)
         out = df
         dataset_type = 'raw_restapi'
+
+    name = name_list[0]
+    description = description_list[0]
+    documentation = documentation_list[0]
 
     new_dataset(out, name, description, documentation, dataset_type, details)
 

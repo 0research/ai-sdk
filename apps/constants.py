@@ -1,5 +1,6 @@
 
-
+# Uploader
+UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"
 
 # Navigation
 SIDEBAR_2_LIST = [

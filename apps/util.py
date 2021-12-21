@@ -184,8 +184,8 @@ def generate_dropdown(component_id, options, value=None, multi=False, placeholde
         style=style,
     )
 
-def display_dataset_data_store(dataset_data_store):
-    return html.Pre(json.dumps(dataset_data_store, indent=2), style={'height': '730px', 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
+def display_dataset_data(dataset_data):
+    return html.Pre(json.dumps(dataset_data, indent=2), style={'height': '730px', 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
 
 def display_metadata(dataset, id, disabled=True):
     features = dataset['features']
@@ -434,6 +434,7 @@ def generate_restapi_details(id, extra=True):
                 dbc.Input(id={'type': id('header_key'), 'index': 0}, placeholder='Enter Key', list=id('headers_autocomplete'), style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
                 dbc.Input(id={'type': id('header_value'), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'),
                 dbc.Button('Use Existing Dataset', id={'type': id('button_header_value'), 'index': 0}, color='info', outline=True, style={'font-size':'12px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
+                dbc.Input(id={'type': id('header_value_position'), 'index': 0}, style={'display':'none'}, persistence=True, persistence_type='session'),
             ], style={'text-align':'center'}),
         ], id=id('header_div')),
 
@@ -448,6 +449,7 @@ def generate_restapi_details(id, extra=True):
                 dbc.Input(id={'type': id('param_key'), 'index': 0}, placeholder='Enter Key', style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
                 dbc.Input(id={'type': id('param_value'), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'),
                 dbc.Button('Use Existing Dataset', id={'type': id('button_param_value'), 'index': 0}, color='info', outline=True, style={'font-size':'10px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
+                dbc.Input(id={'type': id('param_value_position'), 'index': 0}, style={'display':'none'}, persistence=True, persistence_type='session'),
             ]),
         ], id=id('params_div')),
 
@@ -462,6 +464,7 @@ def generate_restapi_details(id, extra=True):
                 dbc.Input(id={'type': id('body_key'), 'index': 0}, placeholder='Enter Key', style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
                 dbc.Input(id={'type': id('body_value'), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'), 
                 dbc.Button('Use Existing Dataset', id={'type': id('button_body_value'), 'index': 0}, color='info', outline=True, style={'font-size':'12px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
+                dbc.Input(id={'type': id('body_value_position'), 'index': 0}, style={'display':'none'}, persistence=True, persistence_type='session'),
             ]),
         ], id=id('body_div')),
     ]
@@ -474,17 +477,17 @@ def generate_new_dataset_inputs(id, input_type, extra=False):
     dataset_details = [
         dbc.Row([
             dbc.Col([
-                dbc.Input(id=id('name'), placeholder='Enter Dataset Name', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'), 
-                dbc.Textarea(id=id('description'), placeholder='Enter Dataset Description', style={'height':'130px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'),
-                dbc.Input(id=id('documentation'), placeholder='Enter Documentation URL (Optional) ', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'),
+                dbc.Input(id={'type': id('name'), 'index': 0 }, placeholder='Enter Dataset Name', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'), 
+                dbc.Textarea(id={'type': id('description'), 'index': 0 }, placeholder='Enter Dataset Description', style={'height':'130px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'),
+                dbc.Input(id={'type': id('documentation'), 'index': 0 }, placeholder='Enter Documentation URL (Optional) ', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'),
             ], width=12),
             dbc.Col(html.Hr(), width=12),
             dbc.Col(dataset_details_2, width=12),
         ]),
     ]
     buttons = dbc.ButtonGroup([
-        dbc.Button('Preview', color='success', outline=True, id=id('button_preview'), value=input_type, style={'width':'49%'}),
-        dbc.Button('Upload', color='warning', outline=True, id=id('button_new_dataset'), style={'font-size': '13px', 'font-weight': 'bold', 'width':'49%'}),
+        dbc.Button('Preview', color='success', outline=True, id={'type': id('button_preview'), 'index': 0}, value=input_type, style={'width':'49%'}),
+        dbc.Button('Upload', color='warning', outline=True, id={'type': id('button_new_dataset'), 'index': 0}, style={'font-size': '13px', 'font-weight': 'bold', 'width':'49%'}),
     ], style={'width':'100%'})
 
     return dataset_details, buttons

@@ -89,7 +89,7 @@ navbar = dbc.Navbar([
 # Sidebar
 sidebar_0 = [
     dbc.NavLink("New Project", href="/apps/new_project", active="exact", className="fas fa-upload"),
-    dbc.NavLink("New Dataset", href="/apps/new_dataset", active="exact", className="fas fa-upload"),
+    # dbc.NavLink("New Dataset", href="/apps/new_dataset", active="exact", className="fas fa-upload"),
     dbc.NavLink("Data Catalog", href="/apps/search", active="exact", className="fas fa-upload"),
 ]
 sidebar_1 = [

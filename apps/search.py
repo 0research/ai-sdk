@@ -228,7 +228,7 @@ def display(active_tab, dataset_id):
 
     if active_tab == 'tab1':
         dataset_data_store = get_dataset_data(dataset['id']).to_dict('records')
-        out = [dbc.Input(id=id('search_json'), placeholder='Search', style={'text-align':'center'})] + [display_dataset_data_store(dataset_data_store)]
+        out = [dbc.Input(id=id('search_json'), placeholder='Search', style={'text-align':'center'})] + [display_dataset_data(dataset_data_store)]
 
     elif active_tab == 'tab2':
         dataset = get_document('dataset', dataset['id'])
