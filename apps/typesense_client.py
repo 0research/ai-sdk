@@ -207,19 +207,19 @@ def new_dataset(df, name, description, documentation, type, details):
             documentation=documentation,
             type=type,
             details=details, 
-            features={col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
+            features={str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
             expectation = {col:None for col in df.columns}, 
             index = [], 
             target = [],
             graphs = [],
     )
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-    
+
     # Upload to Typesense
     upsert('dataset', dataset)
     client.collections.create(generate_schema_auto(dataset_id))
     result = client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
-    
+    # pprint(result)
     return dataset_id
 
 
@@ -237,30 +237,38 @@ def add_dataset(project_id, dataset_id):
         return False
 
 
-def remove(project_id, node_id):
+def remove(project_id, node_id_list):
     project = get_document('project', project_id)
     edge_list = project['edge_list'].copy()
 
-    # Remove action
-    if node_id in project['action_list']:
-        project['action_list'].remove(node_id)
-        for edge in edge_list:
-            if node_id in edge:
-                print('Edge: ', edge)
-                project['edge_list'].remove(edge)
-            if node_id == edge.split('_')[0]:
-                print('Dataset: ', node_id)
-                project['dataset_list'].remove(edge.split('_')[1])
+    for node_id in node_id_list:
+        # Remove Action
+        if node_id in project['action_list']:
+            destination_node_id_list = [edge.split('_')[1] for edge in edge_list if edge.startswith(node_id)]
+            project['action_list'].remove(node_id)
+            for edge in edge_list:
+                if node_id in edge:
+                    project['edge_list'].remove(edge)
+                if node_id == edge.split('_')[0]:
+                    project['dataset_list'].remove(edge.split('_')[1])
+                if any(edge.startswith(destination_node_id) for destination_node_id in destination_node_id_list):
+                    return
+
+            
+        # Remove Raw Dataset
+        elif node_id in project['dataset_list']:
+            dataset = get_document('dataset', node_id)
+            if dataset['type'].startswith('raw_'):
+                if any(edge.startswith(node_id) for edge in edge_list):
+                    pass
+                else:
+                    project['dataset_list'].remove(node_id)
+                    for edge in [edge for edge in edge_list if edge.startswith(node_id)]:
+                        project['edge_list'].remove(edge)
+                    
         
-    # Remove Raw Dataset
-    elif node_id in project['dataset_list']:
-        dataset = get_document('dataset', node_id)
-        if dataset['type'].startswith('raw_'):
-            if all(node_id not in edge for edge in edge_list):
-                project['dataset_list'].remove(node_id)
-    
-    else:
-        print('[Error] Node is not an Action')
+        else:
+            print('[Error] Unable to delete Node: ', node_id)
     
     upsert('project', project)
     
@@ -304,6 +312,15 @@ def action(project_id, dataset_id_source, action, description, new_dataset, chan
     client.collections.create(generate_schema_auto(dataset_id))
     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
+
+def add_edge(project_id, source_id, destination_id):
+    project = get_document('project', project_id)
+    edge = source_id + '_' + destination_id
+    if edge in project['edge_list']:
+        return
+    else:
+        project['edge_list'].append(edge)
+        upsert('project', project)
 
 
 def merge(project_id, dataset_id_source_list, description, dataset_data_store, dataset, changes):

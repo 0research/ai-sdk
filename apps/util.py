@@ -1,4 +1,5 @@
 import json
+from typing import List
 from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output, State
@@ -25,7 +26,8 @@ from apps.constants import *
 from apps.typesense_client import *
 import requests
 import dash_uploader as du
-
+import numpy as np
+from pathlib import Path
 
 def id_factory(page: str):
     def func(_id: str):
@@ -409,8 +411,8 @@ def generate_tabularjson_details(id):
     ]
 
 options_restapi_method =[
-    {'label': 'POST', 'value': 'post'},
     {'label': 'GET', 'value': 'get'},
+    {'label': 'POST', 'value': 'post'},
 ]
 def generate_restapi_details(id, extra=True):
     return [
@@ -426,14 +428,14 @@ def generate_restapi_details(id, extra=True):
         # Header
         dbc.InputGroup([
             dbc.InputGroupText("Header", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'text-align':'center'}),
-            dbc.Button(' - ', id=id('button_remove_header'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
-            dbc.Button(' + ', id=id('button_add_header'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+            dbc.Button(' - ', id=id('button_remove_header'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+            dbc.Button(' + ', id=id('button_add_header'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
         ]),
         html.Div([
             dbc.InputGroup([
-                dbc.Input(id={'type': id('header_key'), 'index': 0}, placeholder='Enter Key', list=id('headers_autocomplete'), style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
+                dbc.Input(id={'type': id('header_key'), 'index': 0}, placeholder='Enter Key', list=id('header_autocomplete'), style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
                 dbc.Input(id={'type': id('header_value'), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'),
-                dbc.Button('Use Existing Dataset', id={'type': id('button_header_value'), 'index': 0}, color='info', outline=True, style={'font-size':'12px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
+                dbc.Button('Use Existing Dataset', id={'type': id('button_header_value'), 'index': 0}, color='info', outline=True, style={'font-size':'10px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
                 dbc.Input(id={'type': id('header_value_position'), 'index': 0}, style={'display':'none'}, persistence=True, persistence_type='session'),
             ], style={'text-align':'center'}),
         ], id=id('header_div')),
@@ -441,8 +443,8 @@ def generate_restapi_details(id, extra=True):
         # Param
         dbc.InputGroup([
             dbc.InputGroupText("Parameter", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-            dbc.Button(' - ', id=id('button_remove_param'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
-            dbc.Button(' + ', id=id('button_add_param'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+            dbc.Button(' - ', id=id('button_remove_param'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+            dbc.Button(' + ', id=id('button_add_param'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
         ]),
         html.Div([
             dbc.InputGroup([
@@ -451,19 +453,19 @@ def generate_restapi_details(id, extra=True):
                 dbc.Button('Use Existing Dataset', id={'type': id('button_param_value'), 'index': 0}, color='info', outline=True, style={'font-size':'10px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
                 dbc.Input(id={'type': id('param_value_position'), 'index': 0}, style={'display':'none'}, persistence=True, persistence_type='session'),
             ]),
-        ], id=id('params_div')),
+        ], id=id('param_div')),
 
         # Body
         dbc.InputGroup([
             dbc.InputGroupText("Body", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-            dbc.Button(' - ', id=id('button_remove_body'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
-            dbc.Button(' + ', id=id('button_add_body'), color='link', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+            dbc.Button(' - ', id=id('button_remove_body'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+            dbc.Button(' + ', id=id('button_add_body'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
         ]),
         html.Div([
             dbc.InputGroup([
                 dbc.Input(id={'type': id('body_key'), 'index': 0}, placeholder='Enter Key', style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
                 dbc.Input(id={'type': id('body_value'), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'), 
-                dbc.Button('Use Existing Dataset', id={'type': id('button_body_value'), 'index': 0}, color='info', outline=True, style={'font-size':'12px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
+                dbc.Button('Use Existing Dataset', id={'type': id('button_body_value'), 'index': 0}, color='info', outline=True, style={'font-size':'10px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
                 dbc.Input(id={'type': id('body_value_position'), 'index': 0}, style={'display':'none'}, persistence=True, persistence_type='session'),
             ]),
         ], id=id('body_div')),
@@ -503,30 +505,60 @@ def do_flatten(json_file):
         data.append(json_file)
     return data
 
-def process_restapi(method, url, header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list):
-    headers = dict(zip(header_key_list, header_value_list))
-    params = dict(zip(param_key_list, param_value_list))
-    body = dict(zip(body_key_list, body_value_list))
-    if '' in headers: headers.pop('') # Remove empty keys
-    if '' in params: params.pop('')  # Remove empty keys
-    if '' in body: body.pop('')  # Remove empty keys
-    
-    if method == 'post': response = requests.post(url=url, headers=headers, params=params, data=body)
-    elif method == 'get': response = requests.get(url=url, headers=headers, params=params, data=body)
 
-    try:
-        out = json.loads(response.text)
-    except Exception as e:
-        out = response.text
-        print(e)
-        return no_update
+def process_userinput(upload_id, filename):
+    root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
+    file = (root_folder / filename).as_posix()
+    details = {'filename': filename}
     
-    shape_before_flatten = json_normalize(out).shape
-    out = do_flatten(out)
-    df = json_normalize(out)
-    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-    jsonl = jsonl.replace('[]', '""').replace('null', '""')
-    df = pd.read_json(jsonl, lines=True)
-    details = details = {'method': method, 'url': url, 'headers': headers, 'params':params, 'shape_before_flatten': shape_before_flatten, 'shape_after_flatten': df.shape}
+    if filename.endswith('.json'):
+        json_file = pd.read_json(file).fillna('').to_dict('records')
+        data = []
+        if type(json_file) == list:
+            for row in json_file:
+                data.append(flatten(row))
+            data = json_file
+        elif type(json_file) == dict:
+            json_file = flatten(json_file)
+            data.append(json_file)
+        df = json_normalize(data)
+        
+    elif filename.endswith('.csv'):
+        df = pd.read_csv(file, sep=',')
+    
+    return df, details
+
+
+def process_restapi(method, url, header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list):
+    header = dict(zip(header_key_list, header_value_list))
+    param = dict(zip(param_key_list, param_value_list))
+    body = dict(zip(body_key_list, body_value_list))
+    # Remove empty keys
+    if '' in header: header.pop('') 
+    if '' in param: param.pop('') 
+    if '' in body: body.pop('')
+    if None in header: header.pop(None)
+    if None in param: param.pop(None) 
+    if None in body: body.pop(None)
+    
+    if method == 'get': response = requests.get(url=url, headers=header, params=param, data=body)
+    elif method == 'post': response = requests.post(url=url, headers=header, params=param, data=body)
+
+    result = response.text 
+    # CSV
+    if result.startswith('[\'') or result.startswith('[\"'):
+        result = ast.literal_eval(result)
+        df = pd.DataFrame(result)
+    # JSON
+    else:
+        result = do_flatten(json.loads(result))
+        for row in result:
+            for k, v in row.items():
+                if row[k] == []:
+                    row[k] = ''
+        df = json_normalize(result)
+    
+    df = df.fillna('')
+    details = details = {'method': method, 'url': url, 'header': header, 'param':param}
 
     return df, details

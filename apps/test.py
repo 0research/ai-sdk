@@ -1,4 +1,6 @@
 from typing_extensions import ParamSpecArgs
+
+from requests.models import ContentDecodingError
 from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output, State, ALL, MATCH
@@ -36,28 +38,14 @@ layout = html.Div([
 
 
 layout = html.Div([
-    dcc.Dropdown(
-        id='dropdown',
-        options=[
-            {'label': 'a', 'value': 'a'},
-            {'label': 'b', 'value': 'b'},
-            {'label': 'c', 'value': 'c'},
-        ],
-        value='a'
-    ),
-    dcc.Input(id='input', value=''),
-    html.Button('Add Option', id='submit'),
+    dbc.Input(children=['TEXT'], id='test_edit'),
+    html.P(children=['AAAA'], id='test_edit2')
 ])
 
 @app.callback(
-    Output('dropdown', 'options'),
-    [],
-    [State('input', 'value'), State('dropdown', 'options')],
-    [Input('submit', 'n_clicks')]
+    Output('test_edit2', 'children'),
+    Input('test_edit', 'value'),
 )
-def callback(new_value, current_options, n_clicks):
-    if not new_value:
-        return current_options
-
-    current_options.append({'label': new_value, 'value': new_value})
-    return current_options
+def callback(value):
+    print("INSIDE")
+    return value
