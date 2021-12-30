@@ -186,18 +186,29 @@ def generate_dropdown(component_id, options, value=None, multi=False, placeholde
         style=style,
     )
 
-def display_dataset_data(dataset_data):
-    return html.Pre(json.dumps(dataset_data, indent=2), style={'height': '730px', 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
+def display_dataset_data(dataset_data, format='json', height='800px'):
+    if format == 'json': 
+        out = html.Pre(json.dumps(dataset_data, indent=2), style={'height': '650px', 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
+    elif format == 'tabular':
+        df = json_normalize(dataset_data)
+        out = generate_datatable('right_datatable', df.to_dict('records'), df.columns, height='650px')
+    return out
 
-def display_metadata(dataset, id, disabled=True):
+def display_metadata(dataset, id, disabled=True, height='750px'):
     features = dataset['features']
     options_datatype = [{'label': d, 'value': d} for d in DATATYPE_LIST]
     return (
         html.Div([
             html.Div([
                 dbc.InputGroup([
-                    dbc.InputGroupText("Dataset ID", style={'width':'30%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
+                    dbc.InputGroupText("Dataset ID", style={'width':'25%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'10px'}),
                     dbc.Input(disabled=True, value=dataset['id'], style={'width':'70%', 'font-size': '12px', 'text-align':'center'}),
+                    dbc.InputGroup([
+                        dbc.InputGroupText("Features", style={'width':'25%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'10px'}),
+                        dbc.Input(disabled=True, value=0, style={'width':'25%', 'font-size': '12px', 'text-align':'center'}),
+                        dbc.InputGroupText("Samples", style={'width':'25%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'10px'}),
+                        dbc.Input(disabled=True, value=0, style={'width':'25%', 'font-size': '12px', 'text-align':'center'}),
+                    ]),
                 ], className="mb-3 lg"),
             ]),
             html.Table(
@@ -217,11 +228,11 @@ def display_metadata(dataset, id, disabled=True):
                         html.Td(dbc.Select(options=options_datatype, value=dtype, disabled=disabled, id={'type':id('col_datatype'), 'index': i}, style={'height':'40px'})),
                         html.Td(html.P('%', id={'type':id('col_invalid'), 'index': i})),
                         html.Td(html.P('-', id={'type':id('col_result'), 'index': i})),
-                        html.Td(dbc.Button(' X ', id={'type':id('col_button_remove_feature'), 'index': i}, n_clicks=0), style={'display': 'none' if disabled else 'block'}),
+                        html.Td(dbc.Button(' X ', id={'type':id('col_button_remove_feature'), 'index': i}, color='danger', outline=True, n_clicks=0), style={'display': 'none' if disabled else 'block'}),
                     ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(features.items())
                 ],
             className='metadata_table')
-        ], style={'overflow-x':'scroll', 'overflow-y':'auto', 'height':'750px'})
+        ], style={'overflow-x':'scroll', 'overflow-y':'auto', 'height':height})
     )
 
 def display_action(action):
@@ -268,7 +279,7 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
         data=data,
         columns=datatable_columns,
         editable=cell_editable,
-        filter_action="native",
+        filter_action="none",
         sort_action="native",
         sort_mode="multi",
         column_selectable=col_selectable,
@@ -278,7 +289,14 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
         selected_rows=[],
         page_size= 100,
         style_table={'height': height, 'overflowY': 'auto'},
+        style_header={
+            'backgroundColor': 'rgb(105,105,105)',
+            'color': 'white',
+            'fontWeight': 'bold'
+        },
         style_data={
+            'backgroundColor': 'black',
+            'color': 'white',
             'whiteSpace': 'normal',
         },
         css=[{
@@ -293,21 +311,7 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
         style_data_conditional=style_data_conditional,
     ),
 
-    # Metadata
-    if metadata_id is not None:
-        metadata = dbc.Card([
-            dbc.CardHeader('Metadata'),
-            dbc.CardBody('Body')
-        ], style={'height': '100%', 'overflow-y': 'auto'})
-        width = (9, 3)
-    else:
-        metadata = html.Div()
-        width = (12, 0)
-
-    return dbc.Row([
-        dbc.Col(datatable, width=width[0]),
-        dbc.Col(metadata, width=width[1]),
-    ])
+    return datatable
 
 
 def generate_radio(id, options, label, default_value=0, inline=False):
@@ -478,13 +482,23 @@ def generate_new_dataset_inputs(id, input_type, extra=False):
 
     dataset_details = [
         dbc.Row([
+            dbc.Col(
+                dbc.Select(id=id('select_dataset_type'), options=[
+                    {"label": "Add from Exisitng Data Sources", "value": "type1"},
+                    {"label": "Manually Upload Files", "value": "type2"},
+                    {"label": "Add Rest API", "value": "type3"},
+                    {"label": "Add GraphQL", "value": "type4", 'disabled':True},
+                ], style={'text-align':'center'}),
+            ),
+            dbc.Col(html.Hr(), width=12),
+            dbc.Col(dataset_details_2, width=12),
+            dbc.Col(html.Hr(), width=12),
             dbc.Col([
                 dbc.Input(id={'type': id('name'), 'index': 0 }, placeholder='Enter Dataset Name', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'), 
                 dbc.Textarea(id={'type': id('description'), 'index': 0 }, placeholder='Enter Dataset Description', style={'height':'130px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'),
                 dbc.Input(id={'type': id('documentation'), 'index': 0 }, placeholder='Enter Documentation URL (Optional) ', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'),
             ], width=12),
-            dbc.Col(html.Hr(), width=12),
-            dbc.Col(dataset_details_2, width=12),
+            
         ]),
     ]
     buttons = dbc.ButtonGroup([

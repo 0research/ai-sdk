@@ -34,20 +34,8 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 
 
-options_functions = [
-    {'label': 'Average', 'value':'avg'},
-    {'label': 'Sum', 'value':'sum'},
-    {'label': 'Maximum', 'value':'max'},
-    {'label': 'Minimum', 'value':'min'},
-    {'label': 'Count', 'value':'count'},
-    {'label': 'Distinct', 'value':'distinct'},
-    {'label': 'Normalize', 'value':'normalize', 'disabled':True},
-    {'label': 'Low-pass Filter', 'value':'lpf', 'disabled':True},
-    {'label': 'High-pass Filter', 'value':'hpf', 'disabled':True},
-    {'label': 'Binning', 'value':'binning', 'disabled':True},
-    {'label': 'Encode', 'value':'encode', 'disabled':True},
-    {'label': 'Fourier Transform', 'value':'fourier_transform', 'disabled':True},
-]
+
+
 
 # Layout
 layout = html.Div([
@@ -55,14 +43,19 @@ layout = html.Div([
         # Datatable
         dbc.Row([
             dbc.Col(html.H5('Step 1: Select Column'), width=12),
-            dbc.Col(generate_datatable(id('datatable'), col_selectable="multi", height='450px', metadata_id=id('metadata'), selected_column_id=id('selected_columns')), width=12),
-        ], className='text-center bg-light'),
-        
+            dbc.Col(generate_datatable(id('datatable'), col_selectable="multi", height='450px', metadata_id=id('metadata'), selected_column_id=id('selected_columns')), width=9),
+            dbc.Col([
+               dbc.Card([
+                    dbc.CardHeader('Metadata'),
+                    dbc.CardBody(id=id('metadata')),
+                ]),
+            ], className='text-center bg-light', width=3, style={'height':'400px'}), 
+        ]),
         # Body
         dbc.Row([
             dbc.CardHeader(html.H5('Step 2: Select Function')),
             html.Hr(),
-            dbc.Col(dcc.Dropdown(options=options_functions, id=id('dropdown_function'), value=options_functions[0]['value'], multi=False, clearable=False, style={'font-size': '20px', 'width':'100%'}), width={'size':10, 'offset':1}),
+            dbc.Col(dcc.Dropdown(options=[], id=id('dropdown_function'), value=None, multi=False, clearable=False, style={'font-size': '20px', 'width':'100%'}), width={'size':10, 'offset':1}),
             html.Hr(),
 
             dbc.Col([
@@ -142,16 +135,48 @@ def update_selected_column(active, current_style, selected_columns):
     Input('url', 'pathname')
 )
 def update_metadata(pathname):
-
-    columns = ['No.', 'Column', 'dType']
-    data 
-    return html.Div([
-        html.P('content'),
-        generate_datatable(data, columns)
-    ])
+    dataset_id = get_session('dataset_id')
+    dataset = get_document('dataset', dataset_id)
+    return display_metadata(dataset, id, disabled=True, height='390px')
 
 
+# Generate Functions
+@app.callback(
+    Output(id('dropdown_function'), "options"),
+    Output(id('dropdown_function'), "value"),
+    Input(id('datatable'), "selected_columns")
+)
+def generate_functions(selected_columns):
+    options_number_functions = [
+        {'label': 'Average', 'value':'avg'},
+        {'label': 'Sum', 'value':'sum'},
+        {'label': 'Maximum', 'value':'max'},
+        {'label': 'Minimum', 'value':'min'},
+        {'label': 'Count', 'value':'count'},
+        {'label': 'Distinct', 'value':'distinct'},
+        {'label': 'Normalize', 'value':'normalize', 'disabled':True},
+        {'label': 'Low-pass Filter', 'value':'lpf', 'disabled':True},
+        {'label': 'High-pass Filter', 'value':'hpf', 'disabled':True},
+        {'label': 'Binning', 'value':'binning', 'disabled':True},
+        {'label': 'Encode', 'value':'encode', 'disabled':True},
+        {'label': 'Fourier Transform', 'value':'fourier_transform', 'disabled':True},
+    ]
+    options_string_functions = [
+        {'label': 'Split by Character', 'value':'split'},
+    ]
+    options_datetime_functions = [
+        {'label': 'None', 'value':'none'},
+    ]
 
+    dataset_id = get_session('dataset_id')
+    dataset = get_document('dataset', dataset_id)
+    if len(selected_columns) == 1:
+        print(selected_columns[0], dataset['features'][selected_columns[0]])
+    elif len(selected_columns) > 1:
+        pass
+
+    print(selected_columns)
+    return options_number_functions, options_number_functions[0]['value']
 
 
 # # Select Column 

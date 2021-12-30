@@ -22,13 +22,13 @@ SIDEBAR_3_LIST = [
 
 
 # Datatypes
-DATATYPE_LIST = ['object', 'Int64', 'float64', 'bool', 'datetime64', 'category']
+DATATYPE_LIST = ['object', 'Int64', 'float64', 'bool', 'datetime64', 'geopoint']
 
 
 
 
 # Types of Merges
-MERGE_TYPES = ['objectMerge', 'overwrite', 'version', '...']
+MERGE_TYPES = ['arrayMergeByIndex', 'arrayMergeById', 'objectMerge', 'overwrite', 'version', 'append']
 
 
 
