@@ -1,4 +1,3 @@
-from os import startfile
 from typing_extensions import ParamSpecArgs
 from dash import dcc
 from dash import html
