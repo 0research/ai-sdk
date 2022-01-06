@@ -58,8 +58,8 @@ layout = html.Div([
                         dbc.CardHeader(html.H6('New Dataset')),
                         dbc.CardBody([
                             dbc.ButtonGroup([
-                                dbc.Button("User Input", id=id('type1'), outline=True, color="success"),
-                                dbc.Button("REST API", id=id('type2'), outline=True, color="primary"),
+                                dbc.Button("User Input", id=id('raw_fileupload'), outline=True, color="success"),
+                                dbc.Button("REST API", id=id('raw_restapi'), outline=True, color="primary"),
                             ], style={'margin': '10px 5px 5px 10px', 'display':'flex', 'width':'100%'})
                         ]),
                         dbc.CardBody(id=id('dataset_details'), style={'height': '700px', 'overflow-y':'auto'}),
@@ -88,12 +88,12 @@ layout = html.Div([
 @app.callback(
     Output(id('dataset_details'), 'children'),
     Output(id('footer'), 'children'),
-    Input(id('type1'), 'n_clicks'),
-    Input(id('type2'), 'n_clicks'),
+    Input(id('raw_fileupload'), 'n_clicks'),
+    Input(id('raw_restapi'), 'n_clicks'),
     State(id('dataset_details'), 'children'),
     prevent_initial_call=True
 )
-def generate_dataset_details(n_clicks_type1, n_clicks_type2, dataset_details):
+def generate_dataset_details(n_clicks_raw_fileupload, n_clicks_raw_restapi, dataset_details):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     if dataset_details is None: dataset_details = []
     
@@ -151,7 +151,7 @@ def store_api(n_clicks, dataset_type,
         active_tab = 'tab1' if active_tab is None else active_tab
 
         # User Input
-        if dataset_type == id('type1') and fileNames_list[0] is not None and isCompleted_list[0] is True: 
+        if dataset_type == id('raw_fileupload') and fileNames_list[0] is not None and isCompleted_list[0] is True: 
             upload_id = upload_id_list[0]
             filename = fileNames_list[0][0]
             root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
@@ -176,7 +176,7 @@ def store_api(n_clicks, dataset_type,
             out = df.to_dict('records')
 
         # Rest API
-        elif dataset_type == id('type2'):
+        elif dataset_type == id('raw_restapi'):
             df, details = process_restapi(method_list[0], url_list[0], header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list)
             out = df.to_dict('records')
 
@@ -358,7 +358,7 @@ def button_new_dataset(n_clicks, dataset_type, name_list, description_list, docu
                 active_tab):
     if n_clicks is None: return no_update
     # User Input
-    if dataset_type == id('type1') and fileNames_list[0] is not None and isCompleted_list[0] is True:
+    if dataset_type == id('raw_fileupload') and fileNames_list[0] is not None and isCompleted_list[0] is True:
         upload_id = upload_id_list[0]
         filename = fileNames_list[0][0]
         root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
@@ -378,7 +378,7 @@ def button_new_dataset(n_clicks, dataset_type, name_list, description_list, docu
         details = {'filename': filename}
 
     # Rest API
-    elif dataset_type == id('type2'):
+    elif dataset_type == id('raw_restapi'):
         df, details = process_restapi(method_list[0], url_list[0], header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list)
         out = df
         dataset_type = 'raw_restapi'

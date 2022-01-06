@@ -81,15 +81,21 @@ def search_documents(collection_id, per_page, search_parameters=None):
             'q': '*',
             'per_page': per_page,
         }
-    result = client.collections[collection_id].documents.search(search_parameters)
-    return [d['document'] for d in result['hits']]
+    if collection_id in [c['name'] for c in client.collections.retrieve()]:
+        result = client.collections[collection_id].documents.search(search_parameters)
+        result = [d['document'] for d in result['hits']]
+    else:
+        result = None
+    return result
+
 def get_dataset_data(dataset_id):
     dataset = get_document('dataset', dataset_id)
     features = list(dataset['features'].keys())
     data = search_documents(dataset_id, '250')
-    df = json_normalize(data)
-
-    return df[features]
+    if data != None:
+        return json_normalize(data)[features]
+    else:
+        return json_normalize([])
 
 
 # Store & Retrieve Session
@@ -197,9 +203,26 @@ def new_project(project_id, project_type):
 #     client.collections.create(generate_schema_auto(dataset_id))
 #     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
-def new_dataset(df, name, description, documentation, type, details):
-    # Dataset
+def new_data_source():
     dataset_id = str(uuid.uuid1())
+    dataset = Dataset(
+            id=dataset_id,
+            name='New Data Source',
+            description='', 
+            documentation='',
+            type='raw',
+            details='', 
+            features={},
+            expectation = {}, 
+            index = [], 
+            target = [],
+            graphs = [],
+    )
+    upsert('dataset', dataset)
+    return dataset_id
+
+def save_dataset_config(dataset_id, df, name, description, documentation, type, details):
+    # Dataset
     dataset = Dataset(
             id=dataset_id,
             name=name,
@@ -213,14 +236,19 @@ def new_dataset(df, name, description, documentation, type, details):
             target = [],
             graphs = [],
     )
-    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-
+    
     # Upload to Typesense
     upsert('dataset', dataset)
-    client.collections.create(generate_schema_auto(dataset_id))
-    result = client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
-    # pprint(result)
-    return dataset_id
+    try:
+        client.collections.create(generate_schema_auto(dataset_id))
+    except:
+        client.collections[dataset_id].delete()
+        client.collections.create(generate_schema_auto(dataset_id))
+    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+    r = client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
+    pprint(r)
+    pprint(dataset)
+    
 
 
 
@@ -258,7 +286,7 @@ def remove(project_id, node_id_list):
         # Remove Raw Dataset
         elif node_id in project['dataset_list']:
             dataset = get_document('dataset', node_id)
-            if dataset['type'].startswith('raw_'):
+            if dataset['type'].startswith('raw'):
                 if any(edge.startswith(node_id) for edge in edge_list):
                     pass
                 else:

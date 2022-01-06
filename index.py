@@ -199,7 +199,7 @@ def highlight_active_nav(pathname, sidebar):
 # Load Projects Options in dropdown
 @app.callback([Output('dropdown_current_project', 'options')],
                 Input('url', 'pathname'),)
-def load_dataset_dropdown(pathname):
+def load_project_dropdown(pathname):
     dataset_list = search_documents('project', 250)
     options = [{'label': d['id'], 'value': d['id']} for d in dataset_list]
     return options

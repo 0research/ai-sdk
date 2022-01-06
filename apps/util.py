@@ -402,7 +402,7 @@ def get_upload_component(component_id, height='100%'):
         default_style={'height':height},
     )
 
-def generate_tabularjson_details(id):
+def generate_manualupload_details(id):
     return [
         html.Div(get_upload_component(component_id={'type': id('browse_drag_drop'), 'index': 0}), style={'width':'100%', 'margin-bottom':'5px'}),
         html.P('File Formats Accepted: ', style={'text-align':'center', 'font-size':'11px', 'margin': '0px'}),
@@ -414,11 +414,12 @@ def generate_tabularjson_details(id):
         # html.Div(dcc.Dropdown(options=[], value=[], id=id('uploaded_files'), multi=True, clearable=True, placeholder=None, style={'height':'85px', 'overflow-y':'auto'}), style={'width':'100%'}),
     ]
 
-options_restapi_method =[
-    {'label': 'GET', 'value': 'get'},
-    {'label': 'POST', 'value': 'post'},
-]
+
 def generate_restapi_details(id, extra=True):
+    options_restapi_method =[
+        {'label': 'GET', 'value': 'get'},
+        {'label': 'POST', 'value': 'post'},
+    ]    
     return [
         dbc.InputGroup([
             dbc.InputGroupText("Method", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
@@ -434,15 +435,8 @@ def generate_restapi_details(id, extra=True):
             dbc.InputGroupText("Header", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'text-align':'center'}),
             dbc.Button(' - ', id=id('button_remove_header'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
             dbc.Button(' + ', id=id('button_add_header'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
-        ]),
-        html.Div([
-            dbc.InputGroup([
-                dbc.Input(id={'type': id('header_key'), 'index': 0}, placeholder='Enter Key', list=id('header_autocomplete'), style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
-                dbc.Input(id={'type': id('header_value'), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'),
-                dbc.Button('Use Existing Dataset', id={'type': id('button_header_value'), 'index': 0}, color='info', outline=True, style={'font-size':'10px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
-                dbc.Input(id={'type': id('header_value_position'), 'index': 0}, style={'display':'none'}, persistence=True, persistence_type='session'),
-            ], style={'text-align':'center'}),
-        ], id=id('header_div')),
+        ]), 
+        html.Div(generate_restapi_options(id, 'header', 0), id=id('header_div')),
 
         # Param
         dbc.InputGroup([
@@ -450,63 +444,35 @@ def generate_restapi_details(id, extra=True):
             dbc.Button(' - ', id=id('button_remove_param'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
             dbc.Button(' + ', id=id('button_add_param'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
         ]),
-        html.Div([
-            dbc.InputGroup([
-                dbc.Input(id={'type': id('param_key'), 'index': 0}, placeholder='Enter Key', style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
-                dbc.Input(id={'type': id('param_value'), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'),
-                dbc.Button('Use Existing Dataset', id={'type': id('button_param_value'), 'index': 0}, color='info', outline=True, style={'font-size':'10px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
-                dbc.Input(id={'type': id('param_value_position'), 'index': 0}, style={'display':'none'}, persistence=True, persistence_type='session'),
-            ]),
-        ], id=id('param_div')),
-
+        html.Div(generate_restapi_options(id, 'param', 0), id=id('param_div')),
         # Body
         dbc.InputGroup([
             dbc.InputGroupText("Body", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
             dbc.Button(' - ', id=id('button_remove_body'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
             dbc.Button(' + ', id=id('button_add_body'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
         ]),
-        html.Div([
-            dbc.InputGroup([
-                dbc.Input(id={'type': id('body_key'), 'index': 0}, placeholder='Enter Key', style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
-                dbc.Input(id={'type': id('body_value'), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'), 
-                dbc.Button('Use Existing Dataset', id={'type': id('button_body_value'), 'index': 0}, color='info', outline=True, style={'font-size':'10px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}) if extra else "",
-                dbc.Input(id={'type': id('body_value_position'), 'index': 0}, style={'display':'none'}, persistence=True, persistence_type='session'),
-            ]),
-        ], id=id('body_div')),
+        html.Div(generate_restapi_options(id, 'body', 0), id=id('body_div')),
+    ]
+    
+
+def generate_restapi_options(id, option_type, index):
+    return [
+        # Inputs
+        dbc.InputGroup([
+            dbc.Input(id={'type': id('{}_key'.format(option_type)), 'index': 0}, placeholder='Enter Key', list=id('header_autocomplete'), style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
+            dbc.Input(id={'type': id('{}_value'.format(option_type)), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'),
+            dbc.Button('Use Existing Dataset', id={'type': id('button_{}_value'.format(option_type)), 'index': 0}, color='info', outline=True, style={'font-size':'10px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}),
+            dbc.Input(id={'type': id('{}_value_position'.format(option_type)), 'index': 0}, style={'display':'none'}, persistence=True, persistence_type='session'),
+        ], style={'text-align':'center'}),
+
+        # Hidden Modal
+        dbc.Modal([
+            dbc.ModalHeader(dbc.ModalTitle(id={'type': id('{}_value_title'.format(option_type)), 'index': index}), style={'text-align':'center'}),
+            dbc.ModalBody(generate_datatable({'type': id('{}_value_datatable'.format(option_type)), 'index': index}, height='800px')),
+        ], id={'type': id('{}_modal'.format(option_type)), 'index': index})
     ]
 
 
-def generate_new_dataset_inputs(id, input_type, extra=False):
-    if input_type == id('type1'):  dataset_details_2 = generate_tabularjson_details(id)
-    elif input_type == id('type2'): dataset_details_2 = [html.Div(generate_restapi_details(id))]
-
-    dataset_details = [
-        dbc.Row([
-            dbc.Col(
-                dbc.Select(id=id('select_dataset_type'), options=[
-                    {"label": "Add from Exisitng Data Sources", "value": "type1"},
-                    {"label": "Manually Upload Files", "value": "type2"},
-                    {"label": "Add Rest API", "value": "type3"},
-                    {"label": "Add GraphQL", "value": "type4", 'disabled':True},
-                ], style={'text-align':'center'}),
-            ),
-            dbc.Col(html.Hr(), width=12),
-            dbc.Col(dataset_details_2, width=12),
-            dbc.Col(html.Hr(), width=12),
-            dbc.Col([
-                dbc.Input(id={'type': id('name'), 'index': 0 }, placeholder='Enter Dataset Name', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'), 
-                dbc.Textarea(id={'type': id('description'), 'index': 0 }, placeholder='Enter Dataset Description', style={'height':'130px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'),
-                dbc.Input(id={'type': id('documentation'), 'index': 0 }, placeholder='Enter Documentation URL (Optional) ', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'),
-            ], width=12),
-            
-        ]),
-    ]
-    buttons = dbc.ButtonGroup([
-        dbc.Button('Preview', color='success', outline=True, id={'type': id('button_preview'), 'index': 0}, value=input_type, style={'width':'49%'}),
-        dbc.Button('Upload', color='warning', outline=True, id={'type': id('button_new_dataset'), 'index': 0}, style={'font-size': '13px', 'font-weight': 'bold', 'width':'49%'}),
-    ], style={'width':'100%'})
-
-    return dataset_details, buttons
 
 def do_flatten(json_file):
     data = []
@@ -520,7 +486,7 @@ def do_flatten(json_file):
     return data
 
 
-def process_userinput(upload_id, filename):
+def process_fileupload(upload_id, filename):
     root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
     file = (root_folder / filename).as_posix()
     details = {'filename': filename}
