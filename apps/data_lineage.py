@@ -122,9 +122,9 @@ layout = html.Div([
                 html.Div([
                     html.Div(dbc.Tabs([], id=id("tabs_node")), style={'float':'left', 'text-align':'left', 'display':'inline-block'}),
                     html.Div([
-                        dbc.Button(html.I(n_clicks=0, className='fas fa-check'), id=id('button_perform_action'), className='btn btn-warning', style={'margin-left':'1px'}),
-                        dbc.Button(html.I(n_clicks=0, className='fas fa-chart-area'), id=id('button_chart'), className='btn btn-success', style={'margin-left':'1px'}),
-                        dbc.Button(html.I(n_clicks=0, className='fas fa-times'), id=id('button_remove'), className='btn btn-danger', style={'margin-left':'1px'}),
+                        dbc.Button(html.I(n_clicks=0, className='fas fa-check'), id=id('button_perform_action'), disabled=True, className='btn btn-warning', style={'margin-left':'1px'}),
+                        dbc.Button(html.I(n_clicks=0, className='fas fa-chart-area'), id=id('button_chart'), disabled=True, className='btn btn-success', style={'margin-left':'1px'}),
+                        dbc.Button(html.I(n_clicks=0, className='fas fa-times'), id=id('button_remove'), disabled=True, className='btn btn-danger', style={'margin-left':'1px'}),
                         dbc.Tooltip('Perform Action', target=id('button_perform_action')),
                         dbc.Tooltip('Chart', target=id('button_chart')),
                         dbc.Tooltip('Remove Action or Raw Dataset', target=id('button_remove')),
@@ -154,22 +154,41 @@ layout = html.Div([
                             ], width=1),
                             dbc.Col([dbc.Input(id=id('search_json'), placeholder='Search', style={'text-align':'center'})], width=12),
                         ]),
-                    ], id=id('right_header_2'), style={'display':'none'}),
+                    ], id=id('right_header_2'), style={'display':'none', 'font-size':'13px'}),
 
-                    dbc.CardHeader([
-                        dbc.Textarea(id={'type': id('description'), 'index': 0 }, placeholder='Enter Dataset Description', style={'height':'50px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'),
-                        dbc.Input(id={'type': id('documentation'), 'index': 0 }, placeholder='Enter Documentation URL (Optional) ', style={'height':'40px', 'min-width':'120px', 'text-align':'center', 'width':'100%'}, persistence=True, persistence_type='session'),
-                        dbc.Select(id={'type': id('select_dataset_type'), 'index': 0}, options=[
-                            {"label": "Manually Upload Files", "value": "raw_fileupload"},
-                            {"label": "Rest API", "value": "raw_restapi"},
-                            {"label": "Search Data Catalog", "value": "type3", 'disabled':True},
-                            {"label": "GraphQL", "value": "type4", 'disabled':True},
-                        ], value='raw_fileupload', style={'text-align':'center', 'font-size':'15px'}),
-                    ], id=id('right_header_3'), style={'display': 'none'}),
 
-                    # Body
+                    # Right Body (Data, Metadata)
                     dbc.CardBody(html.Div([], id=id('right_content'), style={'min-height': '650px'})),
-                    dbc.CardBody(html.Div([], id=id('right_content_2'), style={'min-height': '650px', 'display': 'none'})),
+
+                    # Right Body 2 (Config)
+                    dbc.CardBody([
+                        dbc.InputGroup([
+                            dbc.InputGroupText('Description', style={'width':'30%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'12px'}),
+                            dbc.Textarea(id=id('description'), placeholder='Enter Dataset Description', style={'height':'50px', 'text-align':'center'}, persistence=True, persistence_type='session'),
+                        ]),
+                        dbc.InputGroup([
+                            dbc.InputGroupText('Documentation', style={'width':'30%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'12px'}),
+                            dbc.Input(id=id('documentation'), placeholder='Enter Documentation URL (Optional) ', style={'height':'40px', 'min-width':'120px', 'text-align':'center'}, persistence=True, persistence_type='session'),
+                        ]),
+                        html.Hr(),
+                        dbc.InputGroup([
+                            dbc.InputGroupText('Data Source Type', style={'width':'30%', 'font-weight':'bold', 'font-size': '13px', 'padding-left':'12px'}),
+                            dbc.Select(id('select_dataset_type'), options=[
+                                {"label": "Manually Upload Files", "value": "raw_fileupload"},
+                                {"label": "Rest API", "value": "raw_restapi"},
+                                {"label": "Search Data Catalog", "value": "type3", 'disabled':True},
+                                {"label": "GraphQL", "value": "type4", 'disabled':True},
+                            ], value='raw_fileupload', style={'text-align':'center', 'font-size':'15px'}),
+                        ], style={'margin-bottom':'10px'}),
+                        html.Div(generate_manuafilelupload_details(id), style={'display':'none'}, id=id('config_options_fileupload')),
+                        html.Div(generate_restapi_details(id), style={'display':'none'}, id=id('config_options_restapi')),
+                    ], id=id('right_content_2'), style={'min-height': '800px', 'display': 'none'}),
+                    
+                    # Right Footer
+                    dbc.CardFooter([
+                        dbc.Button(children='Save', id=id('button_save'), color='warning', style={'width':'100%', 'font-size':'22px'}),
+                    ])
+
                 ], className='bg-dark', inverse=True),
 
             ], width=6),
@@ -182,61 +201,73 @@ layout = html.Div([
             dbc.ModalFooter('', id=id('modal_footer')),
         ], id=id('modal'), size='xl'),
 
-        # Modal (Select data as API input)
-        html.Div([dbc.Modal([
-            dbc.ModalHeader(dbc.ModalTitle(id={'type': id('header_value_title'), 'index': 0}), style={'text-align':'center'}),
-            dbc.ModalBody(generate_datatable({'type': id('header_value_datatable'), 'index': 0}, height='800px')),
-        ], id={'type': id('header_modal'), 'index': 0})], id=id('header_modal_list')),
-        html.Div([dbc.Modal([
-            dbc.ModalHeader(dbc.ModalTitle(id={'type': id('param_value_title'), 'index': 0}), style={'text-align':'center'}),
-            dbc.ModalBody(generate_datatable({'type': id('param_value_datatable'), 'index': 0}, height='800px')),
-        ], id={'type': id('param_modal'), 'index': 0})], id=id('param_modal_list')),
-        html.Div([dbc.Modal([
-            dbc.ModalHeader(dbc.ModalTitle(id={'type': id('body_value_title'), 'index': 0}), style={'text-align':'center'}),
-            dbc.ModalBody(generate_datatable({'type': id('body_value_datatable'), 'index': 0}, height='800px')),
-        ], id={'type': id('body_modal'), 'index': 0})], id=id('body_modal_list')),
-
     ], style={'width':'100%'}),
 ])
 
 
-    
-
-
+# Load Dataset Config 
 @app.callback(
-    Output(id('right_content_2'), 'children'),
-    Input({'type': id('select_dataset_type'), 'index': ALL}, 'value'),
+    Output(id('description'), 'value'),
+    Output(id('documentation'), 'value'),
+    Output(id('select_dataset_type'), 'value'),
+    Output(id('dropdown_method'), 'value'),
+    Output(id('url'), 'value'),
+    Input(id('cytoscape'), 'tapNodeData')
 )
-def callback(dataset_type_list):
-    if dataset_type_list[0] == 'raw_fileupload':  dataset_inputs = generate_manualupload_details(id)
-    elif dataset_type_list[0] == 'raw_restapi': dataset_inputs = generate_restapi_details(id)
-    # elif dataset_type_list[0] == 'type3': dataset_inputs = 
-    # elif dataset_type_list[0] == 'type4': dataset_inputs = 
-    else: dataset_inputs = generate_manualupload_details(id)
-    return dataset_inputs + [html.Hr(), dbc.Button(children='Save', id={'type': id('button_save_config'), 'index': 0}, color='warning', style={'width':'100%', 'font-size':'22px'})]
+def populate_dataset_config(tapNodeData):
+    if tapNodeData is None: return no_update
+    description, documentation, method, url = '', '', 'get', ''
+    
+    if tapNodeData['id'] in get_all_collections():
+        dataset = get_document('dataset', tapNodeData['id'])
+        description = dataset['description']
+        documentation = dataset['documentation']
+        if dataset['type'] == 'raw':
+            dataset_type = 'raw_fileupload'
+        elif dataset['type'] == 'raw_restapi':
+            method = dataset['details']['method']
+            url = dataset['details']['url']
+            dataset_type = dataset['type']
+        else:
+            dataset_type = dataset['type']
+    else:
+        dataset_type = 'raw_fileupload'
+    return description, documentation, dataset_type, method, url
+
+# Load Dataset Config Options
+@app.callback(
+    Output(id('config_options_fileupload'), 'style'),
+    Output(id('config_options_restapi'), 'style'),
+    # Output(id('config_options_restapi'), 'children'),
+    Input(id('select_dataset_type'), 'value'),
+    State(id('config_options_restapi'), 'children'),
+)
+def load_dataset_options(dataset_type, options_restapi):
+    style1, style2 = {'display':' none'}, {'display':' none'}
+    if dataset_type == 'raw_fileupload':  style1 = {'display':' block'}
+    elif dataset_type == 'raw_restapi': style2 = {'display':' block'}
+    else: style1 = {'display':' block'}
+
+    return style1, style2
 
 
 # Tab Content, Add New Datasets
 @app.callback(
     Output(id('tabs_node'), 'children'),
     Output(id('tabs_node'), 'active_tab'),
-    Output(id('cytoscape'), 'selectedNodeData'),
     Output(id('do_cytoscape_reload'), 'data'),
     Input(id('cytoscape'), 'selectedNodeData'),
-    Input({'type': id('raw_fileupload'), 'index': ALL}, 'n_clicks'),
-    Input({'type': id('raw_restapi'), 'index': ALL}, 'n_clicks'),
-    Input({'type': id('select_dataset_type'), 'index': ALL}, 'value'),
-    Input({'type': id('button_new_dataset'), 'index': ALL}, 'n_clicks'),
-    Input({'type': id('button_save_config'), 'index': ALL}, 'n_clicks'),
+    Input(id('button_save'), 'n_clicks'),
     # New Dataset Inputs
-    State(id('right_header_1'), 'children'),
-    State({'type': id('description'), 'index': ALL}, 'value'),
-    State({'type': id('documentation'), 'index': ALL}, 'value'),
-    State({'type': id('browse_drag_drop'), 'index': ALL}, 'isCompleted'),
-    State({'type': id('browse_drag_drop'), 'index': ALL}, 'upload_id'),
-    State({'type': id('browse_drag_drop'), 'index': ALL}, 'fileNames'),
-    State({'type': id('dropdown_method'), 'index': ALL}, 'value'),
-    State({'type': id('url'), 'index': ALL}, 'value'),
+    State(id('select_dataset_type'), 'value'),
+    State({'type':id('node_name'), 'index': ALL}, 'value'),
+    State(id('description'), 'value'),
+    State(id('documentation'), 'value'),
+    State(id('browse_drag_drop'), 'isCompleted'),
+    State(id('browse_drag_drop'), 'upload_id'),
+    State(id('browse_drag_drop'), 'fileNames'),
+    State(id('dropdown_method'), 'value'),
+    State(id('url'), 'value'),
     State({'type': id('header_key'), 'index': ALL}, 'value'),
     State({'type': id('header_value'), 'index': ALL}, 'value'),
     State({'type': id('header_value_position'), 'index': ALL}, 'value'),
@@ -246,21 +277,19 @@ def callback(dataset_type_list):
     State({'type': id('body_key'), 'index': ALL}, 'value'),
     State({'type': id('body_value'), 'index': ALL}, 'value'),
     State({'type': id('body_value_position'), 'index': ALL}, 'value'),
-
     State(id('tabs_node'), 'active_tab'),
+    State(id('right_content_2'), 'style'),
 )
-def generate_tabs(selectedNodeData, n_clicks_userinput_list, n_clicks_restapi_list, dataset_type_list, button_new_dataset, n_clicks_button_save_config,
-                    dataset_name, description_list, documentation_list,
-                    isCompleted_list, upload_id_list, fileNames_list,                                               # Tabular / JSON 
-                    method_list, url_list, header_key_list, header_value_list, header_value_position_list, param_key_list, param_value_list, param_value_position_list, body_key_list, body_value_list, body_value_position_list,     # REST API
-                    active_tab):
+def generate_tabs(selectedNodeData, n_clicks_button_save_config,
+                    dataset_type, node_name, description, documentation,
+                    isCompleted, upload_id, fileNames,                                               # Tabular / JSON 
+                    method, url, header_key_list, header_value_list, header_value_position_list, param_key_list, param_value_list, param_value_position_list, body_key_list, body_value_list, body_value_position_list,     # REST API
+                    active_tab, right_content_2_style):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     triggered = json.loads(triggered) if triggered.startswith('{') and triggered.endswith('}') else triggered
     tab1_disabled, tab2_disabled, tab3_disabled = True, True, True
     num_selected = len(selectedNodeData)
-    preview_store = None
     do_cytoscape_reload = False
-    out2 = no_update
 
     # Click Cytoscape Nodes
     if triggered == '' or triggered == id('cytoscape'):
@@ -290,38 +319,42 @@ def generate_tabs(selectedNodeData, n_clicks_userinput_list, n_clicks_restapi_li
     
 
     # Save Button Clicked
-    elif triggered == {'index': 0, 'type': id('button_save_config')} and n_clicks_button_save_config[0] is not None and num_selected == 1:
+    elif triggered == id('button_save') and right_content_2_style['display'] != 'none' and n_clicks_button_save_config is not None and num_selected == 1:
         tab1_disabled = False
         tab2_disabled = False
         tab3_disabled = False
         active_tab = 'tab1'
-        dataset_type = dataset_type_list[0]
         dataset_id = selectedNodeData[0]['id']
         project_id = get_session('project_id')
         source_id = None
-        dataset_name = dataset_name[0]['props']['value']
+        dataset_name = node_name[0]
 
-        if dataset_type == 'raw_fileupload' and fileNames_list[0] is not None and isCompleted_list[0] is True:
-            df, details = process_fileupload(upload_id_list[0], fileNames_list[0][0])
+        # Upload
+        if dataset_type == 'raw_fileupload':
+            if fileNames is not None and isCompleted is True:
+                df, details = process_fileupload(upload_id, fileNames[0])
+                save_dataset_config(dataset_id, df, dataset_name, description, documentation, dataset_type, details)
+            else:
+                save_dataset_config(dataset_id, None, dataset_name, description, documentation, dataset_type, None)
         elif dataset_type == 'raw_restapi':
-            df, details = process_restapi(method_list[0], url_list[0], header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list)
+            df, details = process_restapi(method, url, header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list)
+            save_dataset_config(dataset_id, df, dataset_name, description, documentation, dataset_type, details)
 
-        save_dataset_config(dataset_id, df, dataset_name, description_list[0], documentation_list[0], dataset_type, details)
+            # Add Edges if dataset is dependent on other datasets
+            if any(header_value_position_list) != None or any(param_value_position_list) or any(body_value_position_list):
+                for header in header_value_position_list:
+                    if header is not None and header != '': 
+                        source_id = header[0]['id']
+                        add_edge(project_id, source_id, dataset_id)
 
-        if any(header_value_position_list) != None or any(param_value_position_list) or any(body_value_position_list):
-            for header in header_value_position_list:
-                if header is not None and header != '': 
-                    source_id = header[0]['id']
-                    add_edge(project_id, source_id, dataset_id)
-
-            for param in param_value_position_list:
-                if param is not None and param != '': 
-                    source_id = param[0]['id']
-                    add_edge(project_id, source_id, dataset_id)
-            for body in body_value_position_list:
-                if body is not None and body != '': 
-                    source_id = body[0]['id']
-                    add_edge(project_id, source_id, dataset_id)
+                for param in param_value_position_list:
+                    if param is not None and param != '': 
+                        source_id = param[0]['id']
+                        add_edge(project_id, source_id, dataset_id)
+                for body in body_value_position_list:
+                    if body is not None and body != '': 
+                        source_id = body[0]['id']
+                        add_edge(project_id, source_id, dataset_id)
 
         do_cytoscape_reload = True
 
@@ -331,7 +364,7 @@ def generate_tabs(selectedNodeData, n_clicks_userinput_list, n_clicks_restapi_li
         dbc.Tab(label="Config", tab_id="tab3", disabled=tab3_disabled),
         # dbc.Tab(label="Experiments", tab_id="tab4", disabled=True),
     ]
-    return tab_list, active_tab, selectedNodeData, do_cytoscape_reload
+    return tab_list, active_tab, do_cytoscape_reload
 
 
 
@@ -380,9 +413,8 @@ def merge_dataset(dataset_list, merge_type='objectMerge'):
     Output(id('right_header_1'), 'children'),
     Output(id('dataset_data'), 'data'),
     Output(id('right_content'), 'style'),
-    Output(id('right_content_2'), 'style'),
     Output(id('right_header_2'), 'style'),
-    Output(id('right_header_3'), 'style'),
+    Output(id('right_content_2'), 'style'),
     Output(id('merge_type_container'), 'style'),
     Output(id('range'), 'min'),
     Output(id('range'), 'max'),
@@ -396,13 +428,12 @@ def merge_dataset(dataset_list, merge_type='objectMerge'):
     State(id('right_content_2'), 'style'),
 )
 def select_node(active_tab, range_value, merge_type, merge_idRef, selectedNodeData, out1_display, out2_display):
-    # pprint(selectedNodeData)
     name, out, out2 = [], [], ''
     range_min, range_max = None, None
     num_selected = len(selectedNodeData)
     out1_display['display'] = 'block'
     out2_display['display'] = 'none'
-    right_header_2_style, right_header_3_style = {'display': 'none'}, {'display': 'none'}
+    right_header_2_style, right_content_2_style = {'display': 'none'}, {'display': 'none'}
     merge_type_container_style = {'display': 'none'}
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     
@@ -410,7 +441,7 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, selectedNodeDa
     if num_selected == 0:
         name = []
     elif num_selected == 1:
-        name = [dbc.Input(value=selectedNodeData[0]['name'], id={'type':id('node_name'), 'index': selectedNodeData[-1]['id']}, style={'font-size':'14px', 'text-align':'center'})]
+        name = [dbc.Input(value=selectedNodeData[0]['name'], id={'type':id('node_name'), 'index': selectedNodeData[-1]['id']}, disabled=True, style={'font-size':'14px', 'text-align':'center'})]
         
     elif num_selected > 1:
         for node in selectedNodeData:
@@ -466,13 +497,13 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, selectedNodeDa
     elif active_tab == 'tab3':
         out1_display['display'] = 'none'
         out2_display['display'] = 'block'
-        right_header_3_style['display'] = 'block'
+        right_content_2_style['display'] = 'block'
 
     else:
         out = []
 
-    return name, out, out1_display, out2_display, right_header_2_style, right_header_3_style, merge_type_container_style, range_min, range_max, range_value
-
+    return (name, out, out1_display, right_header_2_style,
+            right_content_2_style, merge_type_container_style, range_min, range_max, range_value)
 
 
 
@@ -519,7 +550,17 @@ def button_tabular(data, n_clicks, active_tab):
     
     return out
 
+# Enable Editing Data Source name when in Config Tab
+@app.callback(
+    Output({'type': id('node_name'), 'index': ALL}, 'disabled'),
+    Input(id('right_content_2'), 'style'),
+)
+def callback(style):
+    if style['display'] != 'none': return [False]
+    else: return [True]
 
+
+# Remove Feature
 @app.callback(
     Output({'type': id('col_button_remove_feature'), 'index': MATCH}, 'outline'),
     Input({'type': id('col_button_remove_feature'), 'index': MATCH}, 'n_clicks'),
@@ -535,11 +576,10 @@ def button_remove_feature(n_clicks):
     Output(id('cytoscape'), 'elements'),
     Output(id('cytoscape'), 'layout'),
     Input(id('button_load'), 'n_clicks'),
-    Input(id('button_perform_action'), 'n_clicks'),
+    Input(id('button_save'), 'n_clicks'),
     Input('url', 'pathname'),
     Input({'type': id('button_remove'), 'index': ALL}, 'n_clicks'),
     Input(id('do_cytoscape_reload'), 'data'),
-    Input({'type': id('node_name'), 'index': ALL}, 'value'),
     Input(id('merge_type'), 'value'),
     Input(id('merge_idRef'), 'value'),
     Input({'type': id('button_add_data_source'), 'index': ALL}, 'n_clicks'),
@@ -549,14 +589,16 @@ def button_remove_feature(n_clicks):
     State({'type':id('col_feature'), 'index': ALL}, 'value'),
     State({'type':id('col_datatype'), 'index': ALL}, 'value'),
     State({'type':id('col_button_remove_feature'), 'index': ALL}, 'n_clicks'),
+    State(id('right_content'), 'style'),
 )
-def cytoscape_triggers(n_clicks_load, n_clicks_merge, pathname, n_clicks_remove_list, do_cytoscape_reload, node_name, merge_type, merge_idRef,
+def cytoscape_triggers(n_clicks_load, n_clicks_merge, pathname, n_clicks_remove_list, do_cytoscape_reload, merge_type, merge_idRef,
                         n_clicks_add_data_source_list,
-                        selectedNodeData, active_tab, feature_list, new_feature_list, datatype_list, button_remove_feature_list):
+                        selectedNodeData, active_tab, feature_list, new_feature_list, datatype_list, button_remove_feature_list,
+                        right_content_style):
     num_selected = len(selectedNodeData)
     project_id = get_session('project_id')
     merge_idRef = None if merge_idRef is None else merge_idRef
-    
+
     if num_selected <= 0:
         triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
         # New Data Source
@@ -574,25 +616,27 @@ def cytoscape_triggers(n_clicks_load, n_clicks_merge, pathname, n_clicks_remove_
         elif triggered == id('do_cytoscape_reload'):
             if do_cytoscape_reload == False: return no_update
         
-        elif triggered == id('button_perform_action'):
+        elif triggered == id('button_save') and right_content_style['display'] != 'none':
             if n_clicks_merge is None: return no_update
             dataset = get_document('dataset', dataset_id)
 
-            # Modify Metadata Action
             if num_selected == 1:
-                new_dataset = dataset.copy()
-                
-                new_dataset['features'] = dict(zip(new_feature_list, datatype_list))
+                # Truncate Dataset TODO
+                if active_tab == 'tab1' and num_selected == 1:
+                    pass
 
-                remove_list = [feature for feature, n_clicks in zip(new_feature_list, button_remove_feature_list) if (n_clicks % 2 != 0)]
-                for feature in remove_list:
-                    new_dataset['features'].pop(feature, None)
-
-                changed_feature_dict = {f1:f2 for f1, f2 in zip(feature_list, new_feature_list) if f1 != f2}
-                action(project_id, dataset_id, 'metadata', 'description', new_dataset, changed_feature_dict)
+                # Modify Metadata Action
+                elif active_tab == 'tab2':
+                    new_dataset = dataset.copy()
+                    new_dataset['features'] = dict(zip(new_feature_list, datatype_list))
+                    remove_list = [feature for feature, n_clicks in zip(new_feature_list, button_remove_feature_list) if (n_clicks % 2 != 0)]
+                    for feature in remove_list:
+                        new_dataset['features'].pop(feature, None)
+                    changed_feature_dict = {f1:f2 for f1, f2 in zip(feature_list, new_feature_list) if f1 != f2}
+                    action(project_id, dataset_id, 'metadata', 'description', new_dataset, changed_feature_dict)
 
             # Merge Datasets Action
-            elif num_selected > 1:
+            if num_selected > 1:
                 dataset_data = merge_dataset_data(selectedNodeData, merge_type, idRef=merge_idRef)
                 dataset = merge_dataset(selectedNodeData, merge_type)
                 source_id_list = [node['id'] for node in selectedNodeData]
@@ -603,20 +647,6 @@ def cytoscape_triggers(n_clicks_load, n_clicks_merge, pathname, n_clicks_remove_
         elif triggered == '{"index":0,"type":"data_lineage-button_remove"}' and n_clicks_remove_list[0] != None:
             node_id_list = [node['id'] for node in selectedNodeData]
             remove(project_id, node_id_list)
-
-        # Change Dataset Name
-        elif id('node_name') in triggered:
-            triggered = json.loads(triggered)
-            dataset_id = triggered['index']
-            if all(node['type'] != 'action' for node in selectedNodeData):
-                dataset = get_document('dataset', dataset_id)
-                if dataset['name'] != node_name[0]:
-                    dataset['name'] = node_name[0]
-                    upsert('dataset', dataset)
-                else: 
-                    return no_update
-            else:
-                return no_update
                 
 
     elements = generate_cytoscape_elements(project_id)
@@ -627,23 +657,9 @@ def cytoscape_triggers(n_clicks_load, n_clicks_merge, pathname, n_clicks_remove_
     return elements, layout
 
 
-
-
-# # Save Cytoscape
-# @app.callback(
-#     Output('modal_confirm', 'children'),
-#     Input(id('button_save'), 'n_clicks'),
-#     State(id('cytoscape'), 'elements'),
-# )
-# def save_cytoscape(n_clicks, elements):
-#     pprint(elements)
-#     return no_update
-
-
-
 # Disable/Enable Right Panel Buttons
 # @app.callback(
-#     Output(id('button_perform_action'), 'disabled'),
+#     Output(id('button_save'), 'disabled'),
 #     Output(id('button_chart'), 'disabled'),
 #     Output(id('button_remove'), 'disabled'),
 #     Input(id('tabs_node'), 'active_tab'),
@@ -665,40 +681,6 @@ def cytoscape_triggers(n_clicks_load, n_clicks_merge, pathname, n_clicks_remove_
 
 #     return button1, button2, button3, button4 
 
-
-# View in Tabular Format
-# @app.callback(
-#     Output(id('modal'), 'is_open'),
-#     Output(id('modal_title'), 'children'),
-#     Output(id('modal_body'), 'children'),
-#     Output(id('modal_footer'), 'children'),
-#     Input(id('button_tabular'), 'n_clicks'),
-#     State(id('cytoscape'), 'selectedNodeData')
-# )
-# def button_tabular(n_clicks, selectedNodeData):
-#     if n_clicks is None: return no_update
-#     if selectedNodeData is None: return no_update
-#     if len(selectedNodeData) == 0: return no_update
-
-#     # Retrieve Dataset Data
-#     if all(node['type'] != 'action' for node in selectedNodeData):
-#         if len(selectedNodeData) == 1:
-#             df = get_dataset_data(selectedNodeData[-1]['id'])
-#             out = df.to_dict('records')
-#         elif len(selectedNodeData) > 1:
-#             base = []
-#             for node in selectedNodeData:
-#                 base = json_merge(base, get_dataset_data(node['id']).to_dict('records'), 'overwrite')
-#             df = json_normalize(base)
-#             out = base
-
-#         modal_title = ""
-#         modal_footer = ''
-#         modal_body = html.Div(generate_datatable(id('inspect_modal_datatable'), out, df.columns, height='800px'))  
-#         return True, modal_title, modal_body, modal_footer
-
-#     else:
-#         return no_update
 
 # Toggle button Tabular
 @app.callback(
@@ -730,6 +712,7 @@ def button_chart(n_clicks, selectedNodeData):
     Output(id('header_div'), 'children'),
     Output(id('param_div'), 'children'),
     Output(id('body_div'), 'children'),
+    Input(id('cytoscape'), 'tapNodeData'),
     Input(id('button_add_header'), 'n_clicks'),
     Input(id('button_remove_header'), 'n_clicks'),
     Input(id('button_add_param'), 'n_clicks'),
@@ -740,10 +723,21 @@ def button_chart(n_clicks, selectedNodeData):
     State(id('param_div'), 'children'),
     State(id('body_div'), 'children'),
 )
-def button_add_header(_, _2, _3, _4, _5, _6, header_div, param_div, body_div):
+def load_restapi_options(tapNodeData, _, _2, _3, _4, _5, _6, header_div, param_div, body_div):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     if triggered == '' or triggered == None: return no_update
-
+    
+    if triggered == id('cytoscape') and tapNodeData['type'] != 'action':
+        header_div, param_div, body_div = [], [], []
+        dataset = get_document('dataset', tapNodeData['id'])
+        if dataset['type'] == 'raw_restapi':
+            for k, v in dataset['details']['header'].items():
+                header_div += generate_restapi_options(id, 'header', len(header_div), k, v)
+            for k, v in dataset['details']['param'].items():
+                param_div += generate_restapi_options(id, 'param', len(param_div), k, v)
+            for k, v in dataset['details']['body'].items():
+                body_div += generate_restapi_options(id, 'body', len(body_div), k, v)
+    
     # Add
     if 'add' in triggered:
         if triggered == id('button_add_header'): header_div += generate_restapi_options(id, 'header', len(header_div))
@@ -755,192 +749,90 @@ def button_add_header(_, _2, _3, _4, _5, _6, header_div, param_div, body_div):
         if triggered == id('button_remove_header'): header_div = header_div[:-1]
         elif triggered == id('button_remove_param'): param_div = param_div[:-1]
         elif triggered == id('button_remove_body'): body_div = body_div[:-1]
-    pprint(header_div)
+
     # Remove n_clicks
-    for i in range(len(header_div)):
-        header_div[i]['props']['children'][2]['props']['n_clicks'] = None
-    for i in range(len(param_div)):
-        param_div[i]['props']['children'][2]['props']['n_clicks'] = None
-    for i in range(len(body_div)):
-        body_div[i]['props']['children'][2]['props']['n_clicks'] = None
+    try:
+        for i in range(len(header_div)):
+            header_div[i]['props']['children'][0]['props']['children'][2]['props']['n_clicks'] = None
+        for i in range(len(param_div)):
+            param_div[i]['props']['children'][0]['props']['children'][2]['props']['n_clicks'] = None
+        for i in range(len(body_div)):
+            body_div[i]['props']['children'][0]['props']['children'][2]['props']['n_clicks'] = None
+
+    except Exception as e:
+        print('Exception: ', e)
 
     return header_div, param_div, body_div
 
 
 
+for option_type in ['header', 'param', 'body']:
+    # Open Modal
+    @app.callback(
+        Output({'type':id('{}_modal'.format(option_type)), 'index': MATCH}, 'is_open'),
+        Input({'type':id('button_{}_value'.format(option_type)), 'index': MATCH}, 'n_clicks')
+    )
+    def button_open_modal(n_clicks):
+        if n_clicks is None or n_clicks == 0: return no_update
+        return True
 
+    # Populate Existing Data Source dropdown
+    @app.callback(
+        Output({'type': id('{}_datasource_list'.format(option_type)), 'index': MATCH}, 'options'),
+        Output({'type': id('{}_datasource_list'.format(option_type)), 'index': MATCH}, 'value'),
+        Input({'type': id('button_{}_value'.format(option_type)), 'index': MATCH}, 'n_clicks'),
+        State(id('cytoscape'), 'selectedNodeData'),
+    )
+    def populate_datasource_dropdown(n_clicks, selectedNodeData):
+        project = get_document('project', get_session('project_id'))
+        project_name_list = [{'label': get_document('dataset', dataset_id)['name'], 'value': dataset_id} for dataset_id in project['dataset_list'] if get_document('dataset', dataset_id)['type'].startswith('raw')]
+        return project_name_list, ''
 
+    # Populate Datatable
+    @app.callback(
+        Output({'type': id('{}_value_datatable'.format(option_type)), 'index': MATCH}, 'data'),
+        Output({'type': id('{}_value_datatable'.format(option_type)), 'index': MATCH}, 'columns'),
+        Input({'type': id('{}_datasource_list').format(option_type), 'index': MATCH}, 'value'),
+    )
+    def populate_datatable(dataset_id):
+        if dataset_id == '' or dataset_id is None: return no_update
+        df = get_dataset_data(dataset_id)
+        columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
+        return df.to_dict('records'), columns
 
+    # Get Selected Inputs from datatable into input
+    @app.callback(
+        Output({'type':id('{}_value'.format(option_type)), 'index': MATCH}, 'value'),
+        Output({'type':id('{}_value'.format(option_type)), 'index': MATCH}, 'valid'),
+        Output({'type':id('{}_value_position'.format(option_type)), 'index': MATCH}, 'value'),
+        Input({'type':id('{}_value_datatable'.format(option_type)), 'index': MATCH}, 'selected_cells'),
+        Input({'type':id('{}_value'.format(option_type)), 'index': MATCH}, 'value'),
+        State({'type':id('{}_value_datatable'.format(option_type)), 'index': MATCH}, 'data'),
+        State({'type': id('{}_datasource_list'.format(option_type)), 'index': MATCH}, 'value'),
+    )
+    def select_input(selected_cells, value, data, dataset_id):
+        if callback_context.triggered[0]['prop_id'] == '.': return no_update
+        if selected_cells is None: return no_update
+        if len(selected_cells) <= 0: return no_update
+        triggered = json.loads(callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0])
+        out, valid, cell_position_list = no_update, None, no_update
 
+        if 'datatable' in triggered['type']:
+            out = ''
+            if selected_cells is not None:
+                df = json_normalize(data)
+                for cell in selected_cells:
+                    out = out + str(df.iloc[cell['row'], cell['column']]) + ','
+                out = out[:-1]
+                valid = True
+                cell_position_list = [{'row': cell['row'], 'col': cell['column'], 'id': dataset_id} for cell in selected_cells]
+            else:
+                valid = None
 
-# # Open Modal
-# @app.callback(
-#     Output({'type':id('header_modal'), 'index': MATCH}, 'is_open'),
-#     Output({'type':id('header_value_title'), 'index': MATCH}, 'children'),
-#     Output({'type':id('header_value_datatable'), 'index': MATCH}, 'data'),
-#     Output({'type':id('header_value_datatable'), 'index': MATCH}, 'columns'),
-#     Input({'type':id('button_header_value'), 'index': MATCH}, 'n_clicks'),
-#     State(id('cytoscape'), 'selectedNodeData'),
-# )
-# def button_open_modal(n_clicks, selectedNodeData):
-#     num_selected = len(selectedNodeData)
-#     if callback_context.triggered[0]['value'] is None: return no_update
-#     if num_selected != 1: return no_update
-
-#     df = get_dataset_data(selectedNodeData[0]['id'])
-#     columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
-#     return True, selectedNodeData[0]['name'], df.to_dict('records'), columns
-
-# @app.callback(
-#     Output({'type':id('param_modal'), 'index': MATCH}, 'is_open'),
-#     Output({'type':id('param_value_title'), 'index': MATCH}, 'children'),
-#     Output({'type':id('param_value_datatable'), 'index': MATCH}, 'data'),
-#     Output({'type':id('param_value_datatable'), 'index': MATCH}, 'columns'),
-#     Input({'type':id('button_param_value'), 'index': MATCH}, 'n_clicks'),
-#     State(id('cytoscape'), 'selectedNodeData'),
-# )
-# def button_open_modal(n_clicks, selectedNodeData):
-#     num_selected = len(selectedNodeData)
-#     if callback_context.triggered[0]['value'] is None: return no_update
-#     if num_selected != 1: return no_update
-    
-#     df = get_dataset_data(selectedNodeData[0]['id'])
-#     columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
-#     return True, selectedNodeData[0]['name'], df.to_dict('records'), columns
-
-# @app.callback(
-#     Output({'type':id('body_modal'), 'index': MATCH}, 'is_open'),
-#     Output({'type':id('body_value_title'), 'index': MATCH}, 'children'),
-#     Output({'type':id('body_value_datatable'), 'index': MATCH}, 'data'),
-#     Output({'type':id('body_value_datatable'), 'index': MATCH}, 'columns'),
-#     Input({'type':id('button_body_value'), 'index': MATCH}, 'n_clicks'),
-#     State(id('cytoscape'), 'selectedNodeData'),
-# )
-# def button_open_modal(n_clicks, selectedNodeData):
-#     num_selected = len(selectedNodeData)
-#     if callback_context.triggered[0]['value'] is None: return no_update
-#     if num_selected != 1: return no_update
-    
-#     df = get_dataset_data(selectedNodeData[0]['id'])
-#     columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
-#     return True, selectedNodeData[0]['name'], df.to_dict('records'), columns
-
-
-
-# # Get Selected Inputs in Modal into Header, Paramter, Body values
-# @app.callback(
-#     Output({'type':id('header_value'), 'index': MATCH}, 'value'),
-#     Output({'type':id('header_value'), 'index': MATCH}, 'valid'),
-#     Output({'type':id('header_value_position'), 'index': MATCH}, 'value'),
-#     # Output({'type':id('header_value_datatable'), 'index': MATCH}, 'selected_cells'),
-#     Input({'type':id('header_value_datatable'), 'index': MATCH}, 'selected_cells'),
-#     Input({'type':id('header_value'), 'index': MATCH}, 'value'),
-#     State({'type':id('header_value_datatable'), 'index': MATCH}, 'data'),
-#     State(id('cytoscape'), 'selectedNodeData'),
-# )
-# def button_select_input(selected_cells, header_value, data, selectedNodeData):
-#     if callback_context.triggered[0]['prop_id'] == '.': return no_update
-#     if selected_cells is None: return no_update
-#     if len(selected_cells) <= 0: return no_update
-#     triggered = json.loads(callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0])
-#     out, valid, position = no_update, None, no_update
-
-#     if triggered['type'] == id('header_value'):
-#         position = ''
-
-#     elif triggered['type'] == id('header_value_datatable'):
-#         out = ''
-#         if selected_cells is not None:
-#             df = json_normalize(data)
-#             for cell in selected_cells:
-#                 out = out + str(df.iloc[cell['row'], cell['column']]) + ','
-#             out = out[:-1]
-#             valid = True
-#             position = [{'row': cell['row'], 'col': cell['column'], 'id': selectedNodeData[0]['id']} for cell in selected_cells]
-#         else:
-#             valid = None
-            
-#     return out, valid, position
-
-# @app.callback(
-#     Output({'type':id('param_value'), 'index': MATCH}, 'value'),
-#     Output({'type':id('param_value'), 'index': MATCH}, 'valid'),
-#     Output({'type':id('param_value_position'), 'index': MATCH}, 'value'),
-#     Input({'type':id('param_value_datatable'), 'index': MATCH}, 'selected_cells'),
-#     Input({'type':id('param_value'), 'index': MATCH}, 'value'),
-#     State({'type':id('param_value_datatable'), 'index': MATCH}, 'data'),
-#     State(id('cytoscape'), 'selectedNodeData'),
-# )
-# def button_select_input(selected_cells, header_value, data, selectedNodeData):
-#     if callback_context.triggered[0]['prop_id'] == '.': return no_update
-#     if selected_cells is None: return no_update
-#     if len(selected_cells) <= 0: return no_update
-#     triggered = json.loads(callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0])
-#     out, valid, position = no_update, None, no_update
-
-#     if triggered['type'] == id('param_value'):
-#         position = ''
-
-#     elif triggered['type'] == id('param_value_datatable'):
-#         out = ''
-#         if selected_cells is not None:
-#             df = json_normalize(data)
-#             for cell in selected_cells:
-#                 out = out + str(df.iloc[cell['row'], cell['column']]) + ','
-#             out = out[:-1]
-#             valid = True
-#             position = [{'row': cell['row'], 'col': cell['column'], 'id': selectedNodeData[0]['id']} for cell in selected_cells]
-#         else:
-#             valid = None
-            
-#     return out, valid, position
-
-# @app.callback(
-#     Output({'type':id('body_value'), 'index': MATCH}, 'value'),
-#     Output({'type':id('body_value'), 'index': MATCH}, 'valid'),
-#     Output({'type':id('body_value_position'), 'index': MATCH}, 'value'),
-#     Input({'type':id('body_value_datatable'), 'index': MATCH}, 'selected_cells'),
-#     Input({'type':id('body_value'), 'index': MATCH}, 'value'),
-#     State({'type':id('body_value_datatable'), 'index': MATCH}, 'data'),
-#     State(id('cytoscape'), 'selectedNodeData'),
-# )
-# def button_select_input(selected_cells, header_value, data, selectedNodeData):
-#     if callback_context.triggered[0]['prop_id'] == '.': return no_update
-#     if selected_cells is None: return no_update
-#     if len(selected_cells) <= 0: return no_update
-#     triggered = json.loads(callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0])
-#     out, valid, position = no_update, None, no_update
-
-#     if triggered['type'] == id('body_value'):
-#         position = ''
-
-#     elif triggered['type'] == id('body_value_datatable'):
-#         out = ''
-#         if selected_cells is not None:
-#             df = json_normalize(data)
-#             for cell in selected_cells:
-#                 out = out + str(df.iloc[cell['row'], cell['column']]) + ','
-#             out = out[:-1]
-#             valid = True
-#             position = [{'row': cell['row'], 'col': cell['column'], 'id': selectedNodeData[0]['id']} for cell in selected_cells]
-#         else:
-#             valid = None
-            
-#     return out, valid, position
-
-
-
-# # Button Preview/Add
-# @app.callback(
-#     Output({'type': id('button_preview'), 'index': 0}, 'n_clicks'),
-#     Input({'type': id('browse_drag_drop'), 'index': ALL}, 'isCompleted'),
-#     State({'type': id('button_preview'), 'index': 0}, 'n_clicks'),
-# )
-# def drag_drop(isCompleted, n_clicks):
-#     if len(isCompleted) == 0: return no_update
-#     if isCompleted[0] is True:
-#         # if n_clicks is None: n_clicks = 0
-#         return 1
+        elif 'value' in triggered['type']:
+            cell_position_list = ''
+                
+        return out, valid, cell_position_list
 
 
 
@@ -959,11 +851,11 @@ def generate_dropdown_actions(selected_nodes):
     # Generate Options
     options = []
     if len(selected_nodes) == 0:
-        options = [dbc.DropdownMenuItem('Add Data Source', href='#', id={'type': id('button_add_data_source'), 'index': 0})]
+        options = [dbc.DropdownMenuItem('Add Data Source', href='#', id={'type': id('button_add_data_source'), 'index': 0}, style={'background-color':'#90ee90', 'padding':'10px'})]
     if len(selected_nodes) == 1:
-        options = [dbc.DropdownMenuItem(nav['label'], href=nav['value']) for nav in single]
+        options = [dbc.DropdownMenuItem(nav['label'], href=nav['value'], style={'background-color':'yellow', 'padding':'10px'}) for nav in single]
         options.append(dbc.DropdownMenuItem(divider=True))
-        options.append(dbc.DropdownMenuItem('Remove', href='#', id={'type': id('button_remove'), 'index': 0}, style={'background-color':'red', 'padding':'1px 0px 1px 0px', 'text-align':'center'}))
+        options.append(dbc.DropdownMenuItem('Remove', href='#', id={'type': id('button_remove'), 'index': 0}, style={'background-color':'#FF7F7F', 'padding':'10px', 'text-align':'center'}))
     elif len(selected_nodes) > 1 and all(node['type'] != 'action' for node in selected_nodes):
         options = [dbc.DropdownMenuItem(nav['label'], href=nav['value']) for nav in multiple]
 

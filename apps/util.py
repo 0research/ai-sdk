@@ -402,9 +402,9 @@ def get_upload_component(component_id, height='100%'):
         default_style={'height':height},
     )
 
-def generate_manualupload_details(id):
+def generate_manuafilelupload_details(id):
     return [
-        html.Div(get_upload_component(component_id={'type': id('browse_drag_drop'), 'index': 0}), style={'width':'100%', 'margin-bottom':'5px'}),
+        html.Div(get_upload_component(component_id=id('browse_drag_drop')), style={'width':'100%', 'margin-bottom':'5px'}),
         html.P('File Formats Accepted: ', style={'text-align':'center', 'font-size':'11px', 'margin': '0px'}),
         html.Ol([
             html.Li('CSV'),
@@ -421,55 +421,61 @@ def generate_restapi_details(id, extra=True):
         {'label': 'POST', 'value': 'post'},
     ]    
     return [
+        # Inputs
         dbc.InputGroup([
             dbc.InputGroupText("Method", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-            dbc.Select(options=options_restapi_method, id={'type': id('dropdown_method'), 'index': 0}, value=options_restapi_method[0]['value'], style={'text-align':'center'}, persistence=True, persistence_type='session'),
+            dbc.Select(options=options_restapi_method, id=id('dropdown_method'), value=options_restapi_method[0]['value'], style={'text-align':'center'}, persistence=True, persistence_type='session'),
         ]),
         dbc.InputGroup([
             dbc.InputGroupText("URL", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-            dbc.Input(id={'type': id('url'), 'index': 0}, placeholder='Enter URL', style={'text-align':'center'}, persistence=True, persistence_type='session'), 
+            dbc.Input(id=id('url'), placeholder='Enter URL', style={'text-align':'center'}, persistence=True, persistence_type='session'), 
         ]),
-
         # Header
         dbc.InputGroup([
             dbc.InputGroupText("Header", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'text-align':'center'}),
             dbc.Button(' - ', id=id('button_remove_header'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
             dbc.Button(' + ', id=id('button_add_header'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
         ]), 
-        html.Div(generate_restapi_options(id, 'header', 0), id=id('header_div')),
-
+        html.Div([], id=id('header_div')),
         # Param
         dbc.InputGroup([
             dbc.InputGroupText("Parameter", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
             dbc.Button(' - ', id=id('button_remove_param'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
             dbc.Button(' + ', id=id('button_add_param'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
         ]),
-        html.Div(generate_restapi_options(id, 'param', 0), id=id('param_div')),
+        html.Div([], id=id('param_div')),
         # Body
         dbc.InputGroup([
             dbc.InputGroupText("Body", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
             dbc.Button(' - ', id=id('button_remove_body'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
             dbc.Button(' + ', id=id('button_add_body'), color='light', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
         ]),
-        html.Div(generate_restapi_options(id, 'body', 0), id=id('body_div')),
+        html.Div([], id=id('body_div')),
     ]
     
 
-def generate_restapi_options(id, option_type, index):
+def generate_restapi_options(id, option_type, index, key_val='', val_val=''):
     return [
-        # Inputs
-        dbc.InputGroup([
-            dbc.Input(id={'type': id('{}_key'.format(option_type)), 'index': 0}, placeholder='Enter Key', list=id('header_autocomplete'), style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
-            dbc.Input(id={'type': id('{}_value'.format(option_type)), 'index': 0}, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'),
-            dbc.Button('Use Existing Dataset', id={'type': id('button_{}_value'.format(option_type)), 'index': 0}, color='info', outline=True, style={'font-size':'10px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}),
-            dbc.Input(id={'type': id('{}_value_position'.format(option_type)), 'index': 0}, style={'display':'none'}, persistence=True, persistence_type='session'),
-        ], style={'text-align':'center'}),
+        html.Div([
+            # Inputs
+            dbc.InputGroup([
+                dbc.Input(id={'type': id('{}_key'.format(option_type)), 'index': index}, value=key_val, placeholder='Enter Key', list=id('header_autocomplete'), style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
+                dbc.Input(id={'type': id('{}_value'.format(option_type)), 'index': index}, value=val_val, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'),
+                dbc.Button('Use Existing Dataset', id={'type': id('button_{}_value'.format(option_type)), 'index': index}, color='info', outline=True, n_clicks=None, style={'font-size':'10px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}),
+                dbc.Input(id={'type': id('{}_value_position'.format(option_type)), 'index': index}, style={'display':'none'}, persistence=True, persistence_type='session'),
+            ], style={'text-align':'center'}),
 
-        # Hidden Modal
-        dbc.Modal([
-            dbc.ModalHeader(dbc.ModalTitle(id={'type': id('{}_value_title'.format(option_type)), 'index': index}), style={'text-align':'center'}),
-            dbc.ModalBody(generate_datatable({'type': id('{}_value_datatable'.format(option_type)), 'index': index}, height='800px')),
-        ], id={'type': id('{}_modal'.format(option_type)), 'index': index})
+            # Hidden Modal
+            dbc.Modal([
+                dbc.ModalHeader(
+                    dbc.InputGroup([
+                        dbc.InputGroupText("Select a Data Source", style={'width':'30%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                        dbc.Select(id={'type': id('{}_datasource_list'.format(option_type)), 'index': index}, options=[], value='', placeholder='Select Data Source', style={'text-align':'center', 'color': 'black'})    
+                    ]),
+                ),
+                dbc.ModalBody(generate_datatable({'type': id('{}_value_datatable'.format(option_type)), 'index': index}, height='800px')),
+            ], id={'type': id('{}_modal'.format(option_type)), 'index': index})
+        ])
     ]
 
 
@@ -539,6 +545,6 @@ def process_restapi(method, url, header_key_list, header_value_list, param_key_l
         df = json_normalize(result)
     
     df = df.fillna('')
-    details = details = {'method': method, 'url': url, 'header': header, 'param':param}
+    details = details = {'method': method, 'url': url, 'header': header, 'param':param, 'body':body}
 
     return df, details

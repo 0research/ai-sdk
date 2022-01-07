@@ -203,6 +203,9 @@ def new_project(project_id, project_type):
 #     client.collections.create(generate_schema_auto(dataset_id))
 #     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
+def get_all_collections():
+    return [c['name'] for c in client.collections.retrieve()]
+
 def new_data_source():
     dataset_id = str(uuid.uuid1())
     dataset = Dataset(
@@ -223,31 +226,37 @@ def new_data_source():
 
 def save_dataset_config(dataset_id, df, name, description, documentation, type, details):
     # Dataset
-    dataset = Dataset(
-            id=dataset_id,
-            name=name,
-            description=description, 
-            documentation=documentation,
-            type=type,
-            details=details, 
-            features={str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
-            expectation = {col:None for col in df.columns}, 
-            index = [], 
-            target = [],
-            graphs = [],
-    )
+    if df is None:
+        dataset = get_document('dataset', dataset_id)
+        dataset['name'] = name
+        dataset['description'] = description
+        dataset['documentation'] = documentation
+        dataset['type'] = type
+    else:
+        dataset = Dataset(
+                id=dataset_id,
+                name=name,
+                description=description, 
+                documentation=documentation,
+                type=type,
+                details=details, 
+                features={str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
+                expectation = {col:None for col in df.columns}, 
+                index = [], 
+                target = [],
+                graphs = [],
+        )
     
     # Upload to Typesense
     upsert('dataset', dataset)
-    try:
-        client.collections.create(generate_schema_auto(dataset_id))
-    except:
-        client.collections[dataset_id].delete()
-        client.collections.create(generate_schema_auto(dataset_id))
-    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-    r = client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
-    pprint(r)
-    pprint(dataset)
+    if df is not None:
+        try:
+            client.collections.create(generate_schema_auto(dataset_id))
+        except:
+            client.collections[dataset_id].delete()
+            client.collections.create(generate_schema_auto(dataset_id))
+        jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+        r = client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
     
 
 
