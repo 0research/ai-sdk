@@ -212,11 +212,12 @@ layout = html.Div([
     Output(id('select_dataset_type'), 'value'),
     Output(id('dropdown_method'), 'value'),
     Output(id('url'), 'value'),
+    Output(id('select_dataset_type'), 'disabled'),
     Input(id('cytoscape'), 'tapNodeData')
 )
 def populate_dataset_config(tapNodeData):
     if tapNodeData is None: return no_update
-    description, documentation, method, url = '', '', 'get', ''
+    description, documentation, method, url, disabled = '', '', 'get', '', False
     
     if tapNodeData['id'] in get_all_collections():
         dataset = get_document('dataset', tapNodeData['id'])
@@ -228,11 +229,14 @@ def populate_dataset_config(tapNodeData):
             method = dataset['details']['method']
             url = dataset['details']['url']
             dataset_type = dataset['type']
+        elif dataset['type'] == 'processed':
+            dataset_type = ''
+            disabled = True
         else:
             dataset_type = dataset['type']
     else:
         dataset_type = 'raw_fileupload'
-    return description, documentation, dataset_type, method, url
+    return description, documentation, dataset_type, method, url, disabled
 
 # Load Dataset Config Options
 @app.callback(
@@ -246,7 +250,6 @@ def load_dataset_options(dataset_type, options_restapi):
     style1, style2 = {'display':' none'}, {'display':' none'}
     if dataset_type == 'raw_fileupload':  style1 = {'display':' block'}
     elif dataset_type == 'raw_restapi': style2 = {'display':' block'}
-    else: style1 = {'display':' block'}
 
     return style1, style2
 
@@ -329,13 +332,15 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
         source_id = None
         dataset_name = node_name[0]
 
-        # Upload
+        # Upload Files
         if dataset_type == 'raw_fileupload':
             if fileNames is not None and isCompleted is True:
                 df, details = process_fileupload(upload_id, fileNames[0])
                 save_dataset_config(dataset_id, df, dataset_name, description, documentation, dataset_type, details)
             else:
                 save_dataset_config(dataset_id, None, dataset_name, description, documentation, dataset_type, None)
+        
+        # RestAPI
         elif dataset_type == 'raw_restapi':
             df, details = process_restapi(method, url, header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list)
             save_dataset_config(dataset_id, df, dataset_name, description, documentation, dataset_type, details)
@@ -355,6 +360,10 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
                     if body is not None and body != '': 
                         source_id = body[0]['id']
                         add_edge(project_id, source_id, dataset_id)
+
+        # Save processed datasets
+        else:
+            save_dataset_config(dataset_id, None, dataset_name, description, documentation, dataset_type, None)
 
         do_cytoscape_reload = True
 
@@ -379,6 +388,7 @@ def merge_dataset_data(node_list, merge_type='objectMerge', idRef=None):
 
         elif merge_type == 'arrayMergeByIndex':
             schema = {"mergeStrategy": merge_type}
+            print('idRef:', idRef)
             for node in node_list[1:]:
                 new_data = get_dataset_data(node['id']).to_dict('records')
                 data = jsonmerge.merge(data, new_data, schema)
@@ -393,7 +403,7 @@ def merge_dataset_data(node_list, merge_type='objectMerge', idRef=None):
             data = "TBD"
 
     except Exception as e:
-        print(e)
+        print(e, idRef)
         data = 'Merge Error'
     
     return data
@@ -564,8 +574,10 @@ def callback(style):
 @app.callback(
     Output({'type': id('col_button_remove_feature'), 'index': MATCH}, 'outline'),
     Input({'type': id('col_button_remove_feature'), 'index': MATCH}, 'n_clicks'),
+    prevent_initial_call=True,
 )
 def button_remove_feature(n_clicks):
+    print(callback_context.triggered)
     if n_clicks is None: return no_update
     if n_clicks % 2 == 0: return True
     else: return False
@@ -638,7 +650,7 @@ def cytoscape_triggers(n_clicks_load, n_clicks_merge, pathname, n_clicks_remove_
             # Merge Datasets Action
             if num_selected > 1:
                 dataset_data = merge_dataset_data(selectedNodeData, merge_type, idRef=merge_idRef)
-                dataset = merge_dataset(selectedNodeData, merge_type)
+                dataset = merge_dataset(selectedNodeData, 'objectMerge')
                 source_id_list = [node['id'] for node in selectedNodeData]
                 changes = {'merge_type': merge_type}
                 merge(project_id, source_id_list, '', dataset_data, dataset, changes)
@@ -822,10 +834,10 @@ for option_type in ['header', 'param', 'body']:
             if selected_cells is not None:
                 df = json_normalize(data)
                 for cell in selected_cells:
-                    out = out + str(df.iloc[cell['row'], cell['column']]) + ','
+                    out = out + str(df.loc[cell['row'], cell['column_id']]) + ','
                 out = out[:-1]
                 valid = True
-                cell_position_list = [{'row': cell['row'], 'col': cell['column'], 'id': dataset_id} for cell in selected_cells]
+                cell_position_list = [{'row': cell['row'], 'col': cell['column_id'], 'id': dataset_id} for cell in selected_cells]
             else:
                 valid = None
 
