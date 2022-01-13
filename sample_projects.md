@@ -15,7 +15,7 @@ The list below are several use cases that may demonstrate potential use cases of
 
 
 ### 3) Monitor Network 'health' metrics
-* **Goal:** Pull and combine data from multiple sources to monitor activity on a network. (Transactions, Staking, TVL, Block Size, ...)
+* **Goal:** Aggregate multiple sources of data to monitor activity on a network. (Transactions, Staking, TVL, Block Size, ...)
 * **Target Users:** Crypto Investors
 
 

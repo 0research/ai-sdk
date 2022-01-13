@@ -115,13 +115,13 @@ sidebar = html.Div([
         sidebar_0 +
         [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
         sidebar_1 +
-        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
-        sidebar_2 +
-        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
-        sidebar_3 +
+        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})]
+        # sidebar_2 +
         # [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
-        sidebar_4 +
-        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] 
+        # sidebar_3 +
+        # [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
+        # sidebar_4 +
+        # [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] 
         
         # dcc.Link(' Page 3 | ', href='/apps/page3'),
         # dcc.Link('Page 6 | ', href='/apps/page6'),

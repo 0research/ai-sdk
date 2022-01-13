@@ -1,7 +1,7 @@
 from typing_extensions import ParamSpecArgs
 from dash import dcc
 from dash import html
-from dash.dependencies import Input, Output, State, ALL, MATCH
+from dash.dependencies import Input, Output, State, ALL, MATCH, ClientsideFunction
 import dash_bootstrap_components as dbc
 import plotly.express as px
 from app import app
@@ -34,7 +34,6 @@ app.css.config.serve_locally = True
 
 id = id_factory('data_lineage')
 du.configure_upload(app, UPLOAD_FOLDER_ROOT)
-    
 
 # Creating styles
 stylesheet = [
@@ -92,15 +91,20 @@ layout = html.Div([
     html.Div([
         dcc.Store(id=id('do_cytoscape_reload'), storage_type='session', data=False),
         dcc.Store(id=id('dataset_data'), storage_type='memory'),
+        dcc.Store(id=id('cytoscape_position'), storage_type='session'),
+        dcc.Interval(id=id('interval_cytoscape'), interval=1*1000, n_intervals=0),
 
         # Left Panel
         dbc.Row([
             dbc.Col([
                 html.H5('Data Lineage (Data Flow Experiments)', style={'text-align':'center', 'display':'inline-block', 'margin':'0px 0px 0px 40px'}),
+                
                 html.Div([
-                    html.Button('Load', id=id('button_load'), className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
+                    dbc.Button('Save Position', id=id('button_save_cytoscape_position'), color='success', n_clicks=0, className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
+                    # dbc.Button('Load', id=id('button_reset'), color='dark', className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
                     # html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'1px'}), 
-                    dbc.DropdownMenu(label="Action", children=[], id=id('dropdown_action'), size='lg', color='warning', style={'display':'inline-block'}),
+                    dbc.DropdownMenu(label="Action", children=[dbc.Spinner(size="sm"), " Loading..."], id=id('dropdown_action'), size='lg', color='warning', style={'display':'inline-block', 'margin':'1px'}),
+                    dbc.Spinner(html.Div(id="loading-output"), color="danger"),
                 ], style={'float':'right', 'display':'inline-block'}),
 
                 cyto.Cytoscape(id=id('cytoscape'),
@@ -108,11 +112,12 @@ layout = html.Div([
                                 maxZoom=2,
                                 elements=[], 
                                 selectedNodeData=[],
-                                layout={'name': 'breadthfirst',
-                                        'fit': True,
-                                        'directed': True,
-                                        'padding': 10,
-                                        },
+                                layout={
+                                    'name': 'preset',
+                                    'fit': True,
+                                    'directed': True,
+                                    'padding': 10,
+                                },
                                 style={'height': '800px','width': '100%'},
                                 stylesheet=stylesheet)
             ], width=6),
@@ -201,8 +206,41 @@ layout = html.Div([
             dbc.ModalFooter('', id=id('modal_footer')),
         ], id=id('modal'), size='xl'),
 
+
     ], style={'width':'100%'}),
 ])
+
+
+# @app.callback(Output("loading-output", "children"), Input("loading-input-1", "value"))
+# def input_triggers_nested(value):
+#     import time
+#     time.sleep(1)
+#     return value
+
+
+# Store Cytoscape Position
+app.clientside_callback(
+    ClientsideFunction(namespace="clientside", function_name="get_cytoscape_position"),
+    Output(id("cytoscape_position"), "data"),
+    Input(id("interval_cytoscape"), "n_intervals")
+)
+
+@app.callback(
+    Output("modal_confirm", "children"), 
+    Input(id("cytoscape_position"), "data"),
+)
+def save_cytoscape_position(position_list):
+    if len(position_list) == 0: return no_update
+    project_id = get_session('project_id')
+    project = get_document('project', project_id)
+    project['dataset_list'] = [node for node in position_list if node['type'] != 'action']
+    project['action_list'] = [node for node in position_list if node['type'] == 'action']
+
+    upsert('project', project)
+    return no_update
+
+
+
 
 
 # Load Dataset Config 
@@ -388,7 +426,6 @@ def merge_dataset_data(node_list, merge_type='objectMerge', idRef=None):
 
         elif merge_type == 'arrayMergeByIndex':
             schema = {"mergeStrategy": merge_type}
-            print('idRef:', idRef)
             for node in node_list[1:]:
                 new_data = get_dataset_data(node['id']).to_dict('records')
                 data = jsonmerge.merge(data, new_data, schema)
@@ -451,6 +488,7 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, selectedNodeDa
     if num_selected == 0:
         name = []
     elif num_selected == 1:
+        pprint(selectedNodeData)
         name = [dbc.Input(value=selectedNodeData[0]['name'], id={'type':id('node_name'), 'index': selectedNodeData[-1]['id']}, disabled=True, style={'font-size':'14px', 'text-align':'center'})]
         
     elif num_selected > 1:
@@ -526,7 +564,7 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, selectedNodeDa
     Output(id('merge_idRef'), 'options'),
     Output(id('merge_idRef'), 'value'),
     Input(id('merge_type'), 'value'),
-    State(id('dataset_data'), 'data'),
+    State(id('dataset_data'), 'data'), # TODO change to selectedNodeData
 )
 def merge_type_triggers(merge_type, dataset_data):
     if merge_type is None: return no_update
@@ -577,7 +615,7 @@ def callback(style):
     prevent_initial_call=True,
 )
 def button_remove_feature(n_clicks):
-    print(callback_context.triggered)
+    # print(callback_context.triggered)
     if n_clicks is None: return no_update
     if n_clicks % 2 == 0: return True
     else: return False
@@ -587,7 +625,7 @@ def button_remove_feature(n_clicks):
 @app.callback(
     Output(id('cytoscape'), 'elements'),
     Output(id('cytoscape'), 'layout'),
-    Input(id('button_load'), 'n_clicks'),
+    # Input(id('button_reset'), 'n_clicks'),
     Input(id('button_save'), 'n_clicks'),
     Input('url', 'pathname'),
     Input({'type': id('button_remove'), 'index': ALL}, 'n_clicks'),
@@ -603,7 +641,7 @@ def button_remove_feature(n_clicks):
     State({'type':id('col_button_remove_feature'), 'index': ALL}, 'n_clicks'),
     State(id('right_content'), 'style'),
 )
-def cytoscape_triggers(n_clicks_load, n_clicks_merge, pathname, n_clicks_remove_list, do_cytoscape_reload, merge_type, merge_idRef,
+def cytoscape_triggers(n_clicks_merge, pathname, n_clicks_remove_list, do_cytoscape_reload, merge_type, merge_idRef,
                         n_clicks_add_data_source_list,
                         selectedNodeData, active_tab, feature_list, new_feature_list, datatype_list, button_remove_feature_list,
                         right_content_style):
@@ -621,11 +659,11 @@ def cytoscape_triggers(n_clicks_load, n_clicks_merge, pathname, n_clicks_remove_
         triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
         dataset_id = selectedNodeData[0]['id']
 
-        # On Page Load and Reset Button pressed
-        if triggered == '' or triggered == id('button_load'):
-            pass
+        # # Reset Button pressed
+        # if triggered == '' or triggered == id('button_reset'):
+        #     pass
         
-        elif triggered == id('do_cytoscape_reload'):
+        if triggered == id('do_cytoscape_reload'):
             if do_cytoscape_reload == False: return no_update
         
         elif triggered == id('button_save') and right_content_style['display'] != 'none':
@@ -660,12 +698,13 @@ def cytoscape_triggers(n_clicks_load, n_clicks_merge, pathname, n_clicks_remove_
             node_id_list = [node['id'] for node in selectedNodeData]
             remove(project_id, node_id_list)
                 
-
+    
     elements = generate_cytoscape_elements(project_id)
-    layout={'name': 'breadthfirst',
+    layout = {
+        'name': 'preset',
         'fit': True,
-        'roots': [e['data']['id'] for e in elements if e['classes'].startswith('raw')]
     }
+    
     return elements, layout
 
 
@@ -797,7 +836,7 @@ for option_type in ['header', 'param', 'body']:
     )
     def populate_datasource_dropdown(n_clicks, selectedNodeData):
         project = get_document('project', get_session('project_id'))
-        project_name_list = [{'label': get_document('dataset', dataset_id)['name'], 'value': dataset_id} for dataset_id in project['dataset_list'] if get_document('dataset', dataset_id)['type'].startswith('raw')]
+        project_name_list = [{'label': get_document('dataset', dataset_id)['name'], 'value': dataset_id} for dataset_id in [p['id'] for p in project['dataset_list']] if get_document('dataset', dataset_id)['type'].startswith('raw')]
         return project_name_list, ''
 
     # Populate Datatable

@@ -148,12 +148,13 @@ def Action(id, action, description, changes):
 
 
 # Cytoscape Object 
-def cNode(id, name, type, action=None):
+def cNode(id, name, type, action=None, position=None):
     return {
         'data': {'id': id, 'name': name, 'type': type, 'action': action},
+        'position': position,
         'classes': type,
     }
-def cEdge(dataset_id_source, destination_id):
+def cEdge(dataset_id_source, destination_id, position=None):
     return {
         'data': {
                 'id': dataset_id_source + '_' + destination_id,
@@ -161,13 +162,14 @@ def cEdge(dataset_id_source, destination_id):
                 'target': destination_id,
             },
         'selectable': False,
+        'position': position,
         'classes': '',
     }
 
 
 def new_project(project_id, project_type):
-    document = Project(id=project_id, type=project_type, dataset=[], action=[], edge=[], experiment=[])
-    create('project', document)
+    project = Project(id=project_id, type=project_type, dataset=[], action=[], edge=[], experiment=[])
+    create('project', project)
 
 # def upload_dataset(project_id, dataset_id, dataset_data_store, description, documentation, 
 #                     delimiter, remove_space, remove_header):
@@ -263,10 +265,8 @@ def save_dataset_config(dataset_id, df, name, description, documentation, type, 
 
 def add_dataset(project_id, dataset_id):
     project = get_document('project', project_id)
-    # project['dataset_list'].append(dataset_id)
-    # upsert('project', project)
-    if dataset_id not in project['dataset_list']:
-        project['dataset_list'].append(dataset_id)
+    if dataset_id not in [p['id'] for p in project['dataset_list']]:
+        project['dataset_list'].append({'id': dataset_id, 'position': {'x':0, 'y':0}})
         # Upload to Typesense
         upsert('project', project)
         return True
@@ -287,19 +287,19 @@ def remove(project_id, node_id_list):
                 if node_id in edge:
                     project['edge_list'].remove(edge)
                 if node_id == edge.split('_')[0]:
-                    project['dataset_list'].remove(edge.split('_')[1])
+                    project['dataset_list'] = [d for d in project['dataset_list'] if d['id'] != edge.split('_')[1]]
                 if any(edge.startswith(destination_node_id) for destination_node_id in destination_node_id_list):
                     return
 
             
         # Remove Raw Dataset
-        elif node_id in project['dataset_list']:
+        elif node_id in [p['id'] for p in project['dataset_list']]:
             dataset = get_document('dataset', node_id)
             if dataset['type'].startswith('raw'):
                 if any(edge.startswith(node_id) for edge in edge_list):
                     pass
                 else:
-                    project['dataset_list'].remove(node_id)
+                    project['dataset_list'] = [d for d in project['dataset_list'] if d['id'] != node_id]
                     for edge in [edge for edge in edge_list if edge.startswith(node_id)]:
                         project['edge_list'].remove(edge)
                     
@@ -320,8 +320,8 @@ def action(project_id, dataset_id_source, action, description, new_dataset, chan
 
     # Project Document
     project = get_document('project', project_id)
-    project['action_list'].append(action_id)
-    project['dataset_list'].append(dataset_id)
+    project['action_list'].append({'id': action_id, 'position': {'x':0, 'y':0}})
+    project['dataset_list'].append({'id': dataset_id, 'position': {'x':0, 'y':0}})
     project['edge_list'].append(edge1)
     project['edge_list'].append(edge2)
 
@@ -367,8 +367,8 @@ def merge(project_id, dataset_id_source_list, description, dataset_data_store, d
 
     # Project Document
     project = get_document('project', project_id)
-    project['action_list'].append(action_id)
-    project['dataset_list'].append(dataset_id)
+    project['action_list'].append({'id': action_id, 'position': {'x':0, 'y':0}})
+    project['dataset_list'].append({'id': dataset_id, 'position': {'x':0, 'y':0}})
     for dataset_id_source in dataset_id_source_list:
         edge_id = dataset_id_source + '_' + action_id
         project['edge_list'].append(edge_id)
@@ -400,11 +400,25 @@ def merge(project_id, dataset_id_source_list, description, dataset_data_store, d
 def generate_cytoscape_elements(project_id):
     project = get_document('project', project_id)
 
-    action_list = [get_document('action', id) for id in project['action_list']]
-    dataset_list = [get_document('dataset', id) for id in project['dataset_list']]
+    # action_list = [get_document('action', action['id']) for action in project['action_list']]
+    # dataset_list = [get_document('dataset', dataset['id']) for dataset in project['dataset_list']]
 
-    cAction_list = [cNode(action['id'], name='', type='action', action=action['action']) for action in action_list]
-    cDataset_list = ([cNode(dataset['id'], name=dataset['name'], type=dataset['type']) for dataset in dataset_list])
+    # cAction_list = [cNode(action['id'], name='', type='action', action=action['action']) for action in action_list]
+    # cDataset_list = ([cNode(dataset['id'], name=dataset['name'], type=dataset['type']) for dataset in dataset_list])
+    
     cEdge_list = [cEdge(id.split('_')[0], id.split('_')[1]) for id in project['edge_list']]
+
+    cAction_list = []
+    for a in project['action_list']:
+        position = {'x': a['position']['x'], 'y': a['position']['y']}
+        action = get_document('action', a['id'])
+        cAction_list.append(cNode(action['id'], name='', type='action', action=action['action'], position=position))
+    
+    cDataset_list = []
+    for d in project['dataset_list']:
+        position = {'x': d['position']['x'], 'y': d['position']['y']}
+        dataset = get_document('dataset', d['id'])
+        cDataset_list.append(cNode(dataset['id'], name=dataset['name'], type=dataset['type'], position=position))
+        
 
     return cAction_list + cDataset_list + cEdge_list

@@ -40,7 +40,9 @@ app.index_string = '''
         {%app_entry%}
         <footer>
             {%config%}
+            
             {%renderer%}
+            
         </footer>
     </body>
 </html>
