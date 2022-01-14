@@ -196,7 +196,7 @@ def highlight_active_nav(pathname, sidebar):
     return sidebar
 
 
-# Load Projects Options in dropdown
+# Load Datasets Options in dropdown
 @app.callback([Output('dropdown_current_project', 'options')],
                 Input('url', 'pathname'),)
 def load_project_dropdown(pathname):

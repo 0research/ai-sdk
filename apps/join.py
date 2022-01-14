@@ -237,8 +237,8 @@ def add_dataset(n_clicks_list, col_id_list):
 #     dataset_id_mulitple = ast.literal_eval(get_session('dataset_id_multiple'))
 #     dataset_id_1 = ast.literal_eval(get_session('dataset_id_multiple'))[0]
 #     dataset_id_2 = ast.literal_eval(get_session('dataset_id_multiple'))[1]
-#     dataset_1 = get_document('dataset', dataset_id_1)
-#     dataset_2 = get_document('dataset', dataset_id_2)
+#     dataset_1 = get_document('node', dataset_id_1)
+#     dataset_2 = get_document('node', dataset_id_2)
 
 
 #     # merger = Merger(schema)

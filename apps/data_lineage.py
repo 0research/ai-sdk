@@ -56,13 +56,13 @@ stylesheet = [
     },
     # Dataset Nodes
     {
-        'selector': '.raw_fileupload',
+        'selector': '.raw',
         'style': {
 
         }
     },
     {
-        'selector': '.raw_restapi',
+        'selector': '.processed',
         'style': {
 
         }
@@ -77,7 +77,7 @@ stylesheet = [
             # 'background-image': "/assets/static/api.png"
             'background-color': '#FFFF00',
             'shape': 'rectangle',
-            'content': 'data(action)'
+            'content': 'data(action_label)'
         }
     },
     
@@ -100,8 +100,8 @@ layout = html.Div([
                 html.H5('Data Lineage (Data Flow Experiments)', style={'text-align':'center', 'display':'inline-block', 'margin':'0px 0px 0px 40px'}),
                 
                 html.Div([
-                    dbc.Button('Save Position', id=id('button_save_cytoscape_position'), color='success', n_clicks=0, className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
-                    # dbc.Button('Load', id=id('button_reset'), color='dark', className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
+                    # dbc.Button('Save Position', id=id('button_save_cytoscape_position'), color='success', n_clicks=0, className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
+                    dbc.Button('Reset View', id=id('button_reset_view'), color='dark', className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
                     # html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'1px'}), 
                     dbc.DropdownMenu(label="Action", children=[dbc.Spinner(size="sm"), " Loading..."], id=id('dropdown_action'), size='lg', color='warning', style={'display':'inline-block', 'margin':'1px'}),
                     dbc.Spinner(html.Div(id="loading-output"), color="danger"),
@@ -117,6 +117,7 @@ layout = html.Div([
                                     'fit': True,
                                     'directed': True,
                                     'padding': 10,
+                                    'zoom': 1,
                                 },
                                 style={'height': '800px','width': '100%'},
                                 stylesheet=stylesheet)
@@ -178,7 +179,7 @@ layout = html.Div([
                         html.Hr(),
                         dbc.InputGroup([
                             dbc.InputGroupText('Data Source Type', style={'width':'30%', 'font-weight':'bold', 'font-size': '13px', 'padding-left':'12px'}),
-                            dbc.Select(id('select_dataset_type'), options=[
+                            dbc.Select(id('select_upload_type'), options=[
                                 {"label": "Manually Upload Files", "value": "raw_fileupload"},
                                 {"label": "Rest API", "value": "raw_restapi"},
                                 {"label": "Search Data Catalog", "value": "type3", 'disabled':True},
@@ -192,7 +193,7 @@ layout = html.Div([
                     # Right Footer
                     dbc.CardFooter([
                         dbc.Button(children='Save', id=id('button_save'), color='warning', style={'width':'100%', 'font-size':'22px'}),
-                    ])
+                    ], id=id('right_footer'), style={'display': 'none'})
 
                 ], className='bg-dark', inverse=True),
 
@@ -231,12 +232,10 @@ app.clientside_callback(
 )
 def save_cytoscape_position(position_list):
     if len(position_list) == 0: return no_update
-    project_id = get_session('project_id')
-    project = get_document('project', project_id)
-    project['dataset_list'] = [node for node in position_list if node['type'] != 'action']
-    project['action_list'] = [node for node in position_list if node['type'] == 'action']
-
+    project = get_document('project', get_session('project_id'))
+    project['node_list'] = position_list
     upsert('project', project)
+
     return no_update
 
 
@@ -247,10 +246,10 @@ def save_cytoscape_position(position_list):
 @app.callback(
     Output(id('description'), 'value'),
     Output(id('documentation'), 'value'),
-    Output(id('select_dataset_type'), 'value'),
+    Output(id('select_upload_type'), 'value'),
     Output(id('dropdown_method'), 'value'),
     Output(id('url'), 'value'),
-    Output(id('select_dataset_type'), 'disabled'),
+    Output(id('select_upload_type'), 'disabled'),
     Input(id('cytoscape'), 'tapNodeData')
 )
 def populate_dataset_config(tapNodeData):
@@ -258,7 +257,7 @@ def populate_dataset_config(tapNodeData):
     description, documentation, method, url, disabled = '', '', 'get', '', False
     
     if tapNodeData['id'] in get_all_collections():
-        dataset = get_document('dataset', tapNodeData['id'])
+        dataset = get_document('node', tapNodeData['id'])
         description = dataset['description']
         documentation = dataset['documentation']
         if dataset['type'] == 'raw':
@@ -281,7 +280,7 @@ def populate_dataset_config(tapNodeData):
     Output(id('config_options_fileupload'), 'style'),
     Output(id('config_options_restapi'), 'style'),
     # Output(id('config_options_restapi'), 'children'),
-    Input(id('select_dataset_type'), 'value'),
+    Input(id('select_upload_type'), 'value'),
     State(id('config_options_restapi'), 'children'),
 )
 def load_dataset_options(dataset_type, options_restapi):
@@ -300,7 +299,7 @@ def load_dataset_options(dataset_type, options_restapi):
     Input(id('cytoscape'), 'selectedNodeData'),
     Input(id('button_save'), 'n_clicks'),
     # New Dataset Inputs
-    State(id('select_dataset_type'), 'value'),
+    State(id('select_upload_type'), 'value'),
     State({'type':id('node_name'), 'index': ALL}, 'value'),
     State(id('description'), 'value'),
     State(id('documentation'), 'value'),
@@ -319,16 +318,15 @@ def load_dataset_options(dataset_type, options_restapi):
     State({'type': id('body_value'), 'index': ALL}, 'value'),
     State({'type': id('body_value_position'), 'index': ALL}, 'value'),
     State(id('tabs_node'), 'active_tab'),
-    State(id('right_content_2'), 'style'),
 )
 def generate_tabs(selectedNodeData, n_clicks_button_save_config,
-                    dataset_type, node_name, description, documentation,
+                    upload_type, node_name, description, documentation,
                     isCompleted, upload_id, fileNames,                                               # Tabular / JSON 
                     method, url, header_key_list, header_value_list, header_value_position_list, param_key_list, param_value_list, param_value_position_list, body_key_list, body_value_list, body_value_position_list,     # REST API
-                    active_tab, right_content_2_style):
+                    active_tab):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     triggered = json.loads(triggered) if triggered.startswith('{') and triggered.endswith('}') else triggered
-    tab1_disabled, tab2_disabled, tab3_disabled = True, True, True
+    tab1_disabled, tab2_disabled, tab3_disabled = False, False, False
     num_selected = len(selectedNodeData)
     do_cytoscape_reload = False
 
@@ -337,51 +335,50 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
         # If none selected
         if num_selected == 0:
             active_tab = None
+            tab1_disabled, tab2_disabled, tab3_disabled = True, True, True
 
         # One Node Selected
         elif num_selected == 1:
             store_session('dataset_id', selectedNodeData[0]['id'])
-            if selectedNodeData[0]['type'] == 'action':
-                tab2_disabled = False
-                tab3_disabled = False
+            if selectedNodeData[0]['type'].startswith('action'):
+                tab1_disabled = True
+                tab3_disabled = True
                 active_tab = "tab2"
             else:
-                tab1_disabled = False
-                tab2_disabled = False
-                tab3_disabled = False
                 active_tab = 'tab1' if active_tab is None else active_tab
 
         # Multiple Nodes Selected
         elif num_selected > 1:
-            if all(node['type'] != 'action' for node in selectedNodeData):
-                tab1_disabled = False
-                tab2_disabled = False
+            if all(not node['type'].startswith('action') for node in selectedNodeData):
+                tab3_disabled = True
                 active_tab = 'tab1' if active_tab is None else active_tab
-    
+            else:
+                tab1_disabled = True
+                tab2_disabled = True
+                tab3_disabled = True
+                active_tab = None
 
     # Save Button Clicked
-    elif triggered == id('button_save') and right_content_2_style['display'] != 'none' and n_clicks_button_save_config is not None and num_selected == 1:
-        tab1_disabled = False
-        tab2_disabled = False
-        tab3_disabled = False
+    elif triggered == id('button_save') and n_clicks_button_save_config is not None and num_selected == 1:
         active_tab = 'tab1'
         dataset_id = selectedNodeData[0]['id']
         project_id = get_session('project_id')
         source_id = None
         dataset_name = node_name[0]
+        do_cytoscape_reload = True
 
         # Upload Files
-        if dataset_type == 'raw_fileupload':
+        if upload_type == 'raw_fileupload':
             if fileNames is not None and isCompleted is True:
                 df, details = process_fileupload(upload_id, fileNames[0])
-                save_dataset_config(dataset_id, df, dataset_name, description, documentation, dataset_type, details)
+                save_dataset_config(dataset_id, df, dataset_name, description, documentation, upload_type, details)
             else:
-                save_dataset_config(dataset_id, None, dataset_name, description, documentation, dataset_type, None)
+                save_dataset_config(dataset_id, None, dataset_name, description, documentation, upload_type, None)
         
         # RestAPI
-        elif dataset_type == 'raw_restapi':
+        elif upload_type == 'raw_restapi':
             df, details = process_restapi(method, url, header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list)
-            save_dataset_config(dataset_id, df, dataset_name, description, documentation, dataset_type, details)
+            save_dataset_config(dataset_id, df, dataset_name, description, documentation, upload_type, details)
 
             # Add Edges if dataset is dependent on other datasets
             if any(header_value_position_list) != None or any(param_value_position_list) or any(body_value_position_list):
@@ -401,9 +398,7 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
 
         # Save processed datasets
         else:
-            save_dataset_config(dataset_id, None, dataset_name, description, documentation, dataset_type, None)
-
-        do_cytoscape_reload = True
+            save_dataset_config(dataset_id, None, dataset_name, description, documentation, upload_type, None)
 
     tab_list = [
         dbc.Tab(label="Data", tab_id="tab1", disabled=tab1_disabled),
@@ -415,25 +410,25 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
 
 
 
-def merge_dataset_data(node_list, merge_type='objectMerge', idRef=None):
-    data = get_dataset_data(node_list[0]['id']).to_dict('records')
+def merge_dataset_data(dataset_id_list, merge_type='objectMerge', idRef=None):
+    data = get_dataset_data(dataset_id_list[0]).to_dict('records')
 
     try:
         if merge_type in ['objectMerge', 'overwrite']:
-            for node in node_list[1:]:
-                new_data = get_dataset_data(node['id']).to_dict('records')
+            for node_id in dataset_id_list[1:]:
+                new_data = get_dataset_data(node_id).to_dict('records')
                 data = [json_merge(row, row_new, merge_type) for row, row_new in zip(data, new_data)]
 
         elif merge_type == 'arrayMergeByIndex':
             schema = {"mergeStrategy": merge_type}
-            for node in node_list[1:]:
-                new_data = get_dataset_data(node['id']).to_dict('records')
+            for node_id in dataset_id_list[1:]:
+                new_data = get_dataset_data(node_id).to_dict('records')
                 data = jsonmerge.merge(data, new_data, schema)
 
         elif merge_type == 'arrayMergeById':
             schema = {"mergeStrategy": merge_type, "mergeOptions": {"idRef": idRef}}
-            for node in node_list[1:]:
-                new_data = get_dataset_data(node['id']).to_dict('records')
+            for node_id in dataset_id_list[1:]:
+                new_data = get_dataset_data(node_id).to_dict('records')
                 data = jsonmerge.merge(data, new_data, schema)
 
         else:
@@ -445,12 +440,13 @@ def merge_dataset_data(node_list, merge_type='objectMerge', idRef=None):
     
     return data
 
-def merge_dataset(dataset_list, merge_type='objectMerge'):
-    dataset = get_document('dataset', dataset_list[0]['id'])
-    dataset['changes'] = None
-    for node in dataset_list[1:]:
-        node['changes'] = None
-        dataset = json_merge(dataset, get_document('dataset', node['id']), merge_type)
+def merge_metadata(dataset_id_list, merge_type='objectMerge'):
+    dataset = get_document('node', dataset_id_list[0])
+    dataset['details'] = ''
+    for node_id in dataset_id_list[1:]:
+        new_dataset = get_document('node', node_id)
+        new_dataset['details'] = ''
+        dataset = json_merge(dataset, new_dataset, merge_type)
     return dataset
 
 
@@ -462,6 +458,7 @@ def merge_dataset(dataset_list, merge_type='objectMerge'):
     Output(id('right_content'), 'style'),
     Output(id('right_header_2'), 'style'),
     Output(id('right_content_2'), 'style'),
+    Output(id('right_footer'), 'style'),
     Output(id('merge_type_container'), 'style'),
     Output(id('range'), 'min'),
     Output(id('range'), 'max'),
@@ -481,6 +478,7 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, selectedNodeDa
     out1_display['display'] = 'block'
     out2_display['display'] = 'none'
     right_header_2_style, right_content_2_style = {'display': 'none'}, {'display': 'none'}
+    right_footer_style = {'display': 'none'}
     merge_type_container_style = {'display': 'none'}
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     
@@ -507,14 +505,15 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, selectedNodeDa
         ])
     
     # Node Data
-    elif active_tab == 'tab1' and all(node['type'] != 'action' for node in selectedNodeData):
+    elif active_tab == 'tab1' and all(not node['type'].startswith('action') for node in selectedNodeData):
         if num_selected == 1:
-            data = get_dataset_data(selectedNodeData[-1]['id'])
+            data = get_dataset_data(selectedNodeData[0]['id'])
             data = data.to_dict('records')
             
         elif num_selected > 1:
             merge_type_container_style['display'] = 'block'
-            data  = merge_dataset_data(selectedNodeData, merge_type, idRef=merge_idRef)
+            dataset_id_list = [node['id'] for node in selectedNodeData]
+            data  = merge_dataset_data(dataset_id_list, merge_type, idRef=merge_idRef)
             
         range_min = 1
         range_max = len(data)
@@ -527,31 +526,33 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, selectedNodeDa
 
     elif active_tab == 'tab2':
         if num_selected == 1:
-            if selectedNodeData[0]['type'] == 'action': 
-                action = get_document('action', selectedNodeData[0]['id'])
+            if selectedNodeData[0]['type'].startswith('action'): 
+                action = get_document('node', selectedNodeData[0]['id'])
                 out = [display_action(action)]
             else:
-                dataset = get_document('dataset', selectedNodeData[0]['id'])
+                dataset = get_document('node', selectedNodeData[0]['id'])
                 out = [display_metadata(dataset, id, disabled=False)]
 
         elif num_selected > 1:
-            if all(node['type'] == 'action' for node in selectedNodeData): 
+            if all(node['type'].startswith('action') for node in selectedNodeData): 
                 out = []
 
-            elif all(node['type'] != 'action' for node in selectedNodeData): 
-                dataset = merge_dataset(selectedNodeData)
+            elif all(not node['type'].startswith('action') for node in selectedNodeData): 
+                dataset_id_list = [node['id'] for node in selectedNodeData]
+                dataset = merge_metadata(dataset_id_list)
                 out = [display_metadata(dataset, id, disabled=True)]
     
     elif active_tab == 'tab3':
         out1_display['display'] = 'none'
         out2_display['display'] = 'block'
         right_content_2_style['display'] = 'block'
+        right_footer_style['display'] = 'block'
 
     else:
         out = []
 
     return (name, out, out1_display, right_header_2_style,
-            right_content_2_style, merge_type_container_style, range_min, range_max, range_value)
+            right_content_2_style, right_footer_style, merge_type_container_style, range_min, range_max, range_value)
 
 
 
@@ -625,8 +626,10 @@ def button_remove_feature(n_clicks):
 @app.callback(
     Output(id('cytoscape'), 'elements'),
     Output(id('cytoscape'), 'layout'),
-    # Input(id('button_reset'), 'n_clicks'),
-    Input(id('button_save'), 'n_clicks'),
+    Input(id('button_reset_view'), 'n_clicks'),
+    Input({'type': id('button_merge'), 'index': ALL}, 'n_clicks'),
+    Input({'type': id('button_clonemetadata'), 'index': ALL}, 'n_clicks'),
+    Input({'type': id('button_truncatedataset'), 'index': ALL}, 'n_clicks'),
     Input('url', 'pathname'),
     Input({'type': id('button_remove'), 'index': ALL}, 'n_clicks'),
     Input(id('do_cytoscape_reload'), 'data'),
@@ -640,11 +643,13 @@ def button_remove_feature(n_clicks):
     State({'type':id('col_datatype'), 'index': ALL}, 'value'),
     State({'type':id('col_button_remove_feature'), 'index': ALL}, 'n_clicks'),
     State(id('right_content'), 'style'),
+    State(id('range'), 'value'),
 )
-def cytoscape_triggers(n_clicks_merge, pathname, n_clicks_remove_list, do_cytoscape_reload, merge_type, merge_idRef,
+def cytoscape_triggers(n_clicks_reset_view, n_clicks_merge, n_clicks_clonemetadata, n_clicks_truncatedataset, pathname, n_clicks_remove_list, do_cytoscape_reload, merge_type, merge_idRef,
                         n_clicks_add_data_source_list,
                         selectedNodeData, active_tab, feature_list, new_feature_list, datatype_list, button_remove_feature_list,
-                        right_content_style):
+                        right_content_style,
+                        dataset_range):
     num_selected = len(selectedNodeData)
     project_id = get_session('project_id')
     merge_idRef = None if merge_idRef is None else merge_idRef
@@ -658,45 +663,54 @@ def cytoscape_triggers(n_clicks_merge, pathname, n_clicks_remove_list, do_cytosc
     else:
         triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
         dataset_id = selectedNodeData[0]['id']
-
-        # # Reset Button pressed
-        # if triggered == '' or triggered == id('button_reset'):
-        #     pass
-        
+        print('Cytoscape Output Triggered: ', triggered)
+        # Reload    
         if triggered == id('do_cytoscape_reload'):
             if do_cytoscape_reload == False: return no_update
+
+        # Action 1 - Clone Metadata (Modify Datatype and Rename)
+        elif triggered == '{"index":0,"type":"data_lineage-button_clonemetadata"}':
+            if n_clicks_clonemetadata[0] is None: return no_update
+            dataset = get_document('node', dataset_id)
+            new_dataset = dataset.copy()
+            new_dataset['features'] = dict(zip(new_feature_list, datatype_list))
+            remove_list = [feature for feature, n_clicks in zip(new_feature_list, button_remove_feature_list) if (n_clicks % 2 != 0)]
+            for feature in remove_list:
+                new_dataset['features'].pop(feature, None)
+            changed_feature_dict = {f1:f2 for f1, f2 in zip(feature_list, new_feature_list) if f1 != f2}
+            
+            dataset_data = search_documents(dataset_id, 250)
+            df = json_normalize(dataset_data)
+            if changed_feature_dict is not None:
+                df = df.rename(columns=changed_feature_dict)
+
+            action(project_id, dataset_id, 'action_1', new_dataset, df)
+
+        # Action 2 - Truncated Dataset
+        elif triggered == '{"index":0,"type":"data_lineage-button_truncatedataset"}':
+            if n_clicks_truncatedataset[0] is None: return no_update
+            dataset_metadata = get_document('node', dataset_id)
+            dataset_data = search_documents(dataset_id, 250)
+            df = json_normalize(dataset_data)
+            df = df[dataset_range[0]-1:dataset_range[1]]
+            details = { 'range_before': [0, len(df)], 'range_after': [dataset_range[0]-1, dataset_range[1]] }
+            action(project_id, dataset_id, 'action_2', dataset_metadata, df)
+            pass
+
+        # Action 3 - Merge Datasets Action
+        elif triggered == '{"index":0,"type":"data_lineage-button_merge"}' and all(not node['type'].startswith('action') for node in selectedNodeData):
+            if n_clicks_merge[0] is None: return no_update
+            dataset_id_list = [node['id'] for node in selectedNodeData]
+            dataset_data = merge_dataset_data(dataset_id_list, merge_type, idRef=merge_idRef)
+            dataset = merge_metadata(dataset_id_list, 'objectMerge')
+            details = {'merge_type': merge_type}
+            merge(project_id, dataset_id_list, dataset_data, dataset, details)
+
         
-        elif triggered == id('button_save') and right_content_style['display'] != 'none':
-            if n_clicks_merge is None: return no_update
-            dataset = get_document('dataset', dataset_id)
-
-            if num_selected == 1:
-                # Truncate Dataset TODO
-                if active_tab == 'tab1' and num_selected == 1:
-                    pass
-
-                # Modify Metadata Action
-                elif active_tab == 'tab2':
-                    new_dataset = dataset.copy()
-                    new_dataset['features'] = dict(zip(new_feature_list, datatype_list))
-                    remove_list = [feature for feature, n_clicks in zip(new_feature_list, button_remove_feature_list) if (n_clicks % 2 != 0)]
-                    for feature in remove_list:
-                        new_dataset['features'].pop(feature, None)
-                    changed_feature_dict = {f1:f2 for f1, f2 in zip(feature_list, new_feature_list) if f1 != f2}
-                    action(project_id, dataset_id, 'metadata', 'description', new_dataset, changed_feature_dict)
-
-            # Merge Datasets Action
-            if num_selected > 1:
-                dataset_data = merge_dataset_data(selectedNodeData, merge_type, idRef=merge_idRef)
-                dataset = merge_dataset(selectedNodeData, 'objectMerge')
-                source_id_list = [node['id'] for node in selectedNodeData]
-                changes = {'merge_type': merge_type}
-                merge(project_id, source_id_list, '', dataset_data, dataset, changes)
 
         # Button Remove Node
         elif triggered == '{"index":0,"type":"data_lineage-button_remove"}' and n_clicks_remove_list[0] != None:
-            node_id_list = [node['id'] for node in selectedNodeData]
-            remove(project_id, node_id_list)
+            remove(project_id, selectedNodeData)
                 
     
     elements = generate_cytoscape_elements(project_id)
@@ -704,7 +718,15 @@ def cytoscape_triggers(n_clicks_merge, pathname, n_clicks_remove_list, do_cytosc
         'name': 'preset',
         'fit': True,
     }
-    
+
+    # Reset Button pressed
+    if triggered == id('button_reset_view'):
+        layout = {
+            'name': 'breadthfirst',
+            'fit': True,
+            'roots': [e['data']['id'] for e in elements if e['classes'].startswith('raw')],
+        }
+
     return elements, layout
 
 
@@ -752,7 +774,7 @@ def button_chart(n_clicks, selectedNodeData):
     if n_clicks is None: return no_update
     if selectedNodeData is None: return no_update
     if len(selectedNodeData) != 1: return no_update
-    if selectedNodeData[0]['type'] == 'action': return no_update
+    if selectedNodeData[0]['type'].startswith('action'): return no_update
 
     return '/apps/plot_graph'
 
@@ -778,9 +800,9 @@ def load_restapi_options(tapNodeData, _, _2, _3, _4, _5, _6, header_div, param_d
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     if triggered == '' or triggered == None: return no_update
     
-    if triggered == id('cytoscape') and tapNodeData['type'] != 'action':
+    if triggered == id('cytoscape') and not tapNodeData['type'].startswith('action'):
         header_div, param_div, body_div = [], [], []
-        dataset = get_document('dataset', tapNodeData['id'])
+        dataset = get_document('node', tapNodeData['id'])
         if dataset['type'] == 'raw_restapi':
             for k, v in dataset['details']['header'].items():
                 header_div += generate_restapi_options(id, 'header', len(header_div), k, v)
@@ -836,7 +858,7 @@ for option_type in ['header', 'param', 'body']:
     )
     def populate_datasource_dropdown(n_clicks, selectedNodeData):
         project = get_document('project', get_session('project_id'))
-        project_name_list = [{'label': get_document('dataset', dataset_id)['name'], 'value': dataset_id} for dataset_id in [p['id'] for p in project['dataset_list']] if get_document('dataset', dataset_id)['type'].startswith('raw')]
+        project_name_list = [{'label': get_document('node', dataset_id)['name'], 'value': dataset_id} for dataset_id in [p['id'] for p in project['node_list']] if get_document('node', dataset_id)['type'].startswith('raw')]
         return project_name_list, ''
 
     # Populate Datatable
@@ -896,7 +918,7 @@ for option_type in ['header', 'param', 'body']:
 def generate_dropdown_actions(selected_nodes):
     if selected_nodes is None: return no_update
     
-    single = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==False ]
+    # single = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==False ]
     multiple = [ nav for nav in SIDEBAR_2_LIST  if nav['multiple']==True ]
     
     # Generate Options
@@ -904,11 +926,17 @@ def generate_dropdown_actions(selected_nodes):
     if len(selected_nodes) == 0:
         options = [dbc.DropdownMenuItem('Add Data Source', href='#', id={'type': id('button_add_data_source'), 'index': 0}, style={'background-color':'#90ee90', 'padding':'10px'})]
     if len(selected_nodes) == 1:
-        options = [dbc.DropdownMenuItem(nav['label'], href=nav['value'], style={'background-color':'yellow', 'padding':'10px'}) for nav in single]
-        options.append(dbc.DropdownMenuItem(divider=True))
-        options.append(dbc.DropdownMenuItem('Remove', href='#', id={'type': id('button_remove'), 'index': 0}, style={'background-color':'#FF7F7F', 'padding':'10px', 'text-align':'center'}))
-    elif len(selected_nodes) > 1 and all(node['type'] != 'action' for node in selected_nodes):
-        options = [dbc.DropdownMenuItem(nav['label'], href=nav['value']) for nav in multiple]
+        options = [
+            dbc.DropdownMenuItem('Clone Metadata', id={'type': id('button_clonemetadata'), 'index': 0}, href='#', style={'background-color':'yellow', 'padding':'10px'}),
+            dbc.DropdownMenuItem('Truncate Dataset', id={'type': id('button_truncatedataset'), 'index': 0}, href='#', style={'background-color':'yellow', 'padding':'10px'}),
+            
+            # dbc.DropdownMenuItem('Impute Data', href='apps/impute_data', style={'background-color':'yellow', 'padding':'10px'}),
+            # dbc.DropdownMenuItem('Extract & Transform', href='apps/extract_transform', style={'background-color':'yellow', 'padding':'10px'}),
+            dbc.DropdownMenuItem(divider=True),
+            dbc.DropdownMenuItem('Remove', href='#', id={'type': id('button_remove'), 'index': 0}, style={'background-color':'#FF7F7F', 'padding':'10px', 'text-align':'center'}),
+        ]
+    elif len(selected_nodes) > 1 and all(not node['type'].startswith('action') for node in selected_nodes):
+        options = [dbc.DropdownMenuItem("Merge Datasets", href='#', style={'background-color':'yellow', 'padding':'10px'}, id={'type': id('button_merge'), 'index': 0})]
 
     return options
 

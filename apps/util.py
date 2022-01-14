@@ -244,7 +244,7 @@ def display_action(action):
             ], className="mb-3 lg"),
             dbc.InputGroup([
                 dbc.InputGroupText("Action", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                dbc.Input(disabled=True, value=action['action'], style={'font-size': '12px', 'text-align':'center'}),
+                dbc.Input(disabled=True, value=get_action_label(action['type']), style={'font-size': '12px', 'text-align':'center'}),
             ], className="mb-3 lg"),
             dbc.InputGroup([
                 dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
@@ -252,7 +252,7 @@ def display_action(action):
             ], className="mb-3 lg"),
             dbc.InputGroup([
                 dbc.InputGroupText("Changes", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                dbc.Textarea(disabled=True, value=str(action['changes']), style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                dbc.Textarea(disabled=True, value=str(action['details']), style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
             ], className="mb-3 lg"),
         ])
     )
@@ -478,7 +478,16 @@ def generate_restapi_options(id, option_type, index, key_val='', val_val=''):
         ])
     ]
 
-
+def get_action_label(node_type):
+    if node_type == 'action_1': action_label = 'Clone Metadata'
+    elif node_type == 'action_2': action_label = 'Truncate Dataset'
+    elif node_type == 'action_3': action_label = 'Merge'
+    elif node_type == 'action_4': action_label = 'action_4'
+    elif node_type == 'action_5': action_label = 'action_5'
+    elif node_type == 'action_6': action_label = 'action_6'
+    elif node_type == 'action_7': action_label = 'action_7'
+    else: action_label = 'Error'
+    return action_label
 
 def do_flatten(json_file):
     data = []

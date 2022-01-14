@@ -8,6 +8,7 @@ from pandas import json_normalize
 from pprint import pprint
 from jsondiff import diff, symbols
 import json
+from apps.util import *
 
 def typesense_client(host, port, protocol, api_key, timeout=2):
     return typesense.Client({
@@ -39,7 +40,7 @@ def initialize_typesense():
         client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
         # client = typesense_client('typesense', '8108', 'http', 'Hu52dwsas2AdxdE')
 
-    collection_list = ['project', 'dataset', 'action', 'session1'] # TODO Currently all users will use same session. Replace when generate user/session ID
+    collection_list = ['project', 'node', 'session1'] # TODO Currently all users will use same session. Replace when generate user/session ID
     for name in collection_list:
         try:
             client.collections.create(generate_schema_auto(name))
@@ -89,7 +90,7 @@ def search_documents(collection_id, per_page, search_parameters=None):
     return result
 
 def get_dataset_data(dataset_id):
-    dataset = get_document('dataset', dataset_id)
+    dataset = get_document('node', dataset_id)
     features = list(dataset['features'].keys())
     data = search_documents(dataset_id, '250')
     if data != None:
@@ -115,16 +116,15 @@ def get_session(key):
 
 
 # Typesense Object
-def Project(id, type, dataset, action, edge, experiment):
+def Project(id, type, dataset=[], edge=[], experiment=[]):
     return {
         'id': id, 
-        'type': type, 
-        'dataset_list': dataset,
-        'action_list': action,
+        'type': type,
+        'node_list': dataset,
         'edge_list': edge,
         'experiment': experiment
     }
-def Dataset(id, name, description, type, documentation, details, features, expectation, index, target, graphs):
+def Node(id, name, description, documentation, type, details={}, features={}, expectation={}, index=[], target=[], graphs=[]):
     return {
         'id': id,
         'name': name,
@@ -138,21 +138,14 @@ def Dataset(id, name, description, type, documentation, details, features, expec
         'target': target,
         'graphs': graphs
     }
-def Action(id, action, description, changes):
-    return {
-        'id': id,
-        'action': action,
-        'description': description,
-        'changes': changes
-    }
 
 
 # Cytoscape Object 
-def cNode(id, name, type, action=None, position=None):
+def cNode(id, name, type, className, action_label, position={'x': 0, 'y': 0}):
     return {
-        'data': {'id': id, 'name': name, 'type': type, 'action': action},
+        'data': {'id': id, 'name': name, 'type': type, 'action_label':action_label},
         'position': position,
-        'classes': type,
+        'classes': className,
     }
 def cEdge(dataset_id_source, destination_id, position=None):
     return {
@@ -167,75 +160,40 @@ def cEdge(dataset_id_source, destination_id, position=None):
     }
 
 
+# Create New Project
 def new_project(project_id, project_type):
-    project = Project(id=project_id, type=project_type, dataset=[], action=[], edge=[], experiment=[])
+    project = Project(id=project_id, type=project_type)
     create('project', project)
 
-# def upload_dataset(project_id, dataset_id, dataset_data_store, description, documentation, 
-#                     delimiter, remove_space, remove_header):
-#     # Project
-#     project_id = get_session('project_id')
-#     project = get_document('project', project_id)
-#     project['dataset_list'].append(dataset_id)
+# Create Raw Data Source
+def new_data_source():
+    dataset_id = str(uuid.uuid1())
+    dataset = Node(
+            id=dataset_id,
+            name='New Data Source',
+            description='',
+            documentation='',
+            type='raw',
+    )
+    upsert('node', dataset)
+    return dataset_id
 
-#     # Dataset
-#     df = json_normalize(dataset_data_store)
-#     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-
-#     # Node
-#     api_data = {
-#         'delimiter': delimiter,
-#         'remove_space': remove_space,
-#         'remove_header': remove_header,
-#     }
-
-#     dataset = Dataset(
-#             id=dataset_id,
-#             description=description, 
-#             api_data=api_data, 
-#             features={col:str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
-#             expectation = {col:None for col in df.columns}, 
-#             index = [], 
-#             target = []
-#     )
-
-#     # Upload to Typesense
-#     upsert('project', project)
-#     upsert('dataset', dataset)
-#     client.collections.create(generate_schema_auto(dataset_id))
-#     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
-
+# Retrieve all Collections
 def get_all_collections():
     return [c['name'] for c in client.collections.retrieve()]
 
-def new_data_source():
-    dataset_id = str(uuid.uuid1())
-    dataset = Dataset(
-            id=dataset_id,
-            name='New Data Source',
-            description='', 
-            documentation='',
-            type='raw',
-            details='', 
-            features={},
-            expectation = {}, 
-            index = [], 
-            target = [],
-            graphs = [],
-    )
-    upsert('dataset', dataset)
-    return dataset_id
+
+
 
 def save_dataset_config(dataset_id, df, name, description, documentation, type, details):
     # Dataset
     if df is None:
-        dataset = get_document('dataset', dataset_id)
+        dataset = get_document('node', dataset_id)
         dataset['name'] = name
         dataset['description'] = description
         dataset['documentation'] = documentation
-        dataset['type'] = type
     else:
-        dataset = Dataset(
+        dataset = Node(
                 id=dataset_id,
                 name=name,
                 description=description, 
@@ -244,13 +202,10 @@ def save_dataset_config(dataset_id, df, name, description, documentation, type, 
                 details=details, 
                 features={str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
                 expectation = {col:None for col in df.columns}, 
-                index = [], 
-                target = [],
-                graphs = [],
         )
     
     # Upload to Typesense
-    upsert('dataset', dataset)
+    upsert('node', dataset)
     if df is not None:
         try:
             client.collections.create(generate_schema_auto(dataset_id))
@@ -265,8 +220,8 @@ def save_dataset_config(dataset_id, df, name, description, documentation, type, 
 
 def add_dataset(project_id, dataset_id):
     project = get_document('project', project_id)
-    if dataset_id not in [p['id'] for p in project['dataset_list']]:
-        project['dataset_list'].append({'id': dataset_id, 'position': {'x':0, 'y':0}})
+    if dataset_id not in [d['id'] for d in project['node_list']]:
+        project['node_list'].append({'id': dataset_id, 'position': {'x':0, 'y':0}})
         # Upload to Typesense
         upsert('project', project)
         return True
@@ -274,36 +229,36 @@ def add_dataset(project_id, dataset_id):
         return False
 
 
-def remove(project_id, node_id_list):
+def remove(project_id, selectedNodeData):
     project = get_document('project', project_id)
     edge_list = project['edge_list'].copy()
 
-    for node_id in node_id_list:
-        # Remove Action
-        if node_id in project['action_list']:
+    for node in selectedNodeData:
+        node_id = node['id']
+
+        # Remove Action or Error (for debugging)
+        if node['type'].startswith('action') or node['type'] == '':
             destination_node_id_list = [edge.split('_')[1] for edge in edge_list if edge.startswith(node_id)]
-            project['action_list'].remove(node_id)
+
+            project['node_list'] = [node for node in project['node_list'] if node['id'] != node_id]
             for edge in edge_list:
                 if node_id in edge:
                     project['edge_list'].remove(edge)
                 if node_id == edge.split('_')[0]:
-                    project['dataset_list'] = [d for d in project['dataset_list'] if d['id'] != edge.split('_')[1]]
+                    project['node_list'] = [d for d in project['node_list'] if d['id'] != edge.split('_')[1]]
                 if any(edge.startswith(destination_node_id) for destination_node_id in destination_node_id_list):
                     return
-
-            
+   
         # Remove Raw Dataset
-        elif node_id in [p['id'] for p in project['dataset_list']]:
-            dataset = get_document('dataset', node_id)
+        elif node['type'].startswith('raw'):
+            dataset = get_document('node', node_id)
             if dataset['type'].startswith('raw'):
                 if any(edge.startswith(node_id) for edge in edge_list):
                     pass
                 else:
-                    project['dataset_list'] = [d for d in project['dataset_list'] if d['id'] != node_id]
+                    project['node_list'] = [d for d in project['node_list'] if d['id'] != node_id]
                     for edge in [edge for edge in edge_list if edge.startswith(node_id)]:
                         project['edge_list'].remove(edge)
-                    
-        
         else:
             print('[Error] Unable to delete Node: ', node_id)
     
@@ -311,7 +266,7 @@ def remove(project_id, node_id_list):
     
 
 
-def action(project_id, dataset_id_source, action, description, new_dataset, changed_feature_dict):
+def action(project_id, dataset_id_source, action, dataset_metadata, df_new_dataset):
     # New id
     action_id = str(uuid.uuid1())
     dataset_id = str(uuid.uuid1())
@@ -320,32 +275,29 @@ def action(project_id, dataset_id_source, action, description, new_dataset, chan
 
     # Project Document
     project = get_document('project', project_id)
-    project['action_list'].append({'id': action_id, 'position': {'x':0, 'y':0}})
-    project['dataset_list'].append({'id': dataset_id, 'position': {'x':0, 'y':0}})
+    project['node_list'].append({'id': action_id, 'position': {'x':0, 'y':0}})
+    project['node_list'].append({'id': dataset_id, 'position': {'x':0, 'y':0}})
     project['edge_list'].append(edge1)
     project['edge_list'].append(edge2)
 
     # Action Document
-    changes = diff(get_document('dataset', dataset_id_source), new_dataset, syntax='symmetric', marshal=True)
-    action = Action(id=action_id, action=action, description=description, changes=changes)
+    details = diff(get_document('node', dataset_id_source), dataset_metadata, syntax='symmetric', marshal=True)
+    action_metadata = Node(id=action_id, name='', description='', documentation='', type=action, details=details)
 
     # Dataset Document
-    new_dataset['id'] =  dataset_id # Overwrite previous dataset ID
-    new_dataset['type'] = 'processed'
-    new_dataset['details'] = None
-    new_dataset['name'] = 'New Dataset'
+    dataset_metadata['id'] =  dataset_id # Overwrite previous dataset ID
+    dataset_metadata['type'] = 'processed'
+    dataset_metadata['details'] = None
+    dataset_metadata['name'] = 'New Dataset'
 
     # Dataset Data Collection
-    dataset_data_store = search_documents(dataset_id_source, 250)
-    df = json_normalize(dataset_data_store)
-    df = df.rename(columns=changed_feature_dict)
-    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+    jsonl = df_new_dataset.to_json(orient='records', lines=True) # Convert to jsonl
 
     
     # Upload
     upsert('project', project)
-    upsert('action', action)
-    upsert('dataset', new_dataset)
+    upsert('node', action_metadata)
+    upsert('node', dataset_metadata)
     client.collections.create(generate_schema_auto(dataset_id))
     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
@@ -360,16 +312,24 @@ def add_edge(project_id, source_id, destination_id):
         upsert('project', project)
 
 
-def merge(project_id, dataset_id_source_list, description, dataset_data_store, dataset, changes):
+def merge(project_id, source_id_list, dataset_data_store, dataset, details):
     # New id
     action_id = str(uuid.uuid1())
     dataset_id = str(uuid.uuid1())
 
     # Project Document
     project = get_document('project', project_id)
-    project['action_list'].append({'id': action_id, 'position': {'x':0, 'y':0}})
-    project['dataset_list'].append({'id': dataset_id, 'position': {'x':0, 'y':0}})
-    for dataset_id_source in dataset_id_source_list:
+    dataset_position_list = [d for d in project['node_list'] if d['id'] in source_id_list]
+    x, y, num_sources = 0, [], len(source_id_list)
+    for d in dataset_position_list:
+        x += d['position']['x']
+        y.append(d['position']['y'])
+    x = x/num_sources
+    y = max(y) + 100
+
+    project['node_list'].append({'id': action_id, 'position': {'x': x, 'y': y}})
+    project['node_list'].append({'id': dataset_id, 'position': {'x': x, 'y': y+100}})
+    for dataset_id_source in source_id_list:
         edge_id = dataset_id_source + '_' + action_id
         project['edge_list'].append(edge_id)
     project['edge_list'].append(action_id + '_' + dataset_id)
@@ -379,7 +339,7 @@ def merge(project_id, dataset_id_source_list, description, dataset_data_store, d
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
 
     # Action Document
-    action = Action(action_id, 'merge', description, changes)
+    action = Node(id=action_id, name='', description='', documentation='', type='action_3', details=details)
 
     # Dataset Document
     dataset['id'] =  dataset_id # Overwrite previous dataset ID
@@ -389,8 +349,8 @@ def merge(project_id, dataset_id_source_list, description, dataset_data_store, d
     
     # Upload
     upsert('project', project)
-    upsert('action', action)
-    upsert('dataset', dataset)
+    upsert('node', action)
+    upsert('node', dataset)
     client.collections.create(generate_schema_auto(dataset_id))
     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
@@ -399,26 +359,31 @@ def merge(project_id, dataset_id_source_list, description, dataset_data_store, d
 
 def generate_cytoscape_elements(project_id):
     project = get_document('project', project_id)
-
-    # action_list = [get_document('action', action['id']) for action in project['action_list']]
-    # dataset_list = [get_document('dataset', dataset['id']) for dataset in project['dataset_list']]
-
-    # cAction_list = [cNode(action['id'], name='', type='action', action=action['action']) for action in action_list]
-    # cDataset_list = ([cNode(dataset['id'], name=dataset['name'], type=dataset['type']) for dataset in dataset_list])
     
-    cEdge_list = [cEdge(id.split('_')[0], id.split('_')[1]) for id in project['edge_list']]
-
-    cAction_list = []
-    for a in project['action_list']:
-        position = {'x': a['position']['x'], 'y': a['position']['y']}
-        action = get_document('action', a['id'])
-        cAction_list.append(cNode(action['id'], name='', type='action', action=action['action'], position=position))
-    
-    cDataset_list = []
-    for d in project['dataset_list']:
+    cNode_list = []
+    for d in project['node_list']:
         position = {'x': d['position']['x'], 'y': d['position']['y']}
-        dataset = get_document('dataset', d['id'])
-        cDataset_list.append(cNode(dataset['id'], name=dataset['name'], type=dataset['type'], position=position))
-        
+        node = get_document('node', d['id'])
+    
+        if node['type'].startswith('raw'): className = 'raw'
+        elif node['type'].startswith('processed'): className = 'processed'
+        else: className = 'action'
 
-    return cAction_list + cDataset_list + cEdge_list
+        action_label = get_action_label(node['type'])
+
+        cNode_list.append(cNode(node['id'], name=node['name'], type=node['type'], className=className, action_label=action_label, position=position))
+
+    cEdge_list = [cEdge(id.split('_')[0], id.split('_')[1]) for id in project['edge_list']]
+    return cNode_list + cEdge_list
+
+
+def get_action_label(node_type):
+    if node_type == 'action_1': action_label = 'Clone Metadata'
+    elif node_type == 'action_2': action_label = 'Truncate Dataset'
+    elif node_type == 'action_3': action_label = 'Merge'
+    elif node_type == 'action_4': action_label = 'action_4'
+    elif node_type == 'action_5': action_label = 'action_5'
+    elif node_type == 'action_6': action_label = 'action_6'
+    elif node_type == 'action_7': action_label = 'action_7'
+    else: action_label = 'Error'
+    return action_label

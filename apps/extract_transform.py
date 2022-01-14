@@ -136,7 +136,7 @@ def update_selected_column(active, current_style, selected_columns):
 )
 def update_metadata(pathname):
     dataset_id = get_session('dataset_id')
-    dataset = get_document('dataset', dataset_id)
+    dataset = get_document('node', dataset_id)
     return display_metadata(dataset, id, disabled=True, height='390px')
 
 
@@ -169,7 +169,7 @@ def generate_functions(selected_columns):
     ]
 
     dataset_id = get_session('dataset_id')
-    dataset = get_document('dataset', dataset_id)
+    dataset = get_document('node', dataset_id)
     if len(selected_columns) == 1:
         print(selected_columns[0], dataset['features'][selected_columns[0]])
     elif len(selected_columns) > 1:
