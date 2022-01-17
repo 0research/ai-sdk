@@ -28,6 +28,7 @@ import requests
 import dash_uploader as du
 import numpy as np
 from pathlib import Path
+import jsonmerge
 
 def id_factory(page: str):
     def func(_id: str):
@@ -557,3 +558,46 @@ def process_restapi(method, url, header_key_list, header_value_list, param_key_l
     details = details = {'method': method, 'url': url, 'header': header, 'param':param, 'body':body}
 
     return df, details
+
+
+
+def merge_metadata(dataset_id_list, merge_type='objectMerge'):
+    dataset = get_document('node', dataset_id_list[0])
+    dataset['details'] = ''
+    for node_id in dataset_id_list[1:]:
+        new_dataset = get_document('node', node_id)
+        new_dataset['details'] = ''
+        dataset = json_merge(dataset, new_dataset, merge_type)
+    return dataset
+
+def merge_dataset_data(dataset_id_list, merge_type='objectMerge', idRef=None):
+    try:
+        # Merge
+        data = get_dataset_data(dataset_id_list[0]).to_dict('records')
+        if merge_type in ['objectMerge', 'overwrite']:
+            for node_id in dataset_id_list[1:]:
+                new_data = get_dataset_data(node_id).to_dict('records')
+                data = [json_merge(row, row_new, merge_type) for row, row_new in zip(data, new_data)]
+
+        elif merge_type == 'arrayMergeByIndex':
+            schema = {"mergeStrategy": merge_type}
+            for node_id in dataset_id_list[1:]:
+                new_data = get_dataset_data(node_id).to_dict('records')
+                data = jsonmerge.merge(data, new_data, schema)
+
+        elif merge_type == 'arrayMergeById':
+            schema = {"mergeStrategy": merge_type, "mergeOptions": {"idRef": idRef}}
+            for node_id in dataset_id_list[1:]:
+                new_data = get_dataset_data(node_id).to_dict('records')
+                data = jsonmerge.merge(data, new_data, schema)
+
+        # Remove NaN
+        df = json_normalize(data).fillna('')
+        data = df.to_dict('records')
+
+
+    except Exception as e:
+        print(e, idRef)
+        data = []
+    
+    return data

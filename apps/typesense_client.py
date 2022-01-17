@@ -236,8 +236,15 @@ def remove(project_id, selectedNodeData):
     for node in selectedNodeData:
         node_id = node['id']
 
-        # Remove Action or Error (for debugging)
-        if node['type'].startswith('action') or node['type'] == '':
+        # Debugging
+        if node['type'].startswith('processed'):
+            for edge in edge_list:
+                if node_id in edge:
+                    return
+            project['node_list'] = [node for node in project['node_list'] if node['id'] != node_id]
+
+        # Remove Action or '' (for debugging)
+        elif node['type'].startswith('action') or node['type'] == '':
             destination_node_id_list = [edge.split('_')[1] for edge in edge_list if edge.startswith(node_id)]
 
             project['node_list'] = [node for node in project['node_list'] if node['id'] != node_id]
@@ -245,7 +252,7 @@ def remove(project_id, selectedNodeData):
                 if node_id in edge:
                     project['edge_list'].remove(edge)
                 if node_id == edge.split('_')[0]:
-                    project['node_list'] = [d for d in project['node_list'] if d['id'] != edge.split('_')[1]]
+                    project['node_list'] = [node for node in project['node_list'] if node['id'] != edge.split('_')[1]]
                 if any(edge.startswith(destination_node_id) for destination_node_id in destination_node_id_list):
                     return
    
@@ -266,7 +273,7 @@ def remove(project_id, selectedNodeData):
     
 
 
-def action(project_id, dataset_id_source, action, dataset_metadata, df_new_dataset):
+def action(project_id, dataset_id_source, action, dataset_metadata, df_dataset_data=None, details=None):
     # New id
     action_id = str(uuid.uuid1())
     dataset_id = str(uuid.uuid1())
@@ -275,14 +282,20 @@ def action(project_id, dataset_id_source, action, dataset_metadata, df_new_datas
 
     # Project Document
     project = get_document('project', project_id)
-    project['node_list'].append({'id': action_id, 'position': {'x':0, 'y':0}})
-    project['node_list'].append({'id': dataset_id, 'position': {'x':0, 'y':0}})
+
+    node = next(node for node in project['node_list'] if node["id"] == dataset_id_source)
+    x = node['position']['x']
+    y = node['position']['y'] + 100
+    
+    project['node_list'].append({'id': action_id, 'position': {'x': x, 'y': y} })
+    project['node_list'].append({'id': dataset_id, 'position': {'x': x, 'y': y + 100}})
     project['edge_list'].append(edge1)
     project['edge_list'].append(edge2)
 
     # Action Document
-    details = diff(get_document('node', dataset_id_source), dataset_metadata, syntax='symmetric', marshal=True)
-    action_metadata = Node(id=action_id, name='', description='', documentation='', type=action, details=details)
+    if details is None:
+        details = diff(get_document('node', dataset_id_source), dataset_metadata, syntax='symmetric', marshal=True)
+        action_metadata = Node(id=action_id, name='', description='', documentation='', type=action, details=details)
 
     # Dataset Document
     dataset_metadata['id'] =  dataset_id # Overwrite previous dataset ID
@@ -291,8 +304,10 @@ def action(project_id, dataset_id_source, action, dataset_metadata, df_new_datas
     dataset_metadata['name'] = 'New Dataset'
 
     # Dataset Data Collection
-    jsonl = df_new_dataset.to_json(orient='records', lines=True) # Convert to jsonl
-
+    if df_dataset_data is None:
+        dataset_data = search_documents(dataset_id, 250)
+        df_dataset_data = json_normalize(dataset_data)
+    jsonl = df_dataset_data.to_json(orient='records', lines=True) # Convert to jsonl
     
     # Upload
     upsert('project', project)
@@ -385,5 +400,5 @@ def get_action_label(node_type):
     elif node_type == 'action_5': action_label = 'action_5'
     elif node_type == 'action_6': action_label = 'action_6'
     elif node_type == 'action_7': action_label = 'action_7'
-    else: action_label = 'Error'
+    else: action_label = ''
     return action_label

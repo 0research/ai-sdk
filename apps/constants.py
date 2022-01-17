@@ -31,7 +31,7 @@ DATATYPE_LIST = ['object', 'Int64', 'float64', 'bool', 'datetime64', 'geopoint']
 
 
 # Types of Merges
-MERGE_TYPES = ['arrayMergeByIndex', 'arrayMergeById', 'objectMerge', 'overwrite', 'version', 'append']
+MERGE_TYPES = ['arrayMergeByIndex', 'arrayMergeById', 'objectMerge'] # 'overwrite', 'version', 'append'
 
 
 

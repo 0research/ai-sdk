@@ -11,10 +11,12 @@ window.dash_clientside.clientside = {
 		nodes = cy.nodes().jsons()
 		var node_position_list = [];
 		for (let i = 0; i < nodes.length; i++) {
-			node_position_list.push({
-				'id': nodes[i]['data']['id'],
-				'position': nodes[i]['position']
-			})
+			node_position_list.push(
+				{
+					'id': nodes[i]['data']['id'],
+					'position': nodes[i]['position']
+				}
+			)
 		}
 		 
 		return node_position_list
