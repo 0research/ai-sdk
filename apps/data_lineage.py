@@ -188,8 +188,8 @@ layout = html.Div([
                                 dbc.Select(id('select_upload_type'), options=[
                                     {"label": "Manually Upload Files", "value": "raw_fileupload"},
                                     {"label": "Rest API", "value": "raw_restapi"},
-                                    {"label": "Search Data Catalog", "value": "raw_datacatalog"},
                                     {"label": "GraphQL", "value": "raw_graphql", 'disabled':True},
+                                    {"label": "Search Data Catalog", "value": "raw_datacatalog"},
                                 ], value='raw_fileupload', style={'text-align':'center', 'font-size':'15px'}),
                             ], style={'margin-bottom':'10px'}),
 
@@ -633,7 +633,7 @@ def cytoscape_triggers(n_clicks_reset_layout, n_clicks_merge, n_clicks_clonemeta
                 new_dataset['features'].pop(feature, None)
             changed_feature_dict = {f1:f2 for f1, f2 in zip(feature_list, new_feature_list) if f1 != f2}
             
-            dataset_data = search_documents(dataset_id, 250)
+            dataset_data = search_documents(dataset_id)
             df = json_normalize(dataset_data)
             if changed_feature_dict is not None:
                 df = df.rename(columns=changed_feature_dict)
@@ -644,7 +644,7 @@ def cytoscape_triggers(n_clicks_reset_layout, n_clicks_merge, n_clicks_clonemeta
         elif triggered == '{"index":0,"type":"data_lineage-button_truncatedataset"}':
             if n_clicks_truncatedataset[0] is None: return no_update
             dataset_metadata = get_document('node', dataset_id)
-            dataset_data = search_documents(dataset_id, 250)
+            dataset_data = search_documents(dataset_id)
             df = json_normalize(dataset_data)
             df = df[dataset_range[0]-1:dataset_range[1]]
             details = { 'range_before': [0, len(df)], 'range_after': [dataset_range[0]-1, dataset_range[1]] }
@@ -740,7 +740,6 @@ def preview_dataset(n_clicks_list, node_id_list):
     Output(id('config_options_restapi'), 'style'),
     Output(id('config_options_datacatalog'), 'style'),
     Output(id('table_datacatalog'), 'children'),
-    Output(id('button_save'), 'style'),
     Input(id('select_upload_type'), 'value'),
     Input(id('search_datacatalog'), 'value'),
     State(id('button_save'), 'style'),
@@ -753,10 +752,9 @@ def load_dataset_options(dataset_type, search_datacatalog_value, button_save_sty
     elif dataset_type == 'raw_restapi': style2 = {'display':' block'}
     elif dataset_type == 'raw_datacatalog':
         style3 = {'display':' block'}
-        button_save_style['display'] = 'none'
         datacatalog_search_results = generate_datacatalog_table(id, search_datacatalog_value)
 
-    return style1, style2, style3, datacatalog_search_results, button_save_style
+    return style1, style2, style3, datacatalog_search_results
 
 
 # Enable Editing Data Source name when in Config Tab

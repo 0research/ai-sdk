@@ -238,7 +238,7 @@ def button_confirm(n_clicks, details):
     else: 
         changed_dataset = ast.literal_eval(get_session('changed_dataset_profile'))
         dataset_id = get_session('dataset_id')
-        action(get_session('project_id'), dataset_id, 'profile', '', details, changed_dataset, search_documents(dataset_id, 250))
+        action(get_session('project_id'), dataset_id, 'profile', '', details, changed_dataset, search_documents(dataset_id))
         # action(project_id, source_id, action, description, dataset, dataset_data_store)
 
         return '/apps/data_lineage', 'Success'

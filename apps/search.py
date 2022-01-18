@@ -123,10 +123,10 @@ def search(search_value, search_type):
         'q': search_value,
         'query_by'  : query_by,
         'filter_by' : filter_by,
-        'per_page': 250,
+        'per_page': 100,
     }
 
-    dataset_list = search_documents(search_type, 250, search_parameters)
+    dataset_list = search_documents(search_type, 100, search_parameters)
     
     if len(dataset_list) >= 1:
         out = html.Table(

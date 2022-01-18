@@ -494,9 +494,9 @@ def generate_datacatalog_table(id, search_value):
         'q': search_value,
         'query_by'  : query_by,
         # 'filter_by' : filter_by,
-        'per_page': 250,
+        'per_page': 100,
     }
-    dataset_list = search_documents('node', 250, search_parameters)
+    dataset_list = search_documents('node', 100, search_parameters)
 
     if len(dataset_list) == 0:
         out = html.H6('No Datasets found for search keywords: "{}".'.format(search_value), style={'text-align':'center'})

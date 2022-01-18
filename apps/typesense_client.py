@@ -84,7 +84,7 @@ def upsert(collection_id, document):
     document = {k:str(v) for k, v in document.items()}
     client.collections[collection_id].documents.upsert(document)
 
-def search_documents(collection_id, per_page, search_parameters=None):
+def search_documents(collection_id, per_page=100, search_parameters=None):
     if search_parameters is None:
         search_parameters = {
             'q': '*',
@@ -100,7 +100,7 @@ def search_documents(collection_id, per_page, search_parameters=None):
 def get_dataset_data(dataset_id):
     dataset = get_document('node', dataset_id)
     features = list(dataset['features'].keys())
-    data = search_documents(dataset_id, '250')
+    data = search_documents(dataset_id)
     if data != None:
         return json_normalize(data)[features]
     else:
@@ -313,7 +313,7 @@ def action(project_id, dataset_id_source, action, dataset_metadata, df_dataset_d
 
     # Dataset Data Collection
     if df_dataset_data is None:
-        dataset_data = search_documents(dataset_id, 250)
+        dataset_data = search_documents(dataset_id)
         df_dataset_data = json_normalize(dataset_data)
     jsonl = df_dataset_data.to_json(orient='records', lines=True) # Convert to jsonl
     

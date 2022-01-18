@@ -72,7 +72,7 @@ layout = html.Div([
 def check_if_dataset_name_exist(project_id):
     if project_id is None: return no_update
     
-    project_id_list = [d['id'] for d in search_documents('project', 250)]
+    project_id_list = [d['id'] for d in search_documents('project')]
     isDisabled = {'display': 'block'}
 
     if project_id in project_id_list:
@@ -106,7 +106,7 @@ def button_create_load_dataset(n_clicks, project_id, project_type):
     # If valid Project ID
     else:
         pathname = '/apps/data_lineage'
-        project_list = search_documents('project', 250)
+        project_list = search_documents('project')
         if project_id not in [d['id'] for d in project_list]: # Create Project if doesn't exist
             new_project(project_id, project_type)
         store_session('project_id', project_id)

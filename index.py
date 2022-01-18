@@ -200,7 +200,7 @@ def highlight_active_nav(pathname, sidebar):
 @app.callback([Output('dropdown_current_project', 'options')],
                 Input('url', 'pathname'),)
 def load_project_dropdown(pathname):
-    dataset_list = search_documents('project', 250)
+    dataset_list = search_documents('project')
     options = [{'label': d['id'], 'value': d['id']} for d in dataset_list]
     return options
 
@@ -210,7 +210,7 @@ def load_project_dropdown(pathname):
 def load_dataset_dropdown(project_id):
     if project_id is None or project_id == '': return no_update
     store_session('project_id', project_id)
-    # project_list = search_documents('project', 250)
+    # project_list = search_documents('project')
     
     return no_update
 
