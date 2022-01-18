@@ -188,12 +188,14 @@ layout = html.Div([
                                 dbc.Select(id('select_upload_type'), options=[
                                     {"label": "Manually Upload Files", "value": "raw_fileupload"},
                                     {"label": "Rest API", "value": "raw_restapi"},
-                                    {"label": "Search Data Catalog", "value": "type3", 'disabled':True},
-                                    {"label": "GraphQL", "value": "type4", 'disabled':True},
+                                    {"label": "Search Data Catalog", "value": "raw_datacatalog"},
+                                    {"label": "GraphQL", "value": "raw_graphql", 'disabled':True},
                                 ], value='raw_fileupload', style={'text-align':'center', 'font-size':'15px'}),
                             ], style={'margin-bottom':'10px'}),
+
                             html.Div(generate_manuafilelupload_details(id), style={'display':'none'}, id=id('config_options_fileupload')),
                             html.Div(generate_restapi_details(id), style={'display':'none'}, id=id('config_options_restapi')),
+                            html.Div(generate_datacatalog_options(id), style={'display':'none', 'overflow-y': 'auto', 'max-height':'500px'}, id=id('config_options_datacatalog')),
                         ]),
                         dbc.CardFooter([
                             dbc.Button(children='Save', id=id('button_save'), color='warning', style={'width':'100%', 'font-size':'22px'}),
@@ -205,12 +207,8 @@ layout = html.Div([
             ], width=6),
         ]),
 
-        # Modal (View Tabular Form Data)
-        dbc.Modal([
-            dbc.ModalHeader(dbc.ModalTitle('', id=id('modal_title'))),
-            dbc.ModalBody('', id=id('modal_body')),
-            dbc.ModalFooter('', id=id('modal_footer')),
-        ], id=id('modal'), size='xl'),
+        # Modal (view dataset)
+        dbc.Modal(id=id('modal_dataset'), size='xl'),
 
 
     ], style={'width':'100%'}),
@@ -255,7 +253,7 @@ def save_cytoscape_position(position_list):
     Output(id('dropdown_method'), 'value'),
     Output(id('url'), 'value'),
     Output(id('select_upload_type'), 'disabled'),
-    Input(id('cytoscape'), 'tapNodeData')
+    Input(id('cytoscape'), 'tapNodeData'),
 )
 def populate_dataset_config(tapNodeData):
     if tapNodeData is None: return no_update
@@ -288,6 +286,8 @@ def populate_dataset_config(tapNodeData):
     Output(id('do_cytoscape_reload'), 'data'),
     Input(id('cytoscape'), 'selectedNodeData'),
     Input(id('button_save'), 'n_clicks'),
+    Input({'type':id('col_button_add'), 'index': ALL}, 'n_clicks'),
+    State({'type':id('col_button_add'), 'index': ALL}, 'value'),
     # New Dataset Inputs
     State(id('select_upload_type'), 'value'),
     State({'type':id('node_name'), 'index': ALL}, 'value'),
@@ -310,6 +310,7 @@ def populate_dataset_config(tapNodeData):
     State(id('tabs_node'), 'active_tab'),
 )
 def generate_tabs(selectedNodeData, n_clicks_button_save_config,
+                    n_clicks_add_dataset_list, datacatalog_dataset_id_list,
                     upload_type, node_name, description, documentation,
                     isCompleted, upload_id, fileNames,                                               # Tabular / JSON 
                     method, url, header_key_list, header_value_list, header_value_position_list, param_key_list, param_value_list, param_value_position_list, body_key_list, body_value_list, body_value_position_list,     # REST API
@@ -319,7 +320,7 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
     tab1_disabled, tab2_disabled, tab3_disabled = False, False, False
     num_selected = len(selectedNodeData)
     do_cytoscape_reload = False
-
+    print('triggered: ', triggered)
     # Click Cytoscape Nodes
     if triggered == '' or triggered == id('cytoscape'):
         # If none selected
@@ -389,6 +390,24 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
         # Save processed datasets
         else:
             save_dataset_config(dataset_id, None, dataset_name, description, documentation, upload_type, None)
+
+    elif triggered['type'] == id('col_button_add'):
+        print("TBD")
+        # datacatalog_dataset_id = datacatalog_dataset_id_list[triggered['index']]
+        # current_metadata = get_document('node', selectedNodeData[0]['id'])
+        # selected_metadata = get_document('node', datacatalog_dataset_id)
+
+        # try:
+        #     client.collections[datacatalog_dataset_id].delete()
+        # except:
+        #     pass
+        # dataset_id = new_data_source()
+        # add_dataset(project_id, dataset_id)
+        
+        # df = get_dataset_data(datacatalog_dataset_id)
+        # add_dataset(get_session('project_id'), dataset_id)
+        # TODO add selected dataset to selected node
+
 
     tab_list = [
         dbc.Tab(label="Data", tab_id="tab1", disabled=tab1_disabled),
@@ -693,20 +712,51 @@ def cytoscape_triggers(n_clicks_reset_layout, n_clicks_merge, n_clicks_clonemeta
 #     return button1, button2, button3, button4 
 
 
+# Preview Dataset from Data Catalog
+@app.callback(
+    Output(id('modal_dataset'), 'children'),
+    Output(id('modal_dataset'), 'is_open'),
+    Input({'type':id('col_button_preview'), 'index': ALL}, 'n_clicks'),
+    State({'type':id('col_button_preview'), 'index': ALL}, 'value'),
+    prevent_initial_call=True
+)
+def preview_dataset(n_clicks_list, node_id_list):
+    triggered = json.loads(callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0])
+    index = triggered['index']
+    if n_clicks_list[index] is None: return no_update
+    node_id = node_id_list[index]
+
+    df = get_dataset_data(node_id)
+    return [
+        # dbc.ModalHeader(dbc.ModalTitle('')),
+        dbc.ModalBody(generate_datatable(id('preview_dataset_datatable'), df.to_dict('records'), df.columns, height='800px')),
+        # dbc.ModalFooter(''),
+    ], True
+
 
 # Load Dataset Config Options
 @app.callback(
     Output(id('config_options_fileupload'), 'style'),
     Output(id('config_options_restapi'), 'style'),
+    Output(id('config_options_datacatalog'), 'style'),
+    Output(id('table_datacatalog'), 'children'),
+    Output(id('button_save'), 'style'),
     Input(id('select_upload_type'), 'value'),
-    State(id('config_options_restapi'), 'children'),
+    Input(id('search_datacatalog'), 'value'),
+    State(id('button_save'), 'style'),
 )
-def load_dataset_options(dataset_type, options_restapi):
-    style1, style2 = {'display':' none'}, {'display':' none'}
+def load_dataset_options(dataset_type, search_datacatalog_value, button_save_style):
+    style1, style2, style3 = {'display':' none'}, {'display':' none'}, {'display':' none'}
+    datacatalog_search_results = no_update
+
     if dataset_type == 'raw_fileupload':  style1 = {'display':' block'}
     elif dataset_type == 'raw_restapi': style2 = {'display':' block'}
+    elif dataset_type == 'raw_datacatalog':
+        style3 = {'display':' block'}
+        button_save_style['display'] = 'none'
+        datacatalog_search_results = generate_datacatalog_table(id, search_datacatalog_value)
 
-    return style1, style2
+    return style1, style2, style3, datacatalog_search_results, button_save_style
 
 
 # Enable Editing Data Source name when in Config Tab

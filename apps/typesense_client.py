@@ -22,12 +22,20 @@ def typesense_client(host, port, protocol, api_key, timeout=2):
     })
 
 def generate_schema_auto(name):
-    out = {
-        "name": name,
-        "fields": [ {"name": ".*", "type": "string*" } ]
-    }
-    if name == 'dataset':
-        out['fields'].append({"name": "type", "type": "string", "facet": True })
+    if name == 'node':
+        out = {
+            "name": name,
+            "fields": [
+                {"name": ".*", "type": "string*"},
+                {"name": "type", "type": "string*", "facet": True},
+            ]
+        }
+    else:
+        out = {
+            "name": name,
+            "fields": [ {"name": ".*", "type": "string*" } ]
+        }
+        print(name, out)
     return out
 
 
@@ -46,9 +54,9 @@ def initialize_typesense():
             client.collections.create(generate_schema_auto(name))
             print('Create Typesense Collection: ', name)
         except typesense.exceptions.ObjectAlreadyExists:
-            pass
+            print('Typesense Object Already Exist')
         except Exception as e:
-            print(e)
+            print('Initialize Typesense Failed: ', e)
     
     return client
 

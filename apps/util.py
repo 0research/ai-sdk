@@ -457,27 +457,87 @@ def generate_restapi_details(id, extra=True):
 
 def generate_restapi_options(id, option_type, index, key_val='', val_val=''):
     return [
-        html.Div([
-            # Inputs
-            dbc.InputGroup([
-                dbc.Input(id={'type': id('{}_key'.format(option_type)), 'index': index}, value=key_val, placeholder='Enter Key', list=id('header_autocomplete'), style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
-                dbc.Input(id={'type': id('{}_value'.format(option_type)), 'index': index}, value=val_val, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'),
-                dbc.Button('Use Existing Dataset', id={'type': id('button_{}_value'.format(option_type)), 'index': index}, color='info', outline=True, n_clicks=None, style={'font-size':'10px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}),
-                dbc.Input(id={'type': id('{}_value_position'.format(option_type)), 'index': index}, style={'display':'none'}, persistence=True, persistence_type='session'),
-            ], style={'text-align':'center'}),
+        # Inputs
+        dbc.InputGroup([
+            dbc.Input(id={'type': id('{}_key'.format(option_type)), 'index': index}, value=key_val, placeholder='Enter Key', list=id('header_autocomplete'), style={'text-align':'center', 'height':'28px'}, persistence=True, persistence_type='session'),
+            dbc.Input(id={'type': id('{}_value'.format(option_type)), 'index': index}, value=val_val, placeholder='Enter Value', style={'text-align':'center'}, persistence=True, persistence_type='session'),
+            dbc.Button('Use Existing Dataset', id={'type': id('button_{}_value'.format(option_type)), 'index': index}, color='info', outline=True, n_clicks=None, style={'font-size':'10px', 'font-weight':'bold', 'width':'20%', 'height':'28px'}),
+            dbc.Input(id={'type': id('{}_value_position'.format(option_type)), 'index': index}, style={'display':'none'}, persistence=True, persistence_type='session'),
+        ], style={'text-align':'center'}),
 
-            # Hidden Modal
-            dbc.Modal([
-                dbc.ModalHeader(
-                    dbc.InputGroup([
-                        dbc.InputGroupText("Select a Data Source", style={'width':'30%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-                        dbc.Select(id={'type': id('{}_datasource_list'.format(option_type)), 'index': index}, options=[], value='', placeholder='Select Data Source', style={'text-align':'center', 'color': 'black'})    
-                    ]),
-                ),
-                dbc.ModalBody(generate_datatable({'type': id('{}_value_datatable'.format(option_type)), 'index': index}, height='800px')),
-            ], id={'type': id('{}_modal'.format(option_type)), 'index': index})
-        ])
+        # Modal
+        dbc.Modal([
+            dbc.ModalHeader(
+                dbc.InputGroup([
+                    dbc.InputGroupText("Select a Data Source", style={'width':'30%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                    dbc.Select(id={'type': id('{}_datasource_list'.format(option_type)), 'index': index}, options=[], value='', placeholder='Select Data Source', style={'text-align':'center', 'color': 'black'})    
+                ]),
+            ),
+            dbc.ModalBody(generate_datatable({'type': id('{}_value_datatable'.format(option_type)), 'index': index}, height='800px')),
+        ], id={'type': id('{}_modal'.format(option_type)), 'index': index})
     ]
+
+
+def generate_datacatalog_options(id):
+    return [
+        dbc.Input(type="search", id=id('search_datacatalog'), value='', debounce=False, autoFocus=True, placeholder="Search...", style={'text-align':'center', 'font-size':'15px'}),
+        html.Table(html.Div(id=id('table_datacatalog'), style={'overflow-y': 'auto', 'height':'440px', 'width':'100%'}), style={'width':'100%'})
+    ]
+
+
+def generate_datacatalog_table(id, search_value):
+    if search_value == '' or search_value is None:
+        search_value = '*'
+    query_by = 'name, description, details',
+    # filter_by = 'type:=[raw_userinput, raw_restapi, raw_datacatalog]'
+    search_parameters = {
+        'q': search_value,
+        'query_by'  : query_by,
+        # 'filter_by' : filter_by,
+        'per_page': 250,
+    }
+    dataset_list = search_documents('node', 250, search_parameters)
+
+    if len(dataset_list) == 0:
+        out = html.H6('No Datasets found for search keywords: "{}".'.format(search_value), style={'text-align':'center'})
+    else:
+        out = [
+            html.Tr([
+                html.Th('No.'),
+                html.Th('Dataset'),
+                # html.Th('Type'),
+                html.Th(''),
+            ])
+        ] + [
+            html.Tr([
+                html.Td(dbc.Input(value=dataset['id'], id={'type':id('col_dataset_id'), 'index': i}), style={'display':'none'}),
+                html.Td(i+1, style={'width':'5%'}),
+                html.Td([
+                    html.P(dataset['name'] + ' ({})'.format(dataset['type']), id={'type':id('col_name'), 'index': i}, style={'font-weight':'bold'}),
+                    html.P(dataset['description'], id={'type':id('col_description'), 'index': i}),
+                    html.P(dataset['documentation']),
+                    html.P(dataset['id']),
+                ], style={'width':'75%'}),
+                # html.Td(dataset['type'], id={'type':id('col_type'), 'index': i}, style={'width':'15%'}),
+                html.Td([
+                    dbc.ButtonGroup([
+                        dbc.Button('Preview', value=dataset['id'], id={'type':id('col_button_preview'), 'index': i}, className='btn btn-info'),
+                        dbc.Button('Add', value=dataset['id'], id={'type':id('col_button_add'), 'index': i}, className='btn btn-primary'),
+                        # dbc.Button('Edit', id={'type':id('col_button_edit'), 'index': i}, className='btn btn-success'),
+                        # dbc.Button(' X ', id={'type':id('col_button_remove'), 'index': i}, className='btn btn-danger'),
+
+                        dbc.Tooltip('Preview Dataset Data', target={'type':id('col_button_preview'), 'index': i}),
+                        dbc.Tooltip('Add Dataset to Current Project', target={'type':id('col_button_add'), 'index': i}),
+                        # dbc.Tooltip('Edit Dataset Details', target={'type':id('col_button_edit'), 'index': i}),
+                        # dbc.Tooltip('Remove Dataset', target={'type':id('col_button_remove'), 'index': i}),
+                    ], vertical=True),
+                ], style={'width':'20%'}),
+            ], id={'type':id('row'), 'index': i}) for i, dataset in enumerate(dataset_list)
+        ]
+
+    return out
+    
+
 
 def get_action_label(node_type):
     if node_type == 'action_1': action_label = 'Clone Metadata'
