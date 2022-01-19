@@ -49,3 +49,15 @@ app.index_string = '''
 '''
 
 server = app.server
+
+
+
+import sentry_sdk
+sentry_sdk.init(
+    "https://c44f48907043459dab2a41fecc0216cb@o1119809.ingest.sentry.io/6154603",
+
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0
+)

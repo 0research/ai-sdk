@@ -309,7 +309,7 @@ def action(project_id, dataset_id_source, action, dataset_metadata, df_dataset_d
     dataset_metadata['id'] =  dataset_id # Overwrite previous dataset ID
     dataset_metadata['type'] = 'processed'
     dataset_metadata['details'] = None
-    dataset_metadata['name'] = 'New Dataset'
+    dataset_metadata['name'] = ''
 
     # Dataset Data Collection
     if df_dataset_data is None:
