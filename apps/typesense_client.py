@@ -43,7 +43,7 @@ def initialize_typesense():
     # Initialize Typesense
     print('Initializing Typesense. Host: ' + socket.gethostname())
     if socket.gethostname() == 'DESKTOP-9IOI6RV':
-        client = typesense_client('127.0.0.1', '8108', 'http', 'Hu52dwsas2AdxdE') 
+        client = typesense_client('127.0.0.1', '8108', 'http', 'Hu52dwsas2AdxdE')
     else:
         client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
         # client = typesense_client('typesense', '8108', 'http', 'Hu52dwsas2AdxdE')
@@ -229,7 +229,17 @@ def save_dataset_config(dataset_id, df, name, description, documentation, type, 
 def add_dataset(project_id, dataset_id):
     project = get_document('project', project_id)
     if dataset_id not in [d['id'] for d in project['node_list']]:
-        project['node_list'].append({'id': dataset_id, 'position': {'x':0, 'y':0}})
+        x, y = 0 ,0
+        while True:
+            for node in project['node_list']:
+                pos_diff_x = abs(node['position']['x'] - x)
+                pos_diff_y = abs(node['position']['y'] - y)
+                if pos_diff_x < 5 and pos_diff_y < 5:
+                    x += 20
+                    y += 20
+            break
+
+        project['node_list'].append({'id': dataset_id, 'position': {'x': x, 'y': y}})
         # Upload to Typesense
         upsert('project', project)
         return True

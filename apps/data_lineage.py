@@ -1,4 +1,3 @@
-from typing_extensions import ParamSpecArgs
 from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output, State, ALL, MATCH, ClientsideFunction
@@ -28,6 +27,9 @@ import ast
 from apps.constants import *
 import copy
 from pathlib import Path
+from datetime import datetime
+from dash_extensions import EventListener, WebSocket
+from dash_extensions import WebSocket
 
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
@@ -90,19 +92,24 @@ options_merge = [{'label': o, 'value': o} for o in MERGE_TYPES]
 layout = html.Div([
     html.Div([
         dcc.Store(id=id('do_cytoscape_reload'), storage_type='session', data=False),
-        dcc.Store(id=id('cytoscape_position'), storage_type='session'),
-        dcc.Interval(id=id('interval_cytoscape'), interval=1*1000, n_intervals=0),
+        dcc.Store(id=id('cytoscape_position_store'), storage_type='session', data=[]),
+        dcc.Store(id=id('cytoscape_position_store_2'), storage_type='session', data=[]),
 
+        dcc.Interval(id=id('interval_cytoscape'), interval=500, n_intervals=0),
+        
         # Left Panel
         dbc.Row([
             dbc.Col([
-                html.H5('Data Lineage (Data Flow Experiments)', style={'text-align':'center', 'display':'inline-block', 'margin':'0px 0px 0px 40px'}),
+                # html.H5('Data Lineage (Data Flow Experiments)', style={'text-align':'center', 'display':'inline-block', 'margin':'0px 0px 0px 40px'}),
                 
+                html.Div(id=id('last_saved'), style={'display':'inline-block', 'margin':'1px'}),
                 html.Div([
-                    # dbc.Button('Save Position', id=id('button_save_cytoscape_position'), color='success', n_clicks=0, className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
-                    dbc.Button('Reset Layout', id=id('button_reset_layout'), color='dark', className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
-                    # html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'1px'}), 
-                    dbc.DropdownMenu(label="Action", children=[dbc.Spinner(size="sm"), " Loading..."], id=id('dropdown_action'), size='lg', color='warning', style={'display':'inline-block', 'margin':'1px'}),
+                    dbc.ButtonGroup([
+                        # dbc.Button('Save Position', id=id('button_save_cytoscape_position'), color='success', n_clicks=0, className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
+                        dbc.Button('Reset Layout', id=id('button_reset_layout'), color='dark', className='btn btn-secondary btn-lg', style={'margin-right':'1px', 'display':'block'}),
+                        # html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'1px'}), 
+                        dbc.DropdownMenu(label="Action", children=[dbc.Spinner(size="sm"), " Loading..."], id=id('dropdown_action'), size='lg', color='warning', style={'display':'inline-block', 'margin':'1px'}),        
+                    ]),
                     dbc.Spinner(html.Div(id="loading-output"), color="danger"),
                 ], style={'float':'right', 'display':'inline-block'}),
 
@@ -215,33 +222,57 @@ layout = html.Div([
 ])
 
 
+# Initialize Cytoscape Settings (that cannot be accessed through Dash)
+app.clientside_callback(
+    """
+    function(selectedNodeData) {
+        console.log(cy.elements)
+        cy.wheelSensitivity = 1
+        return ''
+    }
+    """,
+    Output('modal_confirm', 'children'),
+    Input(id('cytoscape'), "selectedNodeData"),
+)
 
 
 # Store Cytoscape Position
 app.clientside_callback(
-    ClientsideFunction(namespace="clientside", function_name="get_cytoscape_position"),
-    Output(id("cytoscape_position"), "data"),
-    Input(id("interval_cytoscape"), "n_intervals")
+    """
+    function(n_intervals, position_store) {
+        if (position_store == JSON.stringify(cy.nodes().jsons())) {
+            return ''
+        } else {
+            return cy.nodes().jsons()
+        }
+    }
+    """,
+    Output(id('cytoscape_position_store'), 'data'),
+    Input(id("interval_cytoscape"), "n_intervals"),
+    State(id('cytoscape_position_store'), 'data'),
 )
 
 @app.callback(
-    Output("modal_confirm", "children"), 
-    Input(id("cytoscape_position"), "data"),
+    Output(id("last_saved"), "children"),
+    Output(id('cytoscape_position_store_2'), 'data'),
+    Input(id('cytoscape_position_store'), "data"),
+    State(id('cytoscape_position_store_2'), 'data'),
 )
-def save_cytoscape_position(position_list):
-    if len(position_list) == 0: return no_update
+def save_cytoscape_position(position1, position2):
+    if position1 is None or position1 == '' or position1 == position2: return no_update
+
+    # Save to Typesense
     project = get_document('project', get_session('project_id'))
-    project['node_list'] = position_list
-
-    for i in range(len(position_list)):
-        if position_list[i]['id'] == project['node_list'][i]['id']:
-            project['node_list'][i]['position'] = position_list[i]['position']
-
+    for i in range(len(project['node_list'])):
+        for p in position1:
+            if project['node_list'][i]['id'] == p['data']['id']:
+                project['node_list'][i]['position'] = p['position']
     upsert('project', project)
 
-    return no_update
+    # Get Last saved time
+    dt_string = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
-
+    return f"Last Saved: {dt_string}", position1
 
 
 
@@ -336,7 +367,12 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
                 tab3_disabled = True
                 active_tab = "tab2"
             else:
-                active_tab = 'tab1' if active_tab is None else active_tab
+                if selectedNodeData[0]['type'] == 'raw':
+                    tab1_disabled = True
+                    tab2_disabled = True
+                    active_tab = "tab3"
+                else:
+                    active_tab = 'tab1' if active_tab is None else active_tab
 
         # Multiple Nodes Selected
         elif num_selected > 1:
@@ -498,18 +534,40 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, n_clicks_butto
             ], width={'size':10, 'offset':1}),
         ])
     
-    # Tab 1
+    # Tab Visibility
     elif active_tab == 'tab1' and all(not node['type'].startswith('action') for node in selectedNodeData):
         right_content_1_style['display'] = 'block'
-        right_header_2_style['display'] = 'block'
-        
+        right_header_2_style['display'] = 'block'        
+    elif active_tab == 'tab2':
+        right_content_2_style['display'] = 'block'
+    elif active_tab == 'tab3':
+        right_content_3_style['display'] = 'block'
+
+
+
+    if num_selected == 0:
+        pass
+    else:
         # Single Node Selected 
         if num_selected == 1:
+
+            # Tab 1 Content
             data = get_dataset_data(selectedNodeData[0]['id'])
             data = data.to_dict('records')
+
+            # Tab 2 Content
+            if selectedNodeData[0]['type'].startswith('action'): 
+                action = get_document('node', selectedNodeData[0]['id'])
+                right_content_2 = [display_action(action)]
+            else:
+                dataset = get_document('node', selectedNodeData[0]['id'])
+                right_content_2 = [display_metadata(dataset, id, disabled=False)]
+
         
         # Multiple Nodes Selected (Merge Datasets)
         elif num_selected > 1:
+            
+            # Tab 1 Content
             merge_type_container_style['display'] = 'block'
             dataset_id_list = [node['id'] for node in selectedNodeData]
 
@@ -525,11 +583,19 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, n_clicks_butto
                 
                 merge_options = [{'label': c, 'value': c} for c in features]
                 merge_value = merge_idRef if merge_idRef is not None else merge_options[0]['value']
-
                 data = merge_dataset_data(dataset_id_list, merge_type, idRef=merge_value)
 
             else:
                 data = merge_dataset_data(dataset_id_list, merge_type)
+            
+            # Tab 2 Content
+            if all(node['type'].startswith('action') for node in selectedNodeData): 
+                right_content_2 = []
+
+            elif all(not node['type'].startswith('action') for node in selectedNodeData): 
+                dataset_id_list = [node['id'] for node in selectedNodeData]
+                dataset = merge_metadata(dataset_id_list)
+                right_content_2 = [display_metadata(dataset, id, disabled=True)]
                 
         range_min = 1
         range_max = len(data)
@@ -539,31 +605,6 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, n_clicks_butto
         
         if n_clicks_button_tabular % 2 == 0: right_content_1 = display_dataset_data(data, format='json')
         else: right_content_1 = display_dataset_data(data, format='tabular')
-        
-        
-    # Tab 2
-    elif active_tab == 'tab2':
-        right_content_2_style['display'] = 'block'
-        if num_selected == 1:
-            if selectedNodeData[0]['type'].startswith('action'): 
-                action = get_document('node', selectedNodeData[0]['id'])
-                right_content_2 = [display_action(action)]
-            else:
-                dataset = get_document('node', selectedNodeData[0]['id'])
-                right_content_2 = [display_metadata(dataset, id, disabled=False)]
-
-        elif num_selected > 1:
-            if all(node['type'].startswith('action') for node in selectedNodeData): 
-                right_content_2 = []
-
-            elif all(not node['type'].startswith('action') for node in selectedNodeData): 
-                dataset_id_list = [node['id'] for node in selectedNodeData]
-                dataset = merge_metadata(dataset_id_list)
-                right_content_2 = [display_metadata(dataset, id, disabled=True)]
-    
-    # Tab 3
-    elif active_tab == 'tab3':
-        right_content_3_style['display'] = 'block'
 
 
     return (right_header_1, right_header_2_style,
@@ -577,6 +618,7 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, n_clicks_butto
 
 
 # All Cytoscape Related Events
+
 @app.callback(
     Output(id('cytoscape'), 'elements'),
     Output(id('cytoscape'), 'layout'),

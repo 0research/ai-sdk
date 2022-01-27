@@ -1,51 +1,100 @@
-from typing_extensions import ParamSpecArgs
-
-from requests.models import ContentDecodingError
-from dash import dcc
-from dash import html
-from dash.dependencies import Input, Output, State, ALL, MATCH
-import dash_bootstrap_components as dbc
-import plotly.express as px
-from app import app
-import dash_bootstrap_components as dbc
-from dash import dash_table
-from dash import no_update, callback_context
-import json
-from flatten_json import flatten, unflatten, unflatten_list
-from jsonmerge import Merger, merge
-from pprint import pprint
-from genson import SchemaBuilder
-from jsondiff import diff
-import json
-from jsondiff import diff, symbols
-from apps.util import *
-import base64
 import pandas as pd
-from pandas import json_normalize
-from itertools import zip_longest
-from datetime import datetime
+import dash_bootstrap_components as dbc
+import json
+from app import app
 import dash_cytoscape as cyto
-from apps.typesense_client import *
-import ast
-from apps.constants import *
+from dash import Dash, html, Input, Output, dash_table as dt
+from dash.exceptions import PreventUpdate
+from dash_extensions import EventListener
+
+df = pd.read_csv("https://git.io/Juf1t")
+df["id"] = df.index
 
 
-
-# Layout
-layout = html.Div([
-    dcc.Dropdown(options=[], value=None, id='dropdown'),
-])
-
-
-layout = html.Div([
-    dbc.Input(children=['TEXT'], id='test_edit'),
-    html.P(children=['AAAA'], id='test_edit2')
-])
-
-@app.callback(
-    Output('test_edit2', 'children'),
-    Input('test_edit', 'value'),
+table = dt.DataTable(
+    id="tbl",
+    data=df.to_dict("records"),
+    columns=[{"name": i, "id": i} for i in df.columns],
 )
-def callback(value):
-    print("INSIDE")
-    return value
+
+cytoscape = cyto.Cytoscape(id='cytoscape',
+                            minZoom=0.2,
+                            maxZoom=2,
+                            selectedNodeData=[],
+                            layout={
+                                'name': 'preset',
+                                'fit': True,
+                                'directed': True,
+                                'padding': 10,
+                                'zoom': 1,
+                            },
+                            elements=[
+                                {'data': {'id': 'one', 'label': 'Node 1'}, 'position': {'x': 75, 'y': 75}},
+                                {'data': {'id': 'two', 'label': 'Node 2'}, 'position': {'x': 200, 'y': 200}},
+                                {'data': {'source': 'one', 'target': 'two'}}
+                            ],
+                            style={'height': '800px','width': '100%'},
+                        )
+
+
+input1 = dbc.Input(id='input1', value='empty')
+
+layout = dbc.Container(
+    [   
+        # Event Listener 1
+        EventListener(
+                id="el",
+                events=[{"event": "input", "props": ["srcElement.className", "srcElement.value", "srcElement.innerText"]}],
+                logging=True,
+                children=input1,
+        ),
+        # dbc.Alert("Click the table", id="out"),
+        html.Div(id="event"),
+        
+
+        # # Event Listener 2
+        # EventListener(
+        #         id="el2",
+        #         events=[{"event": "click", "props": ["srcElement.className", "srcElement.value", "srcElement.innerText"]}],
+        #         logging=True,
+        #         children=cytoscape,
+        # ),
+
+    ]
+)
+
+# Event Listener 1 (Datatable)
+@app.callback(Output("event", "children"), Input("el", "event"), Input("el", "n_events"))
+def click_event(event, n_events):
+    print(event)
+    # Check if the click is on the active cell.
+    if not event or "cell--selected" not in event["srcElement.className"]:
+        raise PreventUpdate
+    # Return the content of the cell.
+    return f"Cell content is {event['srcElement.innerText']}, number of clicks in {n_events}"
+
+@app.callback(Output("out", "children"), Input("tbl", "active_cell"))
+def update_graphs(active_cell):
+    return json.dumps(active_cell)
+
+
+# # Event Listener 2 (Cytoscape)
+# @app.callback(Output("event", "children"), Input("el2", "event"), Input("el2", "n_events"))
+# def click_event(event, n_events):
+#     # Check if the click is on the active cell.
+#     if not event or "cell--selected" not in event["srcElement.className"]:
+#         raise PreventUpdate
+#     # Return the content of the cell.
+#     return f"Cell content is {event['srcElement.innerText']}, number of clicks in {n_events}"
+
+# @app.callback(Output("out", "children"), Input("tbl", "active_cell"))
+# def update_graphs(active_cell):
+#     return json.dumps(active_cell)
+
+
+
+
+
+
+if __name__ == "__main__":
+    app.run_server(debug=True, port=7676)
