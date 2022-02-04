@@ -56,6 +56,12 @@ stylesheet = [
             'line-color': 'black'
         }
     },
+    {
+        'selector': '.dependent',
+        'style': {
+            'background-color': '#92a8d1',
+        }
+    },
     # Dataset Nodes
     {
         'selector': '.raw',
@@ -85,7 +91,6 @@ stylesheet = [
     
 
 ]
-
 
 options_merge = [{'label': o, 'value': o} for o in MERGE_TYPES]
 
@@ -132,11 +137,12 @@ layout = html.Div([
             # Right Panel
             dbc.Col([
                 html.Div([
+                    
                     html.Div(dbc.Tabs([], id=id("tabs_node")), style={'float':'left', 'text-align':'left', 'display':'inline-block'}),
                     html.Div([
-                        dbc.Button(html.I(n_clicks=0, className='fas fa-check'), id=id('button_perform_action'), disabled=True, className='btn btn-warning', style={'margin-left':'1px'}),
+                        dbc.Button(html.I(n_clicks=0, className='fas fa-check'), id=id('button_perform_action'), disabled=True, className='btn btn-warning', style={'margin-left':'1px', 'display':'none'}),
                         dbc.Button(html.I(n_clicks=0, className='fas fa-chart-area'), id=id('button_chart'), disabled=True, className='btn btn-success', style={'margin-left':'1px'}),
-                        dbc.Button(html.I(n_clicks=0, className='fas fa-times'), id=id('button_remove'), disabled=True, className='btn btn-danger', style={'margin-left':'1px'}),
+                        dbc.Button(html.I(n_clicks=0, className='fas fa-times'), id=id('button_remove'), disabled=True, className='btn btn-danger', style={'margin-left':'1px', 'display':'none'}),
                         dbc.Tooltip('Perform Action', target=id('button_perform_action')),
                         dbc.Tooltip('Chart', target=id('button_chart')),
                         dbc.Tooltip('Remove Action or Raw Dataset', target=id('button_remove')),
@@ -169,7 +175,7 @@ layout = html.Div([
                             ]),
                         ], id=id('right_header_2'), style={'display':'none', 'font-size':'13px'}),
                     
-                    # Right Content (No Active Tab)
+                    # Right Content 0 (No Active Tab)
                     html.Div([], id=id('right_content_0'), style={'display':'none'}),
 
                     # Right Content Tab 1 (Data)
@@ -193,7 +199,8 @@ layout = html.Div([
                             dbc.InputGroup([
                                 dbc.InputGroupText('Data Source Type', style={'width':'30%', 'font-weight':'bold', 'font-size': '13px', 'padding-left':'12px'}),
                                 dbc.Select(id('select_upload_type'), options=[
-                                    {"label": "Manually Upload Files", "value": "raw_fileupload"},
+                                    {"label": "File Upload", "value": "raw_fileupload"},
+                                    {"label": "Paste Text", "value": "raw_pastetext"},
                                     {"label": "Rest API", "value": "raw_restapi"},
                                     {"label": "GraphQL", "value": "raw_graphql", 'disabled':True},
                                     {"label": "Search Data Catalog", "value": "raw_datacatalog"},
@@ -201,15 +208,26 @@ layout = html.Div([
                             ], style={'margin-bottom':'10px'}),
 
                             html.Div(generate_manuafilelupload_details(id), style={'display':'none'}, id=id('config_options_fileupload')),
+                            html.Div(generate_pastetext(id), style={'display':'none'}, id=id('config_options_pastetext')),
                             html.Div(generate_restapi_details(id), style={'display':'none'}, id=id('config_options_restapi')),
                             html.Div(generate_datacatalog_options(id), style={'display':'none', 'overflow-y': 'auto', 'max-height':'500px'}, id=id('config_options_datacatalog')),
                         ]),
                         dbc.CardFooter([
-                            dbc.Button(children='Save', id=id('button_save'), color='warning', style={'width':'100%', 'font-size':'22px'}),
+                            dbc.Row(dbc.Col(dbc.Button(children='Save', id=id('button_save'), color='warning', style={'width':'100%', 'font-size':'22px'}), width={'size': 8, 'offset': 2})),
                         ])
                     ], id=id('right_content_3'), style={'display': 'block'}),
+
+                    # Right Body Tab 4 (Graph)
+                    dbc.Row([
+                        dbc.Col(dbc.Button(children='Plot Graph', id=id('button_add_graph'), href='/apps/plot_graph', color='warning', style={'width':'100%', 'font-size':'22px'}), width={"size": 8, "offset": 2}),
+                    ], id=id('right_content_4'), style={'display':'none'}),
                     
-                ], className='bg-dark', inverse=True, style={'min-height':'800px'}),
+                    dbc.Row([
+                        dbc.Col('aaaaa', width=3),
+                        dbc.Col('bbbbb', width=3),
+                        dbc.Col('ccccc', width=3),
+                    ]),
+                ], className='bg-dark', inverse=True, style={'min-height':'780px', 'max-height':'780px'}),
 
             ], width=6),
         ]),
@@ -222,18 +240,18 @@ layout = html.Div([
 ])
 
 
-# Initialize Cytoscape Settings (that cannot be accessed through Dash)
-app.clientside_callback(
-    """
-    function(selectedNodeData) {
-        console.log(cy.elements)
-        cy.wheelSensitivity = 1
-        return ''
-    }
-    """,
-    Output('modal_confirm', 'children'),
-    Input(id('cytoscape'), "selectedNodeData"),
-)
+# # Initialize Cytoscape Settings (that cannot be accessed through Dash)
+# app.clientside_callback(
+#     """
+#     function(selectedNodeData) {
+#         console.log(cy.elements)
+#         cy.wheelSensitivity = 1
+#         return ''
+#     }
+#     """,
+#     Output('modal', 'children'),
+#     Input(id('cytoscape'), "selectedNodeData"),
+# )
 
 
 # Store Cytoscape Position
@@ -315,6 +333,7 @@ def populate_dataset_config(tapNodeData):
     Output(id('tabs_node'), 'children'),
     Output(id('tabs_node'), 'active_tab'),
     Output(id('do_cytoscape_reload'), 'data'),
+    # Output('modal', 'children'),
     Input(id('cytoscape'), 'selectedNodeData'),
     Input(id('button_save'), 'n_clicks'),
     Input({'type':id('col_button_add'), 'index': ALL}, 'n_clicks'),
@@ -348,7 +367,7 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
                     active_tab):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     triggered = json.loads(triggered) if triggered.startswith('{') and triggered.endswith('}') else triggered
-    tab1_disabled, tab2_disabled, tab3_disabled = False, False, False
+    tab1_disabled, tab2_disabled, tab3_disabled, tab4_disabled = False, False, False, False
     num_selected = len(selectedNodeData)
     do_cytoscape_reload = False
     print('triggered: ', triggered)
@@ -357,7 +376,7 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
         # If none selected
         if num_selected == 0:
             active_tab = None
-            tab1_disabled, tab2_disabled, tab3_disabled = True, True, True
+            tab1_disabled, tab2_disabled, tab3_disabled, tab4_disabled = True, True, True, True
 
         # One Node Selected
         elif num_selected == 1:
@@ -370,6 +389,7 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
                 if selectedNodeData[0]['type'] == 'raw':
                     tab1_disabled = True
                     tab2_disabled = True
+                    tab4_disabled = True
                     active_tab = "tab3"
                 else:
                     active_tab = 'tab1' if active_tab is None else active_tab
@@ -378,11 +398,13 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
         elif num_selected > 1:
             if all(not node['type'].startswith('action') for node in selectedNodeData):
                 tab3_disabled = True
+                tab4_disabled = True
                 active_tab = 'tab1' if active_tab is None else active_tab
             else:
                 tab1_disabled = True
                 tab2_disabled = True
                 tab3_disabled = True
+                tab4_disabled = True
                 active_tab = None
 
     # Save Button Clicked
@@ -401,9 +423,10 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
                 save_dataset_config(dataset_id, df, dataset_name, description, documentation, upload_type, details)
             else:
                 save_dataset_config(dataset_id, None, dataset_name, description, documentation, upload_type, None)
-        
+
         # RestAPI
         elif upload_type == 'raw_restapi':
+            
             df, details = process_restapi(method, url, header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list)
             save_dataset_config(dataset_id, df, dataset_name, description, documentation, upload_type, details)
 
@@ -449,7 +472,7 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
         dbc.Tab(label="Data", tab_id="tab1", disabled=tab1_disabled),
         dbc.Tab(label="Metadata", tab_id="tab2", disabled=tab2_disabled),
         dbc.Tab(label="Config", tab_id="tab3", disabled=tab3_disabled),
-        # dbc.Tab(label="Experiments", tab_id="tab4", disabled=True),
+        dbc.Tab(label="Graph", tab_id="tab4", disabled=tab4_disabled),
     ]
     return tab_list, active_tab, do_cytoscape_reload
 
@@ -470,10 +493,12 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
     Output(id('right_content_1'), 'children'),
     Output(id('right_content_2'), 'children'),
     Output(id('right_content_3'), 'children'),
+    Output(id('right_content_4'), 'children'),
     Output(id('right_content_0'), 'style'),
     Output(id('right_content_1'), 'style'),
     Output(id('right_content_2'), 'style'),
     Output(id('right_content_3'), 'style'),
+    Output(id('right_content_4'), 'style'),
 
     Output(id('merge_type_container'), 'style'),
     Output(id('range'), 'min'),
@@ -491,18 +516,21 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
     Input(id('button_tabular'), 'n_clicks'),
     State(id('cytoscape'), 'selectedNodeData'),
 
+    State(id('right_content_4'), 'children'),
+
     State(id('right_content_0'), 'style'),
     State(id('right_content_1'), 'style'),
     State(id('right_content_2'), 'style'),
     State(id('right_content_3'), 'style'),
+    State(id('right_content_4'), 'style'),
 )
 def select_node(active_tab, range_value, merge_type, merge_idRef, n_clicks_button_tabular, selectedNodeData,
-
-                right_content_0_style, right_content_1_style, right_content_2_style, right_content_3_style):
+                right_content_4,
+                right_content_0_style, right_content_1_style, right_content_2_style, right_content_3_style, right_content_4_style):
     right_header_1 = []
     right_header_2_style = {'display': 'none'}
     right_content_0, right_content_1, right_content_2, right_content_3 = no_update, no_update, no_update, no_update
-    right_content_0_style['display'], right_content_1_style['display'], right_content_2_style['display'], right_content_3_style['display'] = 'none', 'none', 'none', 'none'
+    right_content_0_style['display'], right_content_1_style['display'], right_content_2_style['display'], right_content_3_style['display'], right_content_4_style['display'] = 'none', 'none', 'none', 'none', 'none'
     range_min, range_max = None, None
     num_selected = len(selectedNodeData)
     
@@ -542,7 +570,8 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, n_clicks_butto
         right_content_2_style['display'] = 'block'
     elif active_tab == 'tab3':
         right_content_3_style['display'] = 'block'
-
+    elif active_tab == 'tab4':
+        right_content_4_style['display'] = 'block'
 
 
     if num_selected == 0:
@@ -563,6 +592,24 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, n_clicks_butto
                 dataset = get_document('node', selectedNodeData[0]['id'])
                 right_content_2 = [display_metadata(dataset, id, disabled=False)]
 
+            # Tab 4 Content
+            project_id = get_session('project_id')
+            project = get_document('project', project_id)
+            
+            project['graph_list'] = {'node_id1': ['graph_id1', 'graph_id2'], 'node_id2': ['abc', 'sss'] }
+
+            for node_id, graph_id_list in project['graph_list'].items():
+                right_content_4 += [
+                    # dbc.Col([
+                    #     dbc.Card([
+                    #         dbc.CardHeader('graph_id_list: ', str(graph_id_list)),
+                    #         dbc.CardBody(['body']),
+                    #     ], color='primary', inverse=True)
+                    # ], width=6)
+                    dbc.Col('aaaaa', width=3),
+                    dbc.Col('bbbbb', width=3),
+                    dbc.Col('ccccc', width=3),
+                ]
         
         # Multiple Nodes Selected (Merge Datasets)
         elif num_selected > 1:
@@ -596,7 +643,7 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, n_clicks_butto
                 dataset_id_list = [node['id'] for node in selectedNodeData]
                 dataset = merge_metadata(dataset_id_list)
                 right_content_2 = [display_metadata(dataset, id, disabled=True)]
-                
+            
         range_min = 1
         range_max = len(data)
         if triggered != id('range'):
@@ -608,7 +655,8 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, n_clicks_butto
 
 
     return (right_header_1, right_header_2_style,
-            right_content_0, right_content_1, right_content_2, right_content_3, right_content_0_style, right_content_1_style, right_content_2_style, right_content_3_style,
+            right_content_0, right_content_1, right_content_2, right_content_3, right_content_4,
+            right_content_0_style, right_content_1_style, right_content_2_style, right_content_3_style, right_content_4_style,
             merge_type_container_style, range_min, range_max, range_value,
             merge_idRef_style, merge_options, merge_value)
 
@@ -730,28 +778,22 @@ def cytoscape_triggers(n_clicks_reset_layout, n_clicks_merge, n_clicks_clonemeta
 
 
 # Disable/Enable Right Panel Buttons
-# @app.callback(
-#     Output(id('button_save'), 'disabled'),
-#     Output(id('button_chart'), 'disabled'),
-#     Output(id('button_remove'), 'disabled'),
-#     Input(id('tabs_node'), 'active_tab'),
-#     Input('url', 'pathname'),
-#     State(id('cytoscape'), 'selectedNodeData'),
-# )
-# def button_disable_enable(active_tab, pathname, selectedNodeData):
-#     button1, button2, button3, button4 = True, True, True, True    
-#     num_selected = len(selectedNodeData)
+@app.callback(
+    Output(id('button_save'), 'disabled'),
+    Output(id('button_chart'), 'disabled'),
+    Output(id('button_remove'), 'disabled'),
+    Input(id('cytoscape'), 'selectedNodeData'),
+)
+def button_disable_enable(selectedNodeData):
+    button1, button2, button3 = True, True, True
+    num_selected = len(selectedNodeData)
 
-#     if num_selected == 1:
-#         if active_tab == 'tab1':
-#             button1, button2, button3, button4 = True, False, False, False
-#         elif active_tab == 'tab2':
-#             button1, button2, button3, button4 = True, False, False, False
-    
-#     elif num_selected > 1:
-#         pass
+    if num_selected == 1:
+        button1, button2, button3 = False, False, False
+    elif num_selected > 1:
+        pass
 
-#     return button1, button2, button3, button4 
+    return button1, button2, button3 
 
 
 # Preview Dataset from Data Catalog
@@ -779,6 +821,7 @@ def preview_dataset(n_clicks_list, node_id_list):
 # Load Dataset Config Options
 @app.callback(
     Output(id('config_options_fileupload'), 'style'),
+    Output(id('config_options_pastetext'), 'style'),
     Output(id('config_options_restapi'), 'style'),
     Output(id('config_options_datacatalog'), 'style'),
     Output(id('table_datacatalog'), 'children'),
@@ -787,16 +830,17 @@ def preview_dataset(n_clicks_list, node_id_list):
     State(id('button_save'), 'style'),
 )
 def load_dataset_options(dataset_type, search_datacatalog_value, button_save_style):
-    style1, style2, style3 = {'display':' none'}, {'display':' none'}, {'display':' none'}
+    style1, style2, style3, style4 = {'display':' none'}, {'display':' none'}, {'display':' none'}, {'display':' none'}
     datacatalog_search_results = no_update
 
     if dataset_type == 'raw_fileupload':  style1 = {'display':' block'}
-    elif dataset_type == 'raw_restapi': style2 = {'display':' block'}
+    elif dataset_type == 'raw_pastetext': style2 = {'display': 'block'}
+    elif dataset_type == 'raw_restapi': style3 = {'display':' block'}
     elif dataset_type == 'raw_datacatalog':
-        style3 = {'display':' block'}
+        style4 = {'display':' block'}
         datacatalog_search_results = generate_datacatalog_table(id, search_datacatalog_value)
 
-    return style1, style2, style3, datacatalog_search_results
+    return style1, style2, style3, style4, datacatalog_search_results
 
 
 # Enable Editing Data Source name when in Config Tab
@@ -981,25 +1025,31 @@ for option_type in ['header', 'param', 'body']:
     Input(id('cytoscape'), 'selectedNodeData'),
     # Input(id('dropdown_action'), 'children')
 )
-def generate_dropdown_actions(selected_nodes):
-    if selected_nodes is None: return no_update
+def generate_dropdown_actions(selectedNodeData):
+    if selectedNodeData is None: return no_update
     
     # Generate Options
     options = []
-    if len(selected_nodes) == 0:
+    if len(selectedNodeData) == 0:
         options = [dbc.DropdownMenuItem('Add Data Source', href='#', id={'type': id('button_add_data_source'), 'index': 0}, style={'background-color':'#90ee90', 'padding':'10px'})]
-    if len(selected_nodes) == 1:
-        options = [
-            dbc.DropdownMenuItem('Clone Metadata', id={'type': id('button_clonemetadata'), 'index': 0}, href='#', style={'background-color':'yellow', 'padding':'10px'}),
-            dbc.DropdownMenuItem('Truncate Dataset', id={'type': id('button_truncatedataset'), 'index': 0}, href='#', style={'background-color':'yellow', 'padding':'10px'}),
-            
-            # dbc.DropdownMenuItem('Impute Data', href='apps/impute_data', style={'background-color':'yellow', 'padding':'10px'}),
-            # dbc.DropdownMenuItem('Extract & Transform', href='apps/extract_transform', style={'background-color':'yellow', 'padding':'10px'}),
-            dbc.DropdownMenuItem(divider=True),
-            dbc.DropdownMenuItem('Remove', href='#', id={'type': id('button_remove'), 'index': 0}, style={'background-color':'#FF7F7F', 'padding':'10px', 'text-align':'center'}),
-        ]
-    elif len(selected_nodes) > 1 and all(not node['type'].startswith('action') for node in selected_nodes):
+    if len(selectedNodeData) == 1:
+        if selectedNodeData[0]['type'] == 'raw':
+            options = [
+                dbc.DropdownMenuItem('No Data Found', href='#', className='action_dropdown', disabled=True),
+            ]
+        else:
+            options = [
+                dbc.DropdownMenuItem('Clone Metadata', id={'type': id('button_clonemetadata'), 'index': 0}, href='#', className='action_dropdown'),
+                dbc.DropdownMenuItem('Truncate Dataset', id={'type': id('button_truncatedataset'), 'index': 0}, href='#', className='action_dropdown'),
+                dbc.DropdownMenuItem('Feature Engineering', href='/apps/feature_engineering', className='action_dropdown'),
+                dbc.DropdownMenuItem('Impute Data', href='/apps/impute_data', className='action_dropdown'),
+                
+                dbc.DropdownMenuItem(divider=True),
+                dbc.DropdownMenuItem('Remove', href='#', id={'type': id('button_remove'), 'index': 0}, style={'background-color':'#FF7F7F', 'padding':'10px', 'text-align':'center'}),
+            ]
+        
+
+    elif len(selectedNodeData) > 1 and all(not node['type'].startswith('action') for node in selectedNodeData):
         options = [dbc.DropdownMenuItem("Merge Datasets", href='#', style={'background-color':'yellow', 'padding':'10px'}, id={'type': id('button_merge'), 'index': 0})]
 
     return options
-

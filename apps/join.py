@@ -227,7 +227,7 @@ def add_dataset(n_clicks_list, col_id_list):
 #     return json_dict, columns
 
 
-# @app.callback(Output('modal_confirm', "children"),
+# @app.callback(Output('modal', "children"),
 #                 Input(id('button_confirm'), 'n_clicks'),
 #                 State(id('datatable_3'), 'data'),
 #                 State(id('join_type'), 'value'),

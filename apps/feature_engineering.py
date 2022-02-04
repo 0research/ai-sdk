@@ -27,12 +27,11 @@ from pathlib import Path
 import uuid
 from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
+from dash_extensions import EventListener
 
-
-id = id_factory('extract_transform')
+id = id_factory('feature_engineering')
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
-
 
 
 
@@ -42,15 +41,28 @@ layout = html.Div([
     dbc.Container([
         # Datatable
         dbc.Row([
-            dbc.Col(html.H5('Step 1: Select Column'), width=12),
-            dbc.Col(generate_datatable(id('datatable'), col_selectable="multi", height='450px', metadata_id=id('metadata'), selected_column_id=id('selected_columns')), width=9),
+            # dbc.Col(html.H5('Step 1: Select Column'), width=12),
             dbc.Col([
-               dbc.Card([
-                    dbc.CardHeader('Metadata'),
-                    dbc.CardBody(id=id('metadata')),
-                ]),
-            ], className='text-center bg-light', width=3, style={'height':'400px'}), 
-        ]),
+                dbc.Card([
+                    dbc.CardHeader(html.H6('Dataset', style={'text-align':'center', 'margin':'1px'})),
+                    dbc.CardBody([
+                        EventListener(
+                            id=id('el_datatable'),
+                            events=[{"event": "click", "props": ["srcElement.className", "srcElement.innerText"]}],
+                            logging=True,
+                            children=generate_datatable(id('datatable'), col_selectable="multi", height='320px', metadata_id=id('metadata'), selected_column_id=id('selected_columns')),
+                        )
+                    ])
+                ])
+                
+            ], width=9),
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader(html.H6('Metadata', style={'text-align':'center', 'margin':'1px'})),
+                    dbc.CardBody([html.Div(id=id('metadata'))]),
+                ])
+            ]),
+        ], style={'height':'320px'}),
         # Body
         dbc.Row([
             dbc.CardHeader(html.H5('Step 2: Select Function')),
@@ -60,13 +72,13 @@ layout = html.Div([
 
             dbc.Col([
                 dbc.Card([
-                    dbc.CardHeader(html.H6('Before')),
+                    dbc.CardHeader(html.H6('Before', style={'text-align':'center', 'margin':'1px'})),
                     dbc.CardBody(html.Div(generate_datatable(id('datatable2'), height='380px')), id=id('before'), style={'min-height':'300px'}),
                 ])
             ], width=6),
             dbc.Col([
                 dbc.Card([
-                    dbc.CardHeader(html.H6('After')),
+                    dbc.CardHeader(html.H6('After', style={'text-align':'center', 'margin':'1px'})),
                     dbc.CardBody(html.Div(generate_datatable(id('datatable3'), height='380px')), style={'min-height':'300px'}),
                 ])
             ], width=6),
@@ -88,6 +100,21 @@ layout = html.Div([
 ])
 
 
+
+# dash_extensions Event Listener for datatable (if needed)
+# @app.callback(
+#     Output("modal", "children"),
+#     Input(id('el_datatable'), "event"),
+#     Input(id('el_datatable'), "n_events"),
+# )
+# def click_event(event, n_events):
+#     print(n_events, event)
+#     return no_update
+#     # Check if the click is on the active cell.
+#     if not event or "cell--selected" not in event["srcElement.className"]:
+#         return no_update
+#     # Return the content of the cell.
+#     return f"Cell content is {event['srcElement.innerText']}, number of clicks in {n_events}"
 
 # Datatable
 @app.callback(Output(id('datatable'), "data"),
@@ -137,7 +164,7 @@ def update_selected_column(active, current_style, selected_columns):
 def update_metadata(pathname):
     dataset_id = get_session('dataset_id')
     dataset = get_document('node', dataset_id)
-    return display_metadata(dataset, id, disabled=True, height='390px')
+    return display_metadata(dataset, id, disabled=True, height='300px')
 
 
 # Generate Functions
@@ -189,16 +216,17 @@ def generate_functions(selected_columns):
 
 
 # # Datatable
-# @app.callback(Output(id('datatable2'), "data"),
-#                 Output(id('datatable2'), 'columns'),
-#                 Output(id('datatable3'), "data"),
-#                 Output(id('datatable3'), 'columns'),
-#                 Input(id('dropdown_selected_columns'), "value"), 
-#                 Input(id('dropdown_function'), "value"))
-# def generate_datatable(selected_columns, function):
-#     dataset_id = get_session('dataset_id')
-#     df = get_dataset_data(dataset_id)
-#     columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
-#     options = [{'label':c, 'value':c} for c in df.columns]
+@app.callback(Output(id('datatable2'), "data"),
+                Output(id('datatable2'), 'columns'),
+                Output(id('datatable3'), "data"),
+                Output(id('datatable3'), 'columns'),
+                Input(id('datatable'), "selected_columns"),
+                Input(id('dropdown_function'), "value"))
+def generate_datatable(selected_columns, func):
+    print(selected_columns, func)
+    dataset_id = get_session('dataset_id')
+    df = get_dataset_data(dataset_id)
+    columns = [{"name": i, "id": i, "deletable": False, "selectable": False} for i in df.columns]
+    options = [{'label':c, 'value':c} for c in df.columns]
 
-#     return df.to_dict('records'), columns, df.to_dict('records'), columns
+    return df.to_dict('records'), columns, df.to_dict('records'), columns

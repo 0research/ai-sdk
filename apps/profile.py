@@ -224,7 +224,7 @@ def generate_details(_, _2, _3, _4):
 
 # Button Confirm
 @app.callback(Output('url', 'pathname'),
-                Output('modal_confirm', 'children'),
+                Output('modal', 'children'),
                 Input(id('button_confirm'), 'n_clicks'),
                 State(id('details_store'), 'data'))
 def button_confirm(n_clicks, details):

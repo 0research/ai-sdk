@@ -6,7 +6,7 @@ UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"
 SIDEBAR_2_LIST = [
     {'label': 'Modify Metadata',            'value': '#',                       'multiple':False,   'disabled': True,  'className': 'fas fa-search-plus'},
     {'label': 'Impute Data',                'value': '/apps/impute_data',       'multiple':False,   'disabled': False,   'className': 'fas fa-search-plus'},
-    {'label': 'Extract & Transform',        'value': '/apps/extract_transform', 'multiple':False,   'disabled': False,   'className': 'fas fa-search-plus'},
+    {'label': 'Extract & Transform',        'value': '/apps/feature_engineering', 'multiple':False,   'disabled': False,   'className': 'fas fa-search-plus'},
     
     {'label': 'Merge Datasets',             'value': '#',                       'multiple':True,    'disabled': False,  'className': 'fas fa-search-plus'},
 

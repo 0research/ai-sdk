@@ -251,7 +251,7 @@ def button_add_impute(n_clicks, column, impute_action):
 
 
 # Button Confirm
-@app.callback(Output('modal_confirm', 'children'),
+@app.callback(Output('modal', 'children'),
                 Input(id('button_confirm'), 'n_clicks'),
                 State('current_dataset', 'data'),
                 State('current_node', 'data'),

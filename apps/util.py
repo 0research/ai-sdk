@@ -200,18 +200,18 @@ def display_metadata(dataset, id, disabled=True, height='750px'):
     options_datatype = [{'label': d, 'value': d} for d in DATATYPE_LIST]
     return (
         html.Div([
-            html.Div([
-                dbc.InputGroup([
-                    dbc.InputGroupText("Dataset ID", style={'width':'25%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'10px'}),
-                    dbc.Input(disabled=True, value=dataset['id'], style={'width':'70%', 'font-size': '12px', 'text-align':'center'}),
-                    dbc.InputGroup([
-                        dbc.InputGroupText("Features", style={'width':'25%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'10px'}),
-                        dbc.Input(disabled=True, value=0, style={'width':'25%', 'font-size': '12px', 'text-align':'center'}),
-                        dbc.InputGroupText("Samples", style={'width':'25%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'10px'}),
-                        dbc.Input(disabled=True, value=0, style={'width':'25%', 'font-size': '12px', 'text-align':'center'}),
-                    ]),
-                ], className="mb-3 lg"),
-            ]),
+            # html.Div([
+            #     dbc.InputGroup([
+            #         dbc.InputGroupText("Dataset ID", style={'width':'25%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'10px'}),
+            #         dbc.Input(disabled=True, value=dataset['id'], style={'width':'70%', 'font-size': '12px', 'text-align':'center'}),
+            #         dbc.InputGroup([
+            #             dbc.InputGroupText("Features", style={'width':'25%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'10px'}),
+            #             dbc.Input(disabled=True, value=0, style={'width':'25%', 'font-size': '12px', 'text-align':'center'}),
+            #             dbc.InputGroupText("Samples", style={'width':'25%', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'10px'}),
+            #             dbc.Input(disabled=True, value=0, style={'width':'25%', 'font-size': '12px', 'text-align':'center'}),
+            #         ]),
+            #     ], className="mb-3 lg"),
+            # ]),
             html.Table(
                 [
                     html.Tr([
@@ -233,7 +233,7 @@ def display_metadata(dataset, id, disabled=True, height='750px'):
                     ], id={'type':id('row'), 'index': i}) for i, (col, dtype) in enumerate(features.items())
                 ],
             className='metadata_table')
-        ], style={'overflow-x':'scroll', 'overflow-y':'auto', 'height':height})
+        ], style={'overflow-x':'auto', 'overflow-y':'auto', 'height':height})
     )
 
 def display_action(action):
@@ -413,6 +413,15 @@ def generate_manuafilelupload_details(id):
             html.Li('List of JSONs'),
         ], style={'text-align':'center', 'font-size':'11px', 'margin': '0px'})
         # html.Div(dcc.Dropdown(options=[], value=[], id=id('uploaded_files'), multi=True, clearable=True, placeholder=None, style={'height':'85px', 'overflow-y':'auto'}), style={'width':'100%'}),
+    ]
+
+def generate_pastetext(id):
+    return [
+        dbc.Textarea(size="lg", placeholder="Paste Text Here", style={'height':'220px', 'text-align':'center'}),
+        dbc.InputGroup([
+            dbc.InputGroupText('Delimiter', style={'width':'30%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'12px'}),
+            dbc.Input(id=id('delimiter'), placeholder='Auto Detect', style={'text-align':'center'}),
+        ]),
     ]
 
 
@@ -607,13 +616,15 @@ def process_restapi(method, url, header_key_list, header_value_list, param_key_l
         df = pd.DataFrame(result)
     # JSON
     else:
+        print('3'*100)
+        pprint(result)
         result = do_flatten(json.loads(result))
         for row in result:
             for k, v in row.items():
                 if row[k] == []:
                     row[k] = ''
         df = json_normalize(result)
-    
+    print('2'*100)
     df = df.fillna('')
     details = details = {'method': method, 'url': url, 'header': header, 'param':param, 'body':body}
 

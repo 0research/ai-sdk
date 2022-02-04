@@ -19,6 +19,6 @@ The list below are several use cases that may demonstrate potential use cases of
 * **Target Users:** Crypto Investors
 
 
-### 4) 
+### 4) Analyze if project is a scam via token holdings/distribution 
 * **Goal:**  
 * **Target Users:** 

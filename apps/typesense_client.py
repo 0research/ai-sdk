@@ -229,6 +229,7 @@ def save_dataset_config(dataset_id, df, name, description, documentation, type, 
 def add_dataset(project_id, dataset_id):
     project = get_document('project', project_id)
     if dataset_id not in [d['id'] for d in project['node_list']]:
+        # If node position is taken, move default initial position
         x, y = 0 ,0
         while True:
             for node in project['node_list']:
@@ -238,8 +239,8 @@ def add_dataset(project_id, dataset_id):
                     x += 20
                     y += 20
             break
-
         project['node_list'].append({'id': dataset_id, 'position': {'x': x, 'y': y}})
+        
         # Upload to Typesense
         upsert('project', project)
         return True
@@ -378,7 +379,7 @@ def merge(project_id, source_id_list, dataset_data_store, dataset, details):
     dataset['id'] =  dataset_id # Overwrite previous dataset ID
     dataset['type'] = 'processed'
     dataset['details'] = None
-    dataset['name'] = 'New Dataset'
+    dataset['name'] = ''
     
     # Upload
     upsert('project', project)

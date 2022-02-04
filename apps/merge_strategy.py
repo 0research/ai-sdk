@@ -226,7 +226,7 @@ def generate_json(json_history_1, json_history_2):
 
 
 
-# @app.callback(Output('modal_confirm', 'children'),
+# @app.callback(Output('modal', 'children'),
 #                 Input(id('button_confirm'), 'n_clicks'),
 #                 State('current_dataset', 'data'),
 #                 State('current_node', 'data'),

@@ -52,13 +52,13 @@ layout = dbc.Container(
         html.Div(id="event"),
         
 
-        # # Event Listener 2
-        # EventListener(
-        #         id="el2",
-        #         events=[{"event": "click", "props": ["srcElement.className", "srcElement.value", "srcElement.innerText"]}],
-        #         logging=True,
-        #         children=cytoscape,
-        # ),
+        # Event Listener 2
+        EventListener(
+                id="el2",
+                events=[{"event": "click", "props": ["srcElement.className", "srcElement.value", "srcElement.innerText"]}],
+                logging=True,
+                children=cytoscape,
+        ),
 
     ]
 )

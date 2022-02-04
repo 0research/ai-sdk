@@ -2,6 +2,9 @@ import dash
 import dash_bootstrap_components as dbc
 from dash_extensions.enrich import DashProxy, MultiplexerTransform
 import sentry_sdk
+import socket
+
+
 
 # Sentry
 sentry_sdk.init(
