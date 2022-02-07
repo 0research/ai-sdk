@@ -141,7 +141,7 @@ layout = html.Div([
                     html.Div(dbc.Tabs([], id=id("tabs_node")), style={'float':'left', 'text-align':'left', 'display':'inline-block'}),
                     html.Div([
                         dbc.Button(html.I(n_clicks=0, className='fas fa-check'), id=id('button_perform_action'), disabled=True, className='btn btn-warning', style={'margin-left':'1px', 'display':'none'}),
-                        dbc.Button(html.I(n_clicks=0, className='fas fa-chart-area'), id=id('button_chart'), disabled=True, className='btn btn-success', style={'margin-left':'1px'}),
+                        dbc.Button(html.I(n_clicks=0, className='fas fa-chart-area'), id=id('button_chart'), disabled=True, className='btn btn-success', style={'margin-left':'1px', 'display': 'none'}),
                         dbc.Button(html.I(n_clicks=0, className='fas fa-times'), id=id('button_remove'), disabled=True, className='btn btn-danger', style={'margin-left':'1px', 'display':'none'}),
                         dbc.Tooltip('Perform Action', target=id('button_perform_action')),
                         dbc.Tooltip('Chart', target=id('button_chart')),
@@ -205,7 +205,7 @@ layout = html.Div([
                                     {"label": "GraphQL", "value": "raw_graphql", 'disabled':True},
                                     {"label": "Search Data Catalog", "value": "raw_datacatalog"},
                                 ], value='raw_fileupload', style={'text-align':'center', 'font-size':'15px'}),
-                            ], style={'margin-bottom':'10px'}),
+                            ], id=id('dropdown_datasourcetype_container'), style={'margin-bottom':'10px', 'display': 'none'}),
 
                             html.Div(generate_manuafilelupload_details(id), style={'display':'none'}, id=id('config_options_fileupload')),
                             html.Div(generate_pastetext(id), style={'display':'none'}, id=id('config_options_pastetext')),
@@ -221,13 +221,8 @@ layout = html.Div([
                     dbc.Row([
                         dbc.Col(dbc.Button(children='Plot Graph', id=id('button_add_graph'), href='/apps/plot_graph', color='warning', style={'width':'100%', 'font-size':'22px'}), width={"size": 8, "offset": 2}),
                     ], id=id('right_content_4'), style={'display':'none'}),
-                    
-                    dbc.Row([
-                        dbc.Col('aaaaa', width=3),
-                        dbc.Col('bbbbb', width=3),
-                        dbc.Col('ccccc', width=3),
-                    ]),
-                ], className='bg-dark', inverse=True, style={'min-height':'780px', 'max-height':'780px'}),
+
+                ], className='bg-dark', inverse=True, style={'min-height':'780px', 'max-height':'780px', 'overflow-y':'auto'}),
 
             ], width=6),
         ]),
@@ -509,6 +504,8 @@ def generate_tabs(selectedNodeData, n_clicks_button_save_config,
     Output(id('merge_idRef'), 'options'),
     Output(id('merge_idRef'), 'value'),
 
+    Output(id('dropdown_datasourcetype_container'), 'style'),
+
     Input(id('tabs_node'), 'active_tab'),
     Input(id('range'), 'value'),
     Input(id('merge_type'), 'value'),
@@ -532,6 +529,7 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, n_clicks_butto
     right_content_0, right_content_1, right_content_2, right_content_3 = no_update, no_update, no_update, no_update
     right_content_0_style['display'], right_content_1_style['display'], right_content_2_style['display'], right_content_3_style['display'], right_content_4_style['display'] = 'none', 'none', 'none', 'none', 'none'
     range_min, range_max = None, None
+    dropdown_datasourcetype_container_style = {'display': 'none'}
     num_selected = len(selectedNodeData)
     
     merge_type_container_style = {'display': 'none'}
@@ -596,20 +594,21 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, n_clicks_butto
             project_id = get_session('project_id')
             project = get_document('project', project_id)
             
-            project['graph_list'] = {'node_id1': ['graph_id1', 'graph_id2'], 'node_id2': ['abc', 'sss'] }
-
+            project['graph_list'] = {'node_id1': ['graph_id1', 'graph_id2'], 'node_id2': ['abc', 'sss'], 'node_id3': ['abc', 'sss'], 'node_id4': ['abc', 'sss'], 'node_id5': ['abc', 'sss'] , 'node_id6': ['abc', 'sss'] }
+            # TODO add graph typesense table
             for node_id, graph_id_list in project['graph_list'].items():
+                print(node_id, graph_id_list)
                 right_content_4 += [
-                    # dbc.Col([
-                    #     dbc.Card([
-                    #         dbc.CardHeader('graph_id_list: ', str(graph_id_list)),
-                    #         dbc.CardBody(['body']),
-                    #     ], color='primary', inverse=True)
-                    # ], width=6)
-                    dbc.Col('aaaaa', width=3),
-                    dbc.Col('bbbbb', width=3),
-                    dbc.Col('ccccc', width=3),
+                    dbc.Col([
+                        dbc.Card([
+                            dbc.CardHeader('graph_id_list: ', str(graph_id_list)),
+                            dbc.CardBody(['body'], style={'height':'220px'}),
+                        ], color='primary', inverse=True)
+                    ], style={'width':'48%', 'display':'inline-block', 'text-align':'center', 'margin':'3px 3px 3px 3px'})
                 ]
+
+            if selectedNodeData[0]['type'].startswith('raw'):
+                dropdown_datasourcetype_container_style['display'] = 'flex'
         
         # Multiple Nodes Selected (Merge Datasets)
         elif num_selected > 1:
@@ -658,7 +657,8 @@ def select_node(active_tab, range_value, merge_type, merge_idRef, n_clicks_butto
             right_content_0, right_content_1, right_content_2, right_content_3, right_content_4,
             right_content_0_style, right_content_1_style, right_content_2_style, right_content_3_style, right_content_4_style,
             merge_type_container_style, range_min, range_max, range_value,
-            merge_idRef_style, merge_options, merge_value)
+            merge_idRef_style, merge_options, merge_value, 
+            dropdown_datasourcetype_container_style)
 
 
 
@@ -1035,7 +1035,7 @@ def generate_dropdown_actions(selectedNodeData):
     if len(selectedNodeData) == 1:
         if selectedNodeData[0]['type'] == 'raw':
             options = [
-                dbc.DropdownMenuItem('No Data Found', href='#', className='action_dropdown', disabled=True),
+                dbc.DropdownMenuItem('No Data Source', href='#', className='action_dropdown', disabled=True),
             ]
         else:
             options = [

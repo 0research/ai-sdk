@@ -35,9 +35,9 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 
 options_graph = [
-    {'label':'Line Graph', 'value':'line'},
     {'label':'Pie Plot', 'value':'pie'},
     {'label':'Bar Plot', 'value':'bar'},
+    {'label':'Line Graph', 'value':'line'},
     {'label':'Scatter Plot', 'value':'scatter'},
     # {'label':'Box Plot', 'value':'box'},
 ]
@@ -47,34 +47,76 @@ options_graph = [
 layout = html.Div([
     dbc.Container([
         dbc.Row([
-            # Graph
-            dbc.Col([dbc.Select(id=id('dropdown_graph_type'), options=options_graph, value=options_graph[0]['value'], style={'text-align':'center'})], width=12),
-            dbc.Col(children=[], id=id('graph'), width=12),
-
-            # Graph Options
-            dbc.Col(html.H5('Set Graph Settings'), width=12, className='text-center', style={'margin': '1px'}),
-            
-
+            dbc.Col(html.H5('Step 1: Enter Story Details'), width=12),
             dbc.Col([
                 dbc.InputGroup([
                     dbc.InputGroupText("Name", style={'width':'100px', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
                     dbc.Input(id=id('input_story_name'), style={'text-align':'center'}),
+                    dbc.Checklist(
+                        options=[
+                            {"label": "Stateful", "value": True}
+                        ],
+                        value=[],
+                        id="switches-inline-input",
+                        inline=True,
+                        switch=True,
+                        style={'width':'190px', 'text-align':'left'}
+                    ),
                 ]),
                 dbc.InputGroup([
                     dbc.InputGroupText("Description", style={'width':'100px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'12px'}),
                     dbc.Textarea(id=id('input_story_description'), placeholder='Enter Story Description (Optional)', style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
                 ]),
+                dbc.InputGroup([
+                    dbc.InputGroupText("Delimiter", style={'width':'100px', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                    dbc.Select(options=[{'label': 'New Story', 'value':'new'}, {'label': 'Story 1', 'value':'story1', 'disabled':True}, {'label': 'Story 2', 'value':'story2', 'disabled':True},], id=id('dropdown_story'), value='new', style={'font-size': '12px'}),
+                ]),
             ], width={"size": 8, 'offset': 2}),
             dbc.Col(html.Br()),
         ], className='text-center bg-light'),
 
-        # Save 
+        dbc.Row([dbc.Col(html.H5('Step 2: Set Graph Settings'), width=12),], className='text-center', style={'margin': '1px'}),
+        dbc.Row(children=[], id=id('graphs')),
+        
+        dbc.Row(dbc.Col([
+            html.Hr(),
+            dbc.Button('Add Graph', id=id('add_graph'), style={'width':'100%'}, className='btn btn-warning'),
+            html.Hr(),
+        ], width={'size':6, 'offset':3})),
+
         dbc.Row([
-            dbc.Col(dbc.Button('Save Graph', id=id('button_save_graph'), color='primary', style={'width':'100%', 'margin-right':'1px', 'display':'block'}), width={'size':10, 'offset':1}),
+            dbc.Col(dbc.Button(html.H6('Save Story'), className='btn-primary', id=id('button_plot_graph'), href='/apps/dashboard', style={'width':'100%'}), width={'size':10, 'offset':1}),
         ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
         
     ], fluid=True, id=id('content')),
 ])
+
+
+# # Generate New Graph
+# def add_graph(i):
+#     return [
+#         dbc.Col(dbc.Input(id={'type': id('graph_description'), 'index': i}, placeholder='Graph Description (Optional)', style={'text-align':'center', 'height':'40px'})),
+#         dbc.Col(dbc.Select(options=options_graph, id={'type': id('dropdown_graph_type'), 'index': i}, value=None, placeholder='Select Graph', style={'text-align':'center'}), width=12),
+#         html.Hr(),
+#         dbc.Col([], id={'type': id('graph_options'), 'index': i}, width=4),
+#         dbc.Col(dcc.Graph(id={'type': id('graph'), 'index': i}, style={'height':'550px'}), width=8),
+#     ]
+# @app.callback(Output(id('graphs'), 'children'),
+#                 Input('url', 'pathname'),
+#                 Input(id('add_graph'), 'n_clicks'),
+#                 State(id('graphs'), 'children'))
+# def generate_graph(pathname, n_clicks, graphs):
+#     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+#     # On Page Loadfap
+#     if triggered == '':
+#         return add_graph(0)
+
+#     # On Button Add Graph
+#     else:
+#         return graphs + add_graph(len(graphs)//5) # 5 elements in add_graph()
+
+
+
     
 
 
