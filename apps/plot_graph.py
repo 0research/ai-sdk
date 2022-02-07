@@ -52,10 +52,22 @@ layout = html.Div([
             dbc.Col(children=[], id=id('graph'), width=12),
 
             # Graph Options
-            dbc.Col(html.H5('Set Graph Settings'), width=12, className='text-center', style={'margin': '1px'}),
-            
-
             dbc.Col([
+                dbc.Col(html.H5('Select Graph Settings'), width=12, className='text-center', style={'margin': '1px'}),
+                
+                # Line Plot
+                dbc.InputGroup([
+                    dbc.InputGroupText("X Axis", style={'width':'100%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                    dbc.Select(id=id('x_axis'), style={'display': 'block'}),
+                ]),
+                dbc.InputGroup([
+                    dbc.InputGroupText("Y Axis", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                    dbc.Button(' - ', id=id('button_remove_param'), color='dark', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+                    dbc.Button(' + ', id=id('button_add_param'), color='dark', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
+                    dbc.Select(id=id('y_axis'), style={'display': 'block'}),
+                ]),
+
+                html.Br(),
                 dbc.InputGroup([
                     dbc.InputGroupText("Name", style={'width':'100px', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
                     dbc.Input(id=id('input_story_name'), style={'text-align':'center'}),
@@ -76,6 +88,50 @@ layout = html.Div([
     ], fluid=True, id=id('content')),
 ])
     
+
+@app.callback(
+    Output(id('x_axis'), 'options'),
+    Output(id('y_axis'), 'value'),
+    Input(id('dropdown_graph_type'), 'value'),
+)
+def select_graph_type(graph_type):
+    dataset_id = get_session('dataset_id')
+    dataset = get_document('node', dataset_id)
+
+    features = dataset['features'].keys()
+    options = [{'label': f, 'value': f} for f in features]
+    print(features, options)
+
+    return options, features[0]
+
+
+@app.callback(
+    Output(id('graph'), 'children'),
+    Input(id('dropdown_graph_type'), 'value'),
+    Input(id('input1'), 'value'),
+    Input(id('input2'), 'value'),
+    Input(id('input3'), 'value'),
+    Input(id('input4'), 'value'),
+)
+def load_graph():
+    dataset_id = get_session('dataset_id')
+    dataset = get_document('node', dataset_id)
+    df = get_dataset_data(dataset_id)
+
+    if graph_type == 'pie':
+        fig = px.pie(df, names=input1, values=input2)
+    elif graph_type == 'bar':
+        fig = px.bar(df, x=input1, y=input2, barmode=input3)
+    elif graph_type == 'line':
+        fig = px.line(df, x=input1, y=input2)
+    elif graph_type == 'scatter':
+        if input3 == '': input3 = None
+        fig = px.scatter(df, x=input1, y=input2, size=input3)
+    elif graph_type == 'box':
+        fig = []
+    
+    return fig
+
 
 
 # # Generate Graph Options
