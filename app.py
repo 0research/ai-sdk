@@ -4,31 +4,34 @@ from dash_extensions.enrich import DashProxy, MultiplexerTransform
 import sentry_sdk
 import socket
 import sys
+import os
 
 
 # Sentry
 print("Print Host Name: ", socket.gethostname())
+try:
+    url = ''
+    # Heroku dev environment
+    if os.environ['environ'] == 'dev':
+        print('in1')
+        sys.stdout.flush()
+        url = 'https://f509336fb98a4a6384eb5118ea40fbd8@o1139317.ingest.sentry.io/6194873'
+    # Heroku production environment
+    elif os.environ['environ'] == 'prod':
+        print('in2')
+        sys.stdout.flush()
+        url = 'https://49cdab632189486d823e4607a3115664@o1139317.ingest.sentry.io/6195029'
 
-url = ''
-# Heroku dev environment
-if socket.gethostname() == '67487414-1163-4262-b655-30b9cca6a56a':
-    print('in1')
-    sys.stdout.flush()
-    url = 'https://f509336fb98a4a6384eb5118ea40fbd8@o1139317.ingest.sentry.io/6194873'
-# Heroku production environment
-elif socket.gethostname() == 'b6ef2409-f785-4d09-8b77-362c0f446c20':
-    print('in2')
-    sys.stdout.flush()
-    url = 'https://49cdab632189486d823e4607a3115664@o1139317.ingest.sentry.io/6195029'
-
-if url != '':
-    sentry_sdk.init(
-        url,
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
-        # We recommend adjusting this value in production.
-        traces_sample_rate=1.0
-    )
+    if url != '':
+        sentry_sdk.init(
+            url,
+            # Set traces_sample_rate to 1.0 to capture 100%
+            # of transactions for performance monitoring.
+            # We recommend adjusting this value in production.
+            traces_sample_rate=1.0
+        )
+except:
+    pass
 
 
 # External Scripts
