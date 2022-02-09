@@ -34,14 +34,19 @@ id = id_factory('plot_graph')
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 
+# Graph Options
 options_graph = [
     {'label':'Line Graph', 'value':'line'},
-    {'label':'Pie Plot', 'value':'pie'},
     {'label':'Bar Plot', 'value':'bar'},
+    {'label':'Pie Plot', 'value':'pie'},
     {'label':'Scatter Plot', 'value':'scatter'},
     # {'label':'Box Plot', 'value':'box'},
 ]
 
+dataset_id = get_session('dataset_id')
+dataset = get_document('node', dataset_id)
+features = list(dataset['features'].keys())
+options = [{'label': f, 'value': f} for f in features]
 
 # Layout
 layout = html.Div([
@@ -49,22 +54,39 @@ layout = html.Div([
         dbc.Row([
             # Graph
             dbc.Col([dbc.Select(id=id('dropdown_graph_type'), options=options_graph, value=options_graph[0]['value'], style={'text-align':'center'})], width=12),
-            dbc.Col(children=[], id=id('graph'), width=12),
+            dbc.Col(dcc.Graph(id=id('graph')), width=12),
 
             # Graph Options
             dbc.Col([
                 dbc.Col(html.H5('Select Graph Settings'), width=12, className='text-center', style={'margin': '1px'}),
                 
-                # Line Plot
-                dbc.InputGroup([
-                    dbc.InputGroupText("X Axis", style={'width':'100%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-                    dbc.Select(id=id('x_axis'), style={'display': 'block'}),
-                ]),
-                dbc.InputGroup([
-                    dbc.InputGroupText("Y Axis", style={'width':'80%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-                    dbc.Button(' - ', id=id('button_remove_param'), color='dark', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
-                    dbc.Button(' + ', id=id('button_add_param'), color='dark', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
-                    dbc.Select(id=id('y_axis'), style={'display': 'block'}),
+                dbc.Col([
+                    # Line Plot
+                    html.Div([
+                        dbc.InputGroup([
+                            dbc.InputGroupText("X Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                            dbc.Select(id=id('line_x'), options=options, value=features[0], style={'width':'80%', 'text-align': 'center'}),
+                        ]),
+                        dbc.InputGroup([
+                            dbc.InputGroupText("Y Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                            html.Div(dcc.Dropdown(id=id('line_y'), multi=True, options=options, value=features[0]), style={'width':'80%'}),
+                        ]),
+                    ], style={'display': 'none'}, id=id('line_input_container')),
+
+                    # Bar Plot
+                    html.Div([
+
+                    ], style={'display': 'none'}, id=id('bar_input_container')),
+
+                    # Pie Plot
+                    html.Div([
+                        
+                    ], style={'display': 'none'}, id=id('pie_input_container')),
+
+                    # Scatter Plot
+                    html.Div([
+
+                    ], style={'display': 'none'}, id=id('scatter_input_container')),
                 ]),
 
                 html.Br(),
@@ -89,48 +111,83 @@ layout = html.Div([
 ])
     
 
+# Make Inputs visible
 @app.callback(
-    Output(id('x_axis'), 'options'),
-    Output(id('y_axis'), 'value'),
+    Output(id('line_input_container'), 'style'),
+    Output(id('pie_input_container'), 'style'),
+    Output(id('bar_input_container'), 'style'),
+    Output(id('scatter_input_container'), 'style'),
     Input(id('dropdown_graph_type'), 'value'),
+    Input('url', 'pathname')
 )
-def select_graph_type(graph_type):
-    dataset_id = get_session('dataset_id')
-    dataset = get_document('node', dataset_id)
-
-    features = dataset['features'].keys()
-    options = [{'label': f, 'value': f} for f in features]
-    print(features, options)
-
-    return options, features[0]
+def generate_graph_inputs(graph_type, pathname):
+    style1, style2, style3, style4 = no_update, no_update, no_update, no_update
+    if graph_type == 'line': style1 = {'display': 'block'}
+    if graph_type == 'bar': style1 = {'display': 'block'}
+    if graph_type == 'pie': style1 = {'display': 'block'}
+    if graph_type == 'scatter': style1 = {'display': 'block'}
+    return style1, style2, style3, style4
 
 
+# Line Graph Callback
 @app.callback(
-    Output(id('graph'), 'children'),
-    Input(id('dropdown_graph_type'), 'value'),
-    Input(id('input1'), 'value'),
-    Input(id('input2'), 'value'),
-    Input(id('input3'), 'value'),
-    Input(id('input4'), 'value'),
+    Output(id('graph'), 'figure'),
+    Input(id('line_input_container'), 'style'),
+    Input(id('line_x'), 'value'),
+    Input(id('line_y'), 'value'),
 )
-def load_graph():
-    dataset_id = get_session('dataset_id')
-    dataset = get_document('node', dataset_id)
+def display_line_inputs(style, x, y):
+    if style['display'] == 'none': return no_update
+
     df = get_dataset_data(dataset_id)
-
-    if graph_type == 'pie':
-        fig = px.pie(df, names=input1, values=input2)
-    elif graph_type == 'bar':
-        fig = px.bar(df, x=input1, y=input2, barmode=input3)
-    elif graph_type == 'line':
-        fig = px.line(df, x=input1, y=input2)
-    elif graph_type == 'scatter':
-        if input3 == '': input3 = None
-        fig = px.scatter(df, x=input1, y=input2, size=input3)
-    elif graph_type == 'box':
-        fig = []
-    
+    fig = px.line(df, names='id', values='id')
     return fig
+
+
+
+# # Bar Graph Callback
+# @app.callback(
+#     Output(id('graph'), 'figure'),
+#     Input(id('line_input_container'), 'style'),
+#     Input(id('line_x'), 'value'),
+#     Input(id('line_y'), 'value'),
+# )
+# def display_graph_inputs(style):
+#     if style['display'] == 'none': return no_update
+
+
+
+
+# @app.callback(
+#     Output(id('graph'), 'children'),
+#     Input(id('dropdown_graph_type'), 'value'),
+#     Input({'type': id('graph_inputs'), 'type': ALL}, 'value'),
+# )
+# def load_graph(graph_type, input1, input2, input3, input4):
+#     dataset_id = get_session('dataset_id')
+#     dataset = get_document('node', dataset_id)
+#     df = get_dataset_data(dataset_id)
+
+#     print(graph_type, input1, input2, input3, input4)
+
+#     if graph_type == 'pie':
+#         fig = px.pie(df, names=input1, values=input2)
+#     elif graph_type == 'bar':
+#         fig = px.bar(df, x=input1, y=input2, barmode=input3)
+#     elif graph_type == 'line':
+#         fig = px.line(df, x=input1, y=input2)
+#     elif graph_type == 'scatter':
+#         if input3 == '': input3 = None
+#         fig = px.scatter(df, x=input1, y=input2, size=input3)
+#     elif graph_type == 'box':
+#         fig = []
+    
+#     return fig
+
+
+
+
+
 
 
 

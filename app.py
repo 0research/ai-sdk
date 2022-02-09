@@ -7,6 +7,9 @@ import socket
 
 
 # Sentry
+
+print("Print Host Name: ", socket.gethostname())
+
 sentry_sdk.init(
     "https://c44f48907043459dab2a41fecc0216cb@o1119809.ingest.sentry.io/6154603",
 
