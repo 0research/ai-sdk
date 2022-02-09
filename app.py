@@ -19,6 +19,7 @@ try:
     elif os.environ['environ'] == 'prod':
         url = 'https://49cdab632189486d823e4607a3115664@o1139317.ingest.sentry.io/6195029'
 
+    url = 'https://2f3c402e84054cf980924263ba676d25@o1139317.ingest.sentry.io/6195267'
     if url != '':
         sentry_sdk.init(
             url,
