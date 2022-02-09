@@ -3,12 +3,13 @@ import dash_bootstrap_components as dbc
 from dash_extensions.enrich import DashProxy, MultiplexerTransform
 import sentry_sdk
 import socket
-
+import sys
 
 
 # Sentry
 
 print("Print Host Name: ", socket.gethostname())
+sys.stdout.flush()
 
 sentry_sdk.init(
     "https://c44f48907043459dab2a41fecc0216cb@o1119809.ingest.sentry.io/6154603",
