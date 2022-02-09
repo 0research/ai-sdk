@@ -8,18 +8,15 @@ import os
 
 
 # Sentry
-print("Print Host Name: ", socket.gethostname())
 try:
+    print('Running Environment: ', os.environ['environ'])
+    sys.stdout.flush()
     url = ''
     # Heroku dev environment
     if os.environ['environ'] == 'dev':
-        print('in1')
-        sys.stdout.flush()
         url = 'https://f509336fb98a4a6384eb5118ea40fbd8@o1139317.ingest.sentry.io/6194873'
     # Heroku production environment
     elif os.environ['environ'] == 'prod':
-        print('in2')
-        sys.stdout.flush()
         url = 'https://49cdab632189486d823e4607a3115664@o1139317.ingest.sentry.io/6195029'
 
     if url != '':
@@ -30,6 +27,7 @@ try:
             # We recommend adjusting this value in production.
             traces_sample_rate=1.0
         )
+    print('Initialized Sentry')
 except:
     pass
 
