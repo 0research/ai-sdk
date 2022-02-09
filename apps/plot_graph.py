@@ -47,6 +47,7 @@ dataset_id = get_session('dataset_id')
 dataset = get_document('node', dataset_id)
 features = list(dataset['features'].keys())
 options = [{'label': f, 'value': f} for f in features]
+default_val = None if len(features) == 0 else features[0]
 
 # Layout
 layout = html.Div([
@@ -65,11 +66,11 @@ layout = html.Div([
                     html.Div([
                         dbc.InputGroup([
                             dbc.InputGroupText("X Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-                            dbc.Select(id=id('line_x'), options=options, value=features[0], style={'width':'80%', 'text-align': 'center'}),
+                            dbc.Select(id=id('line_x'), options=options, value=default_val, style={'width':'80%', 'text-align': 'center'}),
                         ]),
                         dbc.InputGroup([
                             dbc.InputGroupText("Y Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-                            html.Div(dcc.Dropdown(id=id('line_y'), multi=True, options=options, value=features[0]), style={'width':'80%'}),
+                            html.Div(dcc.Dropdown(id=id('line_y'), multi=True, options=options, value=default_val), style={'width':'80%'}),
                         ]),
                     ], style={'display': 'none'}, id=id('line_input_container')),
 

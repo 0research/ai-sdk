@@ -9,8 +9,6 @@ import os
 
 # Sentry
 try:
-    print('Running Environment: ', os.environ['environ'])
-    sys.stdout.flush()
     url = ''
     # Heroku dev environment
     if os.environ['environ'] == 'dev':
@@ -28,7 +26,8 @@ try:
             # We recommend adjusting this value in production.
             traces_sample_rate=1.0
         )
-    print('Initialized Sentry')
+    print('Initialized Sentry on environ: ', os.environ['environ'])
+    sys.stdout.flush()
 except:
     pass
 
