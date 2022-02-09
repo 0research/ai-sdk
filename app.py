@@ -7,18 +7,25 @@ import sys
 
 
 # Sentry
+# print("Print Host Name: ", socket.gethostname())
+# sys.stdout.flush()
+url = ''
+# Heroku dev environment
+if socket.gethostname() == '67487414-1163-4262-b655-30b9cca6a56a':
+    url = 'https://f509336fb98a4a6384eb5118ea40fbd8@o1139317.ingest.sentry.io/6194873'
+# Heroku production environment
+elif socket.gethostname() == 'b6ef2409-f785-4d09-8b77-362c0f446c20':
+    url = 'https://49cdab632189486d823e4607a3115664@o1139317.ingest.sentry.io/6195029'
 
-print("Print Host Name: ", socket.gethostname())
-sys.stdout.flush()
+if url != '':
+    sentry_sdk.init(
+        url,
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        # We recommend adjusting this value in production.
+        traces_sample_rate=1.0
+    )
 
-sentry_sdk.init(
-    "https://c44f48907043459dab2a41fecc0216cb@o1119809.ingest.sentry.io/6154603",
-
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
-    traces_sample_rate=1.0
-)
 
 # External Scripts
 external_scripts = [
@@ -38,6 +45,7 @@ FA = {
     "referrerpolicy": "no-referrer",
 }
 external_stylesheets = [dbc.themes.BOOTSTRAP, FA, 'https://codepen.io/chriddyp/pen/bWLwgP.css']
+
 
 # App
 app = DashProxy(__name__,
