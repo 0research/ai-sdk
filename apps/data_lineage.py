@@ -1019,37 +1019,37 @@ layout = html.Div([
 
 
 
-# # Generate options in dropdown and button 
-# @app.callback(
-#     Output(id('dropdown_action'), 'children'),
-#     Input(id('cytoscape'), 'selectedNodeData'),
-#     # Input(id('dropdown_action'), 'children')
-# )
-# def generate_dropdown_actions(selectedNodeData):
-#     if selectedNodeData is None: return no_update
+# Generate options in dropdown and button 
+@app.callback(
+    Output(id('dropdown_action'), 'children'),
+    Input(id('cytoscape'), 'selectedNodeData'),
+    # Input(id('dropdown_action'), 'children')
+)
+def generate_dropdown_actions(selectedNodeData):
+    if selectedNodeData is None: return no_update
     
-#     # Generate Options
-#     options = []
-#     if len(selectedNodeData) == 0:
-#         options = [dbc.DropdownMenuItem('Add Data Source', href='#', id={'type': id('button_add_data_source'), 'index': 0}, style={'background-color':'#90ee90', 'padding':'10px'})]
-#     if len(selectedNodeData) == 1:
-#         if selectedNodeData[0]['type'] == 'raw':
-#             options = [
-#                 dbc.DropdownMenuItem('No Data Source', href='#', className='action_dropdown', disabled=True),
-#             ]
-#         else:
-#             options = [
-#                 dbc.DropdownMenuItem('Clone Metadata', id={'type': id('button_clonemetadata'), 'index': 0}, href='#', className='action_dropdown'),
-#                 dbc.DropdownMenuItem('Truncate Dataset', id={'type': id('button_truncatedataset'), 'index': 0}, href='#', className='action_dropdown'),
-#                 dbc.DropdownMenuItem('Feature Engineering', href='/apps/feature_engineering', className='action_dropdown'),
-#                 dbc.DropdownMenuItem('Impute Data', href='/apps/impute_data', className='action_dropdown'),
+    # Generate Options
+    options = []
+    if len(selectedNodeData) == 0:
+        options = [dbc.DropdownMenuItem('Add Data Source', href='#', id={'type': id('button_add_data_source'), 'index': 0}, style={'background-color':'#90ee90', 'padding':'10px'})]
+    if len(selectedNodeData) == 1:
+        if selectedNodeData[0]['type'] == 'raw':
+            options = [
+                dbc.DropdownMenuItem('No Data Source', href='#', className='action_dropdown', disabled=True),
+            ]
+        else:
+            options = [
+                dbc.DropdownMenuItem('Clone Metadata', id={'type': id('button_clonemetadata'), 'index': 0}, href='#', className='action_dropdown'),
+                dbc.DropdownMenuItem('Truncate Dataset', id={'type': id('button_truncatedataset'), 'index': 0}, href='#', className='action_dropdown'),
+                dbc.DropdownMenuItem('Feature Engineering', href='/apps/feature_engineering', className='action_dropdown'),
+                dbc.DropdownMenuItem('Impute Data', href='/apps/impute_data', className='action_dropdown'),
                 
-#                 dbc.DropdownMenuItem(divider=True),
-#                 dbc.DropdownMenuItem('Remove', href='#', id={'type': id('button_remove'), 'index': 0}, style={'background-color':'#FF7F7F', 'padding':'10px', 'text-align':'center'}),
-#             ]
+                dbc.DropdownMenuItem(divider=True),
+                dbc.DropdownMenuItem('Remove', href='#', id={'type': id('button_remove'), 'index': 0}, style={'background-color':'#FF7F7F', 'padding':'10px', 'text-align':'center'}),
+            ]
         
 
-#     elif len(selectedNodeData) > 1 and all(not node['type'].startswith('action') for node in selectedNodeData):
-#         options = [dbc.DropdownMenuItem("Merge Datasets", href='#', style={'background-color':'yellow', 'padding':'10px'}, id={'type': id('button_merge'), 'index': 0})]
+    elif len(selectedNodeData) > 1 and all(not node['type'].startswith('action') for node in selectedNodeData):
+        options = [dbc.DropdownMenuItem("Merge Datasets", href='#', style={'background-color':'yellow', 'padding':'10px'}, id={'type': id('button_merge'), 'index': 0})]
 
-#     return options
+    return options
