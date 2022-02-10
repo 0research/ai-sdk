@@ -229,6 +229,6 @@ def load_project_id(value):
     return '/apps/search', value
 
 if __name__ == '__main__':
-    app.run_server("0.0.0.0", 8889, debug=True)
+    app.run_server("0.0.0.0", 8050, debug=True)
     
 

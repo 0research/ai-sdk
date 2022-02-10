@@ -36,9 +36,9 @@ except:
 external_scripts = [
     # {'src': 'https://cdn.jsdelivr.net/npm/typesense@latest/dist/typesense.min.js', 'type':'module', 'data-main': 'main'},
     # {'src': '/assets/require.js', 'data-main': 'main', 'type':'module'},
-    {'src': '/assets/typesense.js', 'data-main': 'main', 'type':'module'},
+    # {'src': '/assets/typesense.js', 'data-main': 'main', 'type':'module'},
     # {'src': '/assets/typesense.min.js', 'data-main': 'main'},
-    {'src': 'http://requirejs.org/docs/release/2.1.5/comments/require.js', 'type':'module', 'data-main': 'main'}
+    # {'src': 'http://requirejs.org/docs/release/2.1.5/comments/require.js', 'type':'module', 'data-main': 'main'}
 ]
 
 # Stylesheet

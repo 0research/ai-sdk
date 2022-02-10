@@ -45,16 +45,26 @@ options_graph = [
 
 dataset_id = get_session('dataset_id')
 dataset = get_document('node', dataset_id)
-features = list(dataset['features'].keys())
-options = [{'label': f, 'value': f} for f in features]
-default_val = None if len(features) == 0 else features[0]
+features = dataset['features']
+
+options = [{'label': f, 'value': f} for f in features.keys()]
+
+features_nonnumerical = [f for f, dtype in features.items() if dtype in DATATYPE_NONNUMERICAL]
+features_numerical = [f for f, dtype in features.items() if dtype in DATATYPE_NUMERICAL]
+
+default_nonnumerical = None if len(features_nonnumerical) == 0 else features_nonnumerical[0]
+default_numerical = None if len(features_numerical) == 0 else features_numerical[0]
+
+options_nonnumerical =[{'label': f, 'value': f} for f in features_nonnumerical]
+options_numerical = [{'label': f, 'value': f} for f in features_numerical]
+
 
 # Layout
 layout = html.Div([
     dbc.Container([
         dbc.Row([
             # Graph
-            dbc.Col([dbc.Select(id=id('dropdown_graph_type'), options=options_graph, value=options_graph[0]['value'], style={'text-align':'center'})], width=12),
+            dbc.Col([dbc.Select(id=id('dropdown_graph_type'), options=options_graph, value=options_graph[0]['value'], persistence=True, style={'text-align':'center'})], width=12),
             dbc.Col(dcc.Graph(id=id('graph')), width=12),
 
             # Graph Options
@@ -66,17 +76,29 @@ layout = html.Div([
                     html.Div([
                         dbc.InputGroup([
                             dbc.InputGroupText("X Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-                            dbc.Select(id=id('line_x'), options=options, value=default_val, style={'width':'80%', 'text-align': 'center'}),
-                        ]),
-                        dbc.InputGroup([
+                            dbc.Select(id=id('line_x'), options=options_nonnumerical, value=default_nonnumerical, style={'width':'80%', 'text-align': 'center'}),
                             dbc.InputGroupText("Y Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-                            html.Div(dcc.Dropdown(id=id('line_y'), multi=True, options=options, value=default_val), style={'width':'80%'}),
+                            html.Div(dcc.Dropdown(id=id('line_y'), multi=True, options=options_numerical, value=default_numerical), style={'width':'80%'}),
                         ]),
                     ], style={'display': 'none'}, id=id('line_input_container')),
 
                     # Bar Plot
                     html.Div([
-
+                        dbc.InputGroup([
+                            dbc.InputGroupText("X Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                            dbc.Select(id=id('bar_x'), options=options_nonnumerical, value=default_nonnumerical, style={'width':'80%', 'text-align': 'center'}),
+                            dbc.InputGroupText("Y Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                            html.Div(dcc.Dropdown(id=id('bar_y'), multi=True, options=options_numerical, value=default_numerical), style={'width':'80%'}),
+                            dbc.InputGroupText("Mode", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                            html.Div(
+                                dbc.RadioItems(
+                                    options=[{"label": "Stack", "value": 'stack'}, {"label": "Group", "value": 'group'}, ],
+                                    value='stack',
+                                    id=id('bar_barmode'),
+                                    inline=True,
+                                ),
+                            )
+                        ]),
                     ], style={'display': 'none'}, id=id('bar_input_container')),
 
                     # Pie Plot
@@ -115,18 +137,18 @@ layout = html.Div([
 # Make Inputs visible
 @app.callback(
     Output(id('line_input_container'), 'style'),
-    Output(id('pie_input_container'), 'style'),
     Output(id('bar_input_container'), 'style'),
+    Output(id('pie_input_container'), 'style'),
     Output(id('scatter_input_container'), 'style'),
     Input(id('dropdown_graph_type'), 'value'),
     Input('url', 'pathname')
 )
 def generate_graph_inputs(graph_type, pathname):
-    style1, style2, style3, style4 = no_update, no_update, no_update, no_update
+    style1, style2, style3, style4 = {'display': 'none'}, {'display': 'none'}, {'display': 'none'}, {'display': 'none'}, 
     if graph_type == 'line': style1 = {'display': 'block'}
-    if graph_type == 'bar': style1 = {'display': 'block'}
-    if graph_type == 'pie': style1 = {'display': 'block'}
-    if graph_type == 'scatter': style1 = {'display': 'block'}
+    if graph_type == 'bar': style2 = {'display': 'block'}
+    if graph_type == 'pie': style3 = {'display': 'block'}
+    if graph_type == 'scatter': style4 = {'display': 'block'}
     return style1, style2, style3, style4
 
 
@@ -141,21 +163,24 @@ def display_line_inputs(style, x, y):
     if style['display'] == 'none': return no_update
 
     df = get_dataset_data(dataset_id)
-    fig = px.line(df, names='id', values='id')
+    fig = px.line(df, x=x, y=y)
     return fig
 
 
+# Bar Graph Callback
+@app.callback(
+    Output(id('graph'), 'figure'),
+    Input(id('bar_input_container'), 'style'),
+    Input(id('bar_x'), 'value'),
+    Input(id('bar_y'), 'value'),
+    Input(id('bar_barmode'), 'value'),
+)
+def display_graph_inputs(style, x, y, barmode):
+    if style['display'] == 'none': return no_update
 
-# # Bar Graph Callback
-# @app.callback(
-#     Output(id('graph'), 'figure'),
-#     Input(id('line_input_container'), 'style'),
-#     Input(id('line_x'), 'value'),
-#     Input(id('line_y'), 'value'),
-# )
-# def display_graph_inputs(style):
-#     if style['display'] == 'none': return no_update
-
+    df = get_dataset_data(dataset_id)
+    fig = px.bar(df, x=y, y=x, barmode=barmode)
+    return fig
 
 
 

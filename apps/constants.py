@@ -25,9 +25,9 @@ SIDEBAR_3_LIST = [
 
 
 # Datatypes
-DATATYPE_LIST = ['object', 'Int64', 'float64', 'bool', 'datetime64', 'geopoint']
-
-
+DATATYPE_LIST = ['string', 'Int64', 'Float64', 'bool', 'datetime64', 'geopoint']
+DATATYPE_NUMERICAL = ['Int64', 'Float64']
+DATATYPE_NONNUMERICAL = ['string', 'bool', 'datetime64', 'geopoint']
 
 
 # Types of Merges
