@@ -12,12 +12,11 @@ try:
     url = ''
     # Heroku dev environment
     if os.environ['environ'] == 'dev':
-        url = 'https://f509336fb98a4a6384eb5118ea40fbd8@o1139317.ingest.sentry.io/6194873'
+        url = 'https://f38a51d68768466fb9b994ba3d8c0998@o1139317.ingest.sentry.io/6197574'
     # Heroku production environment
     elif os.environ['environ'] == 'prod':
-        url = 'https://49cdab632189486d823e4607a3115664@o1139317.ingest.sentry.io/6195029'
+        url = 'https://b5a59239106f4af79e96d0ace1992117@o1139317.ingest.sentry.io/6197575'
 
-    url = 'https://2f3c402e84054cf980924263ba676d25@o1139317.ingest.sentry.io/6195267'
     if url != '':
         sentry_sdk.init(
             url,
