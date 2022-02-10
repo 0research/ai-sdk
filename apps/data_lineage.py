@@ -103,129 +103,129 @@ layout = html.Div([
         dcc.Interval(id=id('interval_cytoscape'), interval=500, n_intervals=0),
         
         # Left Panel
-        dbc.Row([
-            dbc.Col([
-                # html.H5('Data Lineage (Data Flow Experiments)', style={'text-align':'center', 'display':'inline-block', 'margin':'0px 0px 0px 40px'}),
+        # dbc.Row([
+        #     dbc.Col([
+        #         # html.H5('Data Lineage (Data Flow Experiments)', style={'text-align':'center', 'display':'inline-block', 'margin':'0px 0px 0px 40px'}),
                 
-                html.Div(id=id('last_saved'), style={'display':'inline-block', 'margin':'1px'}),
-                html.Div([
-                    dbc.ButtonGroup([
-                        # dbc.Button('Save Position', id=id('button_save_cytoscape_position'), color='success', n_clicks=0, className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
-                        dbc.Button('Reset Layout', id=id('button_reset_layout'), color='dark', className='btn btn-secondary btn-lg', style={'margin-right':'1px', 'display':'block'}),
-                        # html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'1px'}), 
-                        dbc.DropdownMenu(label="Action", children=[dbc.Spinner(size="sm"), " Loading..."], id=id('dropdown_action'), size='lg', color='warning', style={'display':'inline-block', 'margin':'1px'}),        
-                    ]),
-                    dbc.Spinner(html.Div(id="loading-output"), color="danger"),
-                ], style={'float':'right', 'display':'inline-block'}),
+        #         html.Div(id=id('last_saved'), style={'display':'inline-block', 'margin':'1px'}),
+        #         html.Div([
+        #             dbc.ButtonGroup([
+        #                 # dbc.Button('Save Position', id=id('button_save_cytoscape_position'), color='success', n_clicks=0, className='btn btn-secondary btn-lg', style={'margin-right':'1px'}),
+        #                 dbc.Button('Reset Layout', id=id('button_reset_layout'), color='dark', className='btn btn-secondary btn-lg', style={'margin-right':'1px', 'display':'block'}),
+        #                 # html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'1px'}), 
+        #                 dbc.DropdownMenu(label="Action", children=[dbc.Spinner(size="sm"), " Loading..."], id=id('dropdown_action'), size='lg', color='warning', style={'display':'inline-block', 'margin':'1px'}),        
+        #             ]),
+        #             dbc.Spinner(html.Div(id="loading-output"), color="danger"),
+        #         ], style={'float':'right', 'display':'inline-block'}),
 
-                cyto.Cytoscape(id=id('cytoscape'),
-                                minZoom=0.2,
-                                maxZoom=2,
-                                elements=[], 
-                                selectedNodeData=[],
-                                layout={
-                                    'name': 'preset',
-                                    'fit': True,
-                                    'directed': True,
-                                    'padding': 10,
-                                    'zoom': 1,
-                                },
-                                style={'height': '800px','width': '100%'},
-                                stylesheet=stylesheet)
-            ], width=6),
+        #         cyto.Cytoscape(id=id('cytoscape'),
+        #                         minZoom=0.2,
+        #                         maxZoom=2,
+        #                         elements=[], 
+        #                         selectedNodeData=[],
+        #                         layout={
+        #                             'name': 'preset',
+        #                             'fit': True,
+        #                             'directed': True,
+        #                             'padding': 10,
+        #                             'zoom': 1,
+        #                         },
+        #                         style={'height': '800px','width': '100%'},
+        #                         stylesheet=stylesheet)
+        #     ], width=6),
 
-            # Right Panel
-            dbc.Col([
-                html.Div([
+        #     # Right Panel
+        #     dbc.Col([
+        #         html.Div([
                     
-                    html.Div(dbc.Tabs([], id=id("tabs_node")), style={'float':'left', 'text-align':'left', 'display':'inline-block'}),
-                    html.Div([
-                        dbc.Button(html.I(n_clicks=0, className='fas fa-check'), id=id('button_perform_action'), disabled=True, className='btn btn-warning', style={'margin-left':'1px', 'display':'none'}),
-                        dbc.Button(html.I(n_clicks=0, className='fas fa-chart-area'), id=id('button_chart'), disabled=True, className='btn btn-success', style={'margin-left':'1px', 'display': 'none'}),
-                        dbc.Button(html.I(n_clicks=0, className='fas fa-times'), id=id('button_remove'), disabled=True, className='btn btn-danger', style={'margin-left':'1px', 'display':'none'}),
-                        dbc.Tooltip('Perform Action', target=id('button_perform_action')),
-                        dbc.Tooltip('Chart', target=id('button_chart')),
-                        dbc.Tooltip('Remove Action or Raw Dataset', target=id('button_remove')),
-                    ], style={'float':'right', 'text-align':'right', 'display':'inline-block'}),
-                ], style={'display':'inline-block', 'width':'100%'}),
+        #             html.Div(dbc.Tabs([], id=id("tabs_node")), style={'float':'left', 'text-align':'left', 'display':'inline-block'}),
+        #             html.Div([
+        #                 dbc.Button(html.I(n_clicks=0, className='fas fa-check'), id=id('button_perform_action'), disabled=True, className='btn btn-warning', style={'margin-left':'1px', 'display':'none'}),
+        #                 dbc.Button(html.I(n_clicks=0, className='fas fa-chart-area'), id=id('button_chart'), disabled=True, className='btn btn-success', style={'margin-left':'1px', 'display': 'none'}),
+        #                 dbc.Button(html.I(n_clicks=0, className='fas fa-times'), id=id('button_remove'), disabled=True, className='btn btn-danger', style={'margin-left':'1px', 'display':'none'}),
+        #                 dbc.Tooltip('Perform Action', target=id('button_perform_action')),
+        #                 dbc.Tooltip('Chart', target=id('button_chart')),
+        #                 dbc.Tooltip('Remove Action or Raw Dataset', target=id('button_remove')),
+        #             ], style={'float':'right', 'text-align':'right', 'display':'inline-block'}),
+        #         ], style={'display':'inline-block', 'width':'100%'}),
                   
-                dbc.Card([
-                    # Header 1 (All Tabs)
-                    dbc.CardHeader([html.P(id=id('right_header_1'), style={'text-align':'center', 'font-size':'13px', 'font-weight':'bold', 'float':'left', 'width':'100%'})]),
+        #         dbc.Card([
+        #             # Header 1 (All Tabs)
+        #             dbc.CardHeader([html.P(id=id('right_header_1'), style={'text-align':'center', 'font-size':'13px', 'font-weight':'bold', 'float':'left', 'width':'100%'})]),
 
-                    # Header 2 (Tab 1 only)
-                    dbc.CardHeader([
-                            dbc.Row([
-                                dbc.Col([
-                                    dcc.RangeSlider(
-                                        id=id('range'),
-                                        value=[],
-                                        tooltip={"placement": "bottom", "always_visible": True},
-                                    ),
-                                ]),
-                                dbc.Col([
-                                    dbc.Select(options=options_merge, value=options_merge[0]['value'], id=id('merge_type'), style={'text-align':'center'}),
-                                    dbc.Select(options=[], value=None, id=id('merge_idRef'), style={'text-align':'center', 'display':'none'}),
-                                ], id=id('merge_type_container'), style={'display':'none'}, width=4),
-                                dbc.Col([
-                                    dbc.Button(html.I(n_clicks=0, className='fa fa-table'), color='info', outline=True, id=id('button_tabular'), n_clicks=0),
-                                    dbc.Tooltip('View in Tabular Format', target=id('button_tabular')),
-                                ], width=1),
-                                dbc.Col([dbc.Input(id=id('search_json'), placeholder='Search', style={'text-align':'center'})], width=12),
-                            ]),
-                        ], id=id('right_header_2'), style={'display':'none', 'font-size':'13px'}),
+        #             # Header 2 (Tab 1 only)
+        #             dbc.CardHeader([
+        #                     dbc.Row([
+        #                         dbc.Col([
+        #                             dcc.RangeSlider(
+        #                                 id=id('range'),
+        #                                 value=[],
+        #                                 tooltip={"placement": "bottom", "always_visible": True},
+        #                             ),
+        #                         ]),
+        #                         dbc.Col([
+        #                             dbc.Select(options=options_merge, value=options_merge[0]['value'], id=id('merge_type'), style={'text-align':'center'}),
+        #                             dbc.Select(options=[], value=None, id=id('merge_idRef'), style={'text-align':'center', 'display':'none'}),
+        #                         ], id=id('merge_type_container'), style={'display':'none'}, width=4),
+        #                         dbc.Col([
+        #                             dbc.Button(html.I(n_clicks=0, className='fa fa-table'), color='info', outline=True, id=id('button_tabular'), n_clicks=0),
+        #                             dbc.Tooltip('View in Tabular Format', target=id('button_tabular')),
+        #                         ], width=1),
+        #                         dbc.Col([dbc.Input(id=id('search_json'), placeholder='Search', style={'text-align':'center'})], width=12),
+        #                     ]),
+        #                 ], id=id('right_header_2'), style={'display':'none', 'font-size':'13px'}),
                     
-                    # Right Content 0 (No Active Tab)
-                    html.Div([], id=id('right_content_0'), style={'display':'none'}),
+        #             # Right Content 0 (No Active Tab)
+        #             html.Div([], id=id('right_content_0'), style={'display':'none'}),
 
-                    # Right Content Tab 1 (Data)
-                    html.Div([dbc.CardBody()], id=id('right_content_1'), style={'display':'none'}),
+        #             # Right Content Tab 1 (Data)
+        #             html.Div([dbc.CardBody()], id=id('right_content_1'), style={'display':'none'}),
                     
-                    # Right Content Tab 2 (Metadata)
-                    html.Div([], id=id('right_content_2'), style={'display':'none'}),
+        #             # Right Content Tab 2 (Metadata)
+        #             html.Div([], id=id('right_content_2'), style={'display':'none'}),
 
-                    # Right Body Tab 3 (Config)
-                    html.Div([
-                        dbc.CardBody([
-                            dbc.InputGroup([
-                                dbc.InputGroupText('Description', style={'width':'30%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'12px'}),
-                                dbc.Textarea(id=id('description'), placeholder='Enter Dataset Description', style={'height':'50px', 'text-align':'center'}, persistence=True, persistence_type='session'),
-                            ]),
-                            dbc.InputGroup([
-                                dbc.InputGroupText('Documentation', style={'width':'30%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'12px'}),
-                                dbc.Input(id=id('documentation'), placeholder='Enter Documentation URL (Optional) ', style={'height':'40px', 'min-width':'120px', 'text-align':'center'}, persistence=True, persistence_type='session'),
-                            ]),
-                            html.Hr(),
-                            dbc.InputGroup([
-                                dbc.InputGroupText('Data Source Type', style={'width':'30%', 'font-weight':'bold', 'font-size': '13px', 'padding-left':'12px'}),
-                                dbc.Select(id('select_upload_type'), options=[
-                                    {"label": "File Upload", "value": "raw_fileupload"},
-                                    {"label": "Paste Text", "value": "raw_pastetext"},
-                                    {"label": "Rest API", "value": "raw_restapi"},
-                                    {"label": "GraphQL", "value": "raw_graphql", 'disabled':True},
-                                    {"label": "Search Data Catalog", "value": "raw_datacatalog"},
-                                ], value='raw_fileupload', style={'text-align':'center', 'font-size':'15px'}),
-                            ], id=id('dropdown_datasourcetype_container'), style={'margin-bottom':'10px', 'display': 'none'}),
+        #             # Right Body Tab 3 (Config)
+        #             html.Div([
+        #                 dbc.CardBody([
+        #                     dbc.InputGroup([
+        #                         dbc.InputGroupText('Description', style={'width':'30%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'12px'}),
+        #                         dbc.Textarea(id=id('description'), placeholder='Enter Dataset Description', style={'height':'50px', 'text-align':'center'}, persistence=True, persistence_type='session'),
+        #                     ]),
+        #                     dbc.InputGroup([
+        #                         dbc.InputGroupText('Documentation', style={'width':'30%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'12px'}),
+        #                         dbc.Input(id=id('documentation'), placeholder='Enter Documentation URL (Optional) ', style={'height':'40px', 'min-width':'120px', 'text-align':'center'}, persistence=True, persistence_type='session'),
+        #                     ]),
+        #                     html.Hr(),
+        #                     dbc.InputGroup([
+        #                         dbc.InputGroupText('Data Source Type', style={'width':'30%', 'font-weight':'bold', 'font-size': '13px', 'padding-left':'12px'}),
+        #                         dbc.Select(id('select_upload_type'), options=[
+        #                             {"label": "File Upload", "value": "raw_fileupload"},
+        #                             {"label": "Paste Text", "value": "raw_pastetext"},
+        #                             {"label": "Rest API", "value": "raw_restapi"},
+        #                             {"label": "GraphQL", "value": "raw_graphql", 'disabled':True},
+        #                             {"label": "Search Data Catalog", "value": "raw_datacatalog"},
+        #                         ], value='raw_fileupload', style={'text-align':'center', 'font-size':'15px'}),
+        #                     ], id=id('dropdown_datasourcetype_container'), style={'margin-bottom':'10px', 'display': 'none'}),
 
-                            html.Div(generate_manuafilelupload_details(id), style={'display':'none'}, id=id('config_options_fileupload')),
-                            html.Div(generate_pastetext(id), style={'display':'none'}, id=id('config_options_pastetext')),
-                            html.Div(generate_restapi_details(id), style={'display':'none'}, id=id('config_options_restapi')),
-                            html.Div(generate_datacatalog_options(id), style={'display':'none', 'overflow-y': 'auto', 'max-height':'500px'}, id=id('config_options_datacatalog')),
-                        ]),
-                        dbc.CardFooter([
-                            dbc.Row(dbc.Col(dbc.Button(children='Save', id=id('button_save'), color='warning', style={'width':'100%', 'font-size':'22px'}), width={'size': 8, 'offset': 2})),
-                        ])
-                    ], id=id('right_content_3'), style={'display': 'block'}),
+        #                     html.Div(generate_manuafilelupload_details(id), style={'display':'none'}, id=id('config_options_fileupload')),
+        #                     html.Div(generate_pastetext(id), style={'display':'none'}, id=id('config_options_pastetext')),
+        #                     html.Div(generate_restapi_details(id), style={'display':'none'}, id=id('config_options_restapi')),
+        #                     html.Div(generate_datacatalog_options(id), style={'display':'none', 'overflow-y': 'auto', 'max-height':'500px'}, id=id('config_options_datacatalog')),
+        #                 ]),
+        #                 dbc.CardFooter([
+        #                     dbc.Row(dbc.Col(dbc.Button(children='Save', id=id('button_save'), color='warning', style={'width':'100%', 'font-size':'22px'}), width={'size': 8, 'offset': 2})),
+        #                 ])
+        #             ], id=id('right_content_3'), style={'display': 'block'}),
 
-                    # Right Body Tab 4 (Graph)
-                    dbc.Row([
-                        dbc.Col(dbc.Button(children='Plot Graph', id=id('button_add_graph'), href='/apps/plot_graph', color='warning', style={'width':'100%', 'font-size':'22px'}), width={"size": 8, "offset": 2}),
-                    ], id=id('right_content_4'), style={'display':'none'}),
+        #             # Right Body Tab 4 (Graph)
+        #             dbc.Row([
+        #                 dbc.Col(dbc.Button(children='Plot Graph', id=id('button_add_graph'), href='/apps/plot_graph', color='warning', style={'width':'100%', 'font-size':'22px'}), width={"size": 8, "offset": 2}),
+        #             ], id=id('right_content_4'), style={'display':'none'}),
 
-                ], className='bg-dark', inverse=True, style={'min-height':'780px', 'max-height':'780px', 'overflow-y':'auto'}),
+        #         ], className='bg-dark', inverse=True, style={'min-height':'780px', 'max-height':'780px', 'overflow-y':'auto'}),
 
-            ], width=6),
-        ]),
+        #     ], width=6),
+        # ]),
 
         # Modal (view dataset)
         dbc.Modal(id=id('modal_dataset'), size='xl'),
@@ -1019,37 +1019,37 @@ layout = html.Div([
 
 
 
-# Generate options in dropdown and button 
-@app.callback(
-    Output(id('dropdown_action'), 'children'),
-    Input(id('cytoscape'), 'selectedNodeData'),
-    # Input(id('dropdown_action'), 'children')
-)
-def generate_dropdown_actions(selectedNodeData):
-    if selectedNodeData is None: return no_update
+# # Generate options in dropdown and button 
+# @app.callback(
+#     Output(id('dropdown_action'), 'children'),
+#     Input(id('cytoscape'), 'selectedNodeData'),
+#     # Input(id('dropdown_action'), 'children')
+# )
+# def generate_dropdown_actions(selectedNodeData):
+#     if selectedNodeData is None: return no_update
     
-    # Generate Options
-    options = []
-    if len(selectedNodeData) == 0:
-        options = [dbc.DropdownMenuItem('Add Data Source', href='#', id={'type': id('button_add_data_source'), 'index': 0}, style={'background-color':'#90ee90', 'padding':'10px'})]
-    if len(selectedNodeData) == 1:
-        if selectedNodeData[0]['type'] == 'raw':
-            options = [
-                dbc.DropdownMenuItem('No Data Source', href='#', className='action_dropdown', disabled=True),
-            ]
-        else:
-            options = [
-                dbc.DropdownMenuItem('Clone Metadata', id={'type': id('button_clonemetadata'), 'index': 0}, href='#', className='action_dropdown'),
-                dbc.DropdownMenuItem('Truncate Dataset', id={'type': id('button_truncatedataset'), 'index': 0}, href='#', className='action_dropdown'),
-                dbc.DropdownMenuItem('Feature Engineering', href='/apps/feature_engineering', className='action_dropdown'),
-                dbc.DropdownMenuItem('Impute Data', href='/apps/impute_data', className='action_dropdown'),
+#     # Generate Options
+#     options = []
+#     if len(selectedNodeData) == 0:
+#         options = [dbc.DropdownMenuItem('Add Data Source', href='#', id={'type': id('button_add_data_source'), 'index': 0}, style={'background-color':'#90ee90', 'padding':'10px'})]
+#     if len(selectedNodeData) == 1:
+#         if selectedNodeData[0]['type'] == 'raw':
+#             options = [
+#                 dbc.DropdownMenuItem('No Data Source', href='#', className='action_dropdown', disabled=True),
+#             ]
+#         else:
+#             options = [
+#                 dbc.DropdownMenuItem('Clone Metadata', id={'type': id('button_clonemetadata'), 'index': 0}, href='#', className='action_dropdown'),
+#                 dbc.DropdownMenuItem('Truncate Dataset', id={'type': id('button_truncatedataset'), 'index': 0}, href='#', className='action_dropdown'),
+#                 dbc.DropdownMenuItem('Feature Engineering', href='/apps/feature_engineering', className='action_dropdown'),
+#                 dbc.DropdownMenuItem('Impute Data', href='/apps/impute_data', className='action_dropdown'),
                 
-                dbc.DropdownMenuItem(divider=True),
-                dbc.DropdownMenuItem('Remove', href='#', id={'type': id('button_remove'), 'index': 0}, style={'background-color':'#FF7F7F', 'padding':'10px', 'text-align':'center'}),
-            ]
+#                 dbc.DropdownMenuItem(divider=True),
+#                 dbc.DropdownMenuItem('Remove', href='#', id={'type': id('button_remove'), 'index': 0}, style={'background-color':'#FF7F7F', 'padding':'10px', 'text-align':'center'}),
+#             ]
         
 
-    elif len(selectedNodeData) > 1 and all(not node['type'].startswith('action') for node in selectedNodeData):
-        options = [dbc.DropdownMenuItem("Merge Datasets", href='#', style={'background-color':'yellow', 'padding':'10px'}, id={'type': id('button_merge'), 'index': 0})]
+#     elif len(selectedNodeData) > 1 and all(not node['type'].startswith('action') for node in selectedNodeData):
+#         options = [dbc.DropdownMenuItem("Merge Datasets", href='#', style={'background-color':'yellow', 'padding':'10px'}, id={'type': id('button_merge'), 'index': 0})]
 
-    return options
+#     return options
