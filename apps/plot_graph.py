@@ -46,17 +46,17 @@ options_graph = [
 dataset_id = get_session('dataset_id')
 dataset = get_document('node', dataset_id)
 features = dataset['features']
-
 options = [{'label': f, 'value': f} for f in features.keys()]
 
 features_nonnumerical = [f for f, dtype in features.items() if dtype in DATATYPE_NONNUMERICAL]
 features_numerical = [f for f, dtype in features.items() if dtype in DATATYPE_NUMERICAL]
 
-default_nonnumerical = None if len(features_nonnumerical) == 0 else features_nonnumerical[0]
-default_numerical = None if len(features_numerical) == 0 else features_numerical[0]
-
 options_nonnumerical =[{'label': f, 'value': f} for f in features_nonnumerical]
 options_numerical = [{'label': f, 'value': f} for f in features_numerical]
+
+default = None if len(list(features.keys())) == 0 else list(features.keys())[0]
+default_nonnumerical = None if len(features_nonnumerical) == 0 else features_nonnumerical[0]
+default_numerical = None if len(features_numerical) == 0 else features_numerical[0]
 
 
 # Layout
@@ -103,12 +103,24 @@ layout = html.Div([
 
                     # Pie Plot
                     html.Div([
-                        
+                        dbc.InputGroup([
+                            dbc.InputGroupText("Names", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                            dbc.Select(id=id('pie_names'), options=options_nonnumerical, value=default_nonnumerical, style={'width':'80%', 'text-align': 'center'}),
+                            dbc.InputGroupText("Values", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                            dbc.Select(id=id('pie_values'), options=options_numerical, value=default_numerical, style={'width':'80%', 'text-align': 'center'}),
+                        ]),
                     ], style={'display': 'none'}, id=id('pie_input_container')),
 
                     # Scatter Plot
                     html.Div([
-
+                        dbc.InputGroup([
+                            dbc.InputGroupText("X Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                            dbc.Select(id=id('scatter_x'), options=options, value=default, style={'width':'80%', 'text-align': 'center'}),
+                            dbc.InputGroupText("Y Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                            dbc.Select(id=id('scatter_y'), options=options, value=default, style={'width':'80%', 'text-align': 'center'}),
+                            dbc.InputGroupText("Color", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                            dbc.Select(id=id('scatter_color'), options=options, value=default, style={'width':'80%', 'text-align': 'center'}),
+                        ]),
                     ], style={'display': 'none'}, id=id('scatter_input_container')),
                 ]),
 
@@ -177,11 +189,41 @@ def display_line_inputs(style, x, y):
 )
 def display_graph_inputs(style, x, y, barmode):
     if style['display'] == 'none': return no_update
-
+    # TODO fix x and y
     df = get_dataset_data(dataset_id)
     fig = px.bar(df, x=y, y=x, barmode=barmode)
     return fig
 
+
+# Pie Graph Callback
+@app.callback(
+    Output(id('graph'), 'figure'),
+    Input(id('pie_input_container'), 'style'),
+    Input(id('pie_names'), 'value'),
+    Input(id('pie_values'), 'value'),
+)
+def display_graph_inputs(style, names, values):
+    if style['display'] == 'none': return no_update
+
+    df = get_dataset_data(dataset_id)
+    fig = px.pie(df, names=names, values=values)
+    return fig
+
+
+# Scatter Graph Callback
+@app.callback(
+    Output(id('graph'), 'figure'),
+    Input(id('pie_input_container'), 'style'),
+    Input(id('scatter_x'), 'value'),
+    Input(id('scatter_y'), 'value'),
+    Input(id('scatter_color'), 'value'),
+)
+def display_graph_inputs(style, x, y, color):
+    if style['display'] == 'none': return no_update
+
+    df = get_dataset_data(dataset_id)
+    fig = px.scatter(df, x=x, y=y, color=color)
+    return fig
 
 
 # @app.callback(
