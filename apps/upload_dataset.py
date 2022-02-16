@@ -233,6 +233,6 @@ def upload(n_clicks, dataset_description, dropdown_delimiter, checklist_settings
     remove_header = 'remove_header' in checklist_settings
     upload_dataset(project_id, dataset_id, datatable_data, dataset_description, '', 
                     dropdown_delimiter, remove_space, remove_header)
-    # store_session('dataset_id', dataset_id)
+    # store_session('node_id', dataset_id)
 
     return pathname

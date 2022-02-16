@@ -9,6 +9,7 @@ from pprint import pprint
 from jsondiff import diff, symbols
 import json
 from apps.util import *
+from datetime import datetime
 
 def typesense_client(host, port, protocol, api_key, timeout=2):
     return typesense.Client({
@@ -41,14 +42,14 @@ def generate_schema_auto(name):
 
 def initialize_typesense():
     # Initialize Typesense
-    print('Initializing Typesense. Host: ' + socket.gethostname())
+    print('Initializing Typesense')
     if socket.gethostname() == 'DESKTOP-9IOI6RV':
         client = typesense_client('127.0.0.1', '8108', 'http', 'Hu52dwsas2AdxdE')
     else:
         client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
         # client = typesense_client('typesense', '8108', 'http', 'Hu52dwsas2AdxdE')
 
-    collection_list = ['project', 'node', 'session1'] # TODO Currently all users will use same session. Replace when generate user/session ID
+    collection_list = ['project', 'node', 'graph', 'session1'] # TODO Currently all users will use same session. Replace when generate user/session ID
     for name in collection_list:
         try:
             client.collections.create(generate_schema_auto(name))
@@ -121,16 +122,16 @@ def get_session(key):
         return None
     return session_value
 
-
-
 # Typesense Object
-def Project(id, type, dataset=[], edge=[], experiment=[]):
+def Project(id, type, dataset=[], edge=[], graph_dict={}, experiment=[], node_logs={}):
     return {
         'id': id, 
         'type': type,
         'node_list': dataset,
         'edge_list': edge,
-        'experiment': experiment
+        'graph_dict': graph_dict,
+        'experiment': experiment,
+        'node_logs': node_logs,
     }
 def Node(id, name, description, documentation, type, details={}, features={}, expectation={}, index=[], target=[], graphs=[]):
     return {
@@ -192,36 +193,45 @@ def get_all_collections():
 
 
 
+def update_dataset_particulars():
+    pass
+    # dataset['name'] = name
+    # dataset['description'] = description
+    # dataset['documentation'] = documentation
 
-def save_dataset_config(dataset_id, df, name, description, documentation, type, details):
-    # Dataset
-    if df is None:
-        dataset = get_document('node', dataset_id)
-        dataset['name'] = name
-        dataset['description'] = description
-        dataset['documentation'] = documentation
-    else:
-        dataset = Node(
-                id=dataset_id,
-                name=name,
-                description=description, 
-                documentation=documentation,
-                type=type,
-                details=details, 
-                features={str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)},
-                expectation = {col:None for col in df.columns}, 
-        )
+def update_node_logs(project_id, node_id, log):
+    project = get_document('project', project_id)
     
-    # Upload to Typesense
-    upsert('node', dataset)
+    print(project)
+    # if node_id in project['node_logs']:
+    #     print('inside')
+    #     project['node_logs'][node_id] += [log]
+    # else:
+    #     print('outside')
+    #     project['node_logs'][node_id] = [log]
+    upsert('project', project)
+
+
+def upload_datasource(df, type, details):
     if df is not None:
+        dataset_id = get_session('dataset_id')
+        dataset = get_document('node', dataset_id)
+        dataset['type'] = type
+        dataset['details'] = details
+        dataset['features'] = {str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)}
+        dataset['expectation'] = {col:None for col in df.columns}
+
+        # Upload to Typesense
+        upsert('node', dataset)
+        update_node_logs(get_session('project_id'), dataset_id, (datetime.now(), 'Saved Dataset Config'))
         try:
             client.collections.create(generate_schema_auto(dataset_id))
-        except:
+        except Exception as e:
+            print("Exception: ", e)
             client.collections[dataset_id].delete()
             client.collections.create(generate_schema_auto(dataset_id))
-        jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-        r = client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
+            jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+            r = client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
     
 
 
@@ -389,6 +399,21 @@ def merge(project_id, source_id_list, dataset_data_store, dataset, details):
     client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
 
+
+def add_graph_to_project(project_id, node_id, graph_id):
+    project = get_document('project', project_id)
+    if 'graph_dict' not in project:
+        project['graph_dict'] = {}
+
+    if node_id in project['graph_dict']:
+        project['graph_dict'][node_id].append(graph_id)
+    else:
+        project['graph_dict'][node_id] = [graph_id]
+    upsert('project', project)
+
+
+def upload_graph(graph):
+    upsert('graph', graph)
 
 
 def generate_cytoscape_elements(project_id):

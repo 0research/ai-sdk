@@ -417,7 +417,7 @@ def generate_manuafilelupload_details(id):
 
 def generate_pastetext(id):
     return [
-        dbc.Textarea(size="lg", placeholder="Paste Text Here", style={'height':'220px', 'text-align':'center'}),
+        dbc.Textarea(size="lg", placeholder="Paste Text Here", style={'height':'200px', 'text-align':'center'}),
         dbc.InputGroup([
             dbc.InputGroupText('Delimiter', style={'width':'30%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'12px'}),
             dbc.Input(id=id('delimiter'), placeholder='Auto Detect', style={'text-align':'center'}),
@@ -672,3 +672,30 @@ def merge_dataset_data(dataset_id_list, merge_type='objectMerge', idRef=None):
         data = []
     
     return data
+
+
+
+
+
+
+# Graph Callbacks
+def get_line_figure(x, y):
+    node_id = get_session('node_id')
+    df = get_dataset_data(node_id)
+    fig = px.line(df, x=x, y=y)
+    return fig
+def get_bar_figure(x, y, barmode):
+    node_id = get_session('node_id')
+    df = get_dataset_data(node_id)
+    fig = px.bar(df, x=y, y=x, barmode=barmode)
+    return fig
+def get_pie_figure(names, values):
+    node_id = get_session('node_id')
+    df = get_dataset_data(node_id)
+    fig = px.pie(df, names=names, values=values)
+    return fig
+def get_scatter_figure(x, y, color):
+    node_id = get_session('node_id')
+    df = get_dataset_data(node_id)
+    fig = px.scatter(df, x=x, y=y, color=color)
+    return fig

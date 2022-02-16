@@ -128,7 +128,7 @@ layout = html.Div([
 #     if graph_type is None: graph_type = 'pie'
     
 #     i = graph_type_id['index']
-#     dataset = get_document('node', get_session('dataset_id'))
+#     dataset = get_document('node', get_session('node_id'))
 #     features = dataset['features']
     
 #     columns = [col for col, isNotDeleted in dataset['features'].items() if isNotDeleted is True]
@@ -195,7 +195,7 @@ layout = html.Div([
 #                 State({'type': id('dropdown_graph_type'), 'index': MATCH}, 'id'))
 # def generate_graph_data(input1, input2, input3, input4, graph_type, graph_type_id):
 #     i = graph_type_id['index']
-#     dataset_id = get_session('dataset_id')
+#     dataset_id = get_session('node_id')
 #     dataset = get_document('node', dataset_id)
 #     df = get_dataset_data(dataset_id)
 

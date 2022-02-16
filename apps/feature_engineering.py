@@ -121,7 +121,7 @@ layout = html.Div([
                 Output(id('datatable'), 'columns'),
                 Input('url', 'pathname'))
 def generate_datatable(pathname):
-    dataset_id = get_session('dataset_id')
+    dataset_id = get_session('node_id')
     df = get_dataset_data(dataset_id)
     columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
     
@@ -162,7 +162,7 @@ def update_selected_column(active, current_style, selected_columns):
     Input('url', 'pathname')
 )
 def update_metadata(pathname):
-    dataset_id = get_session('dataset_id')
+    dataset_id = get_session('node_id')
     dataset = get_document('node', dataset_id)
     return display_metadata(dataset, id, disabled=True, height='300px')
 
@@ -195,7 +195,7 @@ def generate_functions(selected_columns):
         {'label': 'None', 'value':'none'},
     ]
 
-    dataset_id = get_session('dataset_id')
+    dataset_id = get_session('node_id')
     dataset = get_document('node', dataset_id)
     if len(selected_columns) == 1:
         print(selected_columns[0], dataset['features'][selected_columns[0]])
@@ -224,7 +224,7 @@ def generate_functions(selected_columns):
                 Input(id('dropdown_function'), "value"))
 def generate_datatable(selected_columns, func):
     print(selected_columns, func)
-    dataset_id = get_session('dataset_id')
+    dataset_id = get_session('node_id')
     df = get_dataset_data(dataset_id)
     columns = [{"name": i, "id": i, "deletable": False, "selectable": False} for i in df.columns]
     options = [{'label':c, 'value':c} for c in df.columns]

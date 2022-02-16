@@ -118,7 +118,7 @@ layout = html.Div([
 @app.callback(Output(id('left_panel_graph'), 'figure'), 
                 Input('url', 'pathname'),)
 def generate_left_bar_graph(pathname):
-    df = get_dataset_data(get_session('dataset_id'))
+    df = get_dataset_data(get_session('node_id'))
     
     # stack_types = ['Valid', 'Missing', 'Invalid'] # TODO add Invalid
     stack_types = ['Valid', 'Missing']
@@ -155,7 +155,7 @@ def generate_selected_column(selected_columns):
 def generate_right_bar_graph(selected_column):
     if selected_column == None or selected_column == []: return no_update
     
-    df = get_dataset_data(get_session('dataset_id'))
+    df = get_dataset_data(get_session('node_id'))
     data = df[selected_column].value_counts(dropna=False)
 
     # TODO add invalid as diff colored bars
@@ -198,7 +198,7 @@ def generate_select_graph(selected_columns, selected_graph, action):
     if selected_columns == None or selected_columns == []: return no_update
     
     # Get Data
-    df = get_dataset_data(get_session('dataset_id'))
+    df = get_dataset_data(get_session('node_id'))
     col = df[selected_columns]
     col_clean = impute_col(col, action)
 

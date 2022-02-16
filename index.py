@@ -90,6 +90,7 @@ navbar = dbc.Navbar([
 sidebar_0 = [
     dbc.NavLink("New Project", href="/apps/new_project", active="exact", className="fas fa-upload"),
     dbc.NavLink("Dashboard", href="/apps/dashboard", active="exact", className="fas fa-chart-pie"),
+    dbc.NavLink("Storyboard", href="/apps/storyboard", active="exact", className="fas fa-chart-pie", disabled=True),
 ]
 sidebar_1 = [
     dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
@@ -150,11 +151,9 @@ app.layout = serve_layout
 @app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
 def display_page(pathname):
     if pathname.startswith('/apps/new_project'): return new_project.layout
-    if pathname.startswith('/apps/new_dataset'): return new_dataset.layout
-    if pathname.startswith('/apps/upload_dataset'): return upload_dataset.layout
     if pathname.startswith('/apps/dashboard'): return dashboard.layout
+    if pathname.startswith('/apps/data_lineage'): return data_lineage.layout
     if pathname.startswith('/apps/profile'): return profile.layout
-    if pathname.startswith('/apps/join'): return join.layout
     if pathname.startswith('/apps/plot_graph'): return plot_graph.layout
     if pathname.startswith('/apps/search'): return search.layout
     if pathname.startswith('/apps/impute_data'): return impute_data.layout
@@ -165,7 +164,7 @@ def display_page(pathname):
     if pathname.startswith('/apps/decomposition'): return decomposition.layout
     
     if pathname.startswith('/apps/remove_duplicate'): return remove_duplicate.layout
-    if pathname.startswith('/apps/data_lineage'): return data_lineage.layout
+   
 
     # if pathname == '/apps/page3': return page3.layout
     # if pathname == '/apps/temporal_merge': return temporal_merge.layout
@@ -194,12 +193,12 @@ def highlight_active_nav(pathname, sidebar):
     return sidebar
 
 
-# Load Datasets Options in dropdown
+# Load Project Options in dropdown
 @app.callback([Output('dropdown_current_project', 'options')],
                 Input('url', 'pathname'),)
 def load_project_dropdown(pathname):
-    dataset_list = search_documents('project')
-    options = [{'label': d['id'], 'value': d['id']} for d in dataset_list]
+    project_list = search_documents('project')
+    options = [{'label': d['id'], 'value': d['id']} for d in project_list]
     return options
 
 # Store Project ID Session on selecting dropdown

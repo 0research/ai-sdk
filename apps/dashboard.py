@@ -81,51 +81,58 @@ layout = html.Div([
         dbc.Row(dbc.Col(html.H1('Dashboard')), style={'text-align':'center'}),
         dbc.Row(html.Div(id=id('graphs')), className="mb-4"),
 
-        # dbc.Col(dbc.Card(card_content('Data Frequency', [
-        #     html.Div(generate_dropdown(id('dropdown_data_frequency'), option_date, placeholder='Select Unit of Time')),
-        #     html.Div(bar_graph(id('bar_graph_data_frequency'), 'stack', showlegend=False)),
-        # ]), color="primary", inverse=True)),
-
-        # dbc.Col(dbc.Card(card_content('Frequency Distribution', [
-        #     html.Div(generate_dropdown(id('dropdown_frequency_distribution'), option_date, placeholder='Select Column')),
-        #     html.Div(bar_graph(id('bar_graph_data_frequency'), 'stack', orientation='h', showlegend=False)),
-        # ]), color="secondary", inverse=True)),
-
-        # dbc.Col(dbc.Card(card_content('Seasonality', [
-        #     html.Div(generate_dropdown(id('dropdown_frequency_distribution'), option_date, placeholder='Select Column')),
-        #     # html.Div(bar_graph(id('bar_graph_data_frequency'), 'stack', orientation='h', showlegend=False)),
-        # ]), color="info", inverse=True)),
+        html.Div(id=id('content'), style={'height':'290px'})
 
     ], fluid=True),
     
 ])
 
 
-# @app.callback(Output(id('bar_graph_invalid'), 'figure'), Input('input_data_store', 'data'), Input('url', 'pathname'))
-# def generate_bar_graph(data, pathname):
-#     df = json_normalize(data)
-    
-#     # stack_types = ['Valid', 'Missing', 'Invalid']
-#     stack_types = ['Valid', 'Missing']
-#     num_col = len(df.columns)
-#     valid_list = list(df.count().to_dict().values())
-#     null_list = list(df.isna().sum().to_dict().values())
-#     # invalid_list = []
 
-#     graph_df = pd.DataFrame({
-#         'Column': list(df.columns) * len(stack_types),
-#         'Number of Rows': valid_list + null_list,
-#         'Data': [j for i in stack_types for j in (i,)*num_col]
-#     })
 
-#     fig = px.bar(graph_df, x="Column", y="Number of Rows", color="Data", barmode='stack')
 
-#     return fig
-
-@app.callback(Output(id('graphs'), 'figure'),
-                Input('url', 'pathname'))
+@app.callback(
+    Output(id('content'), 'children'),
+    Input('url', 'pathname'),
+)
 def generate_graphs(pathname):
-    graph_id = get_session('graph_id')
+    project_id = get_session('project_id')
+    project = get_document('project', project_id)
+    content = []
 
-    return graph_id
+    for node_id in project['graph_dict'].keys():
+        for graph_id in project['graph_dict'][node_id]:
+            graph = get_document('graph', graph_id)
 
+            if graph['type'] == 'line': fig = get_line_figure(graph['x'], graph['y'])
+            elif graph['type'] == 'bar': fig = get_bar_figure(graph['x'], graph['y'], graph['barmode'])
+            elif graph['type'] == 'pie': fig = get_pie_figure(graph['names'], graph['values'])
+            elif graph['type'] == 'scatter': fig = get_scatter_figure(graph['x'], graph['y'], graph['color'])
+
+            content += [
+                dbc.Col([
+                    dbc.Card([
+                        dbc.Button(dbc.CardHeader(graph['name']), id={'type': id('button_graph'), 'index': graph_id}),
+                        dbc.CardBody([
+                            dcc.Graph(figure=fig, style={'height':'270px'}),
+                        ]),
+                    ], color='primary', inverse=True, style={})
+                ], style={'width':'32%', 'display':'inline-block', 'text-align':'center', 'margin':'3px 3px 3px 3px'})
+            ]
+    return content
+
+
+
+@app.callback(
+    Output('url', 'pathname'),
+    Input({'type': id('button_graph'), 'index': ALL}, 'n_clicks')
+)
+def save_graph_id_session(n_clicks):
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+    if triggered == '': return no_update
+    if len(callback_context.triggered) != 1: return no_update
+
+    print("Store graph_id: ", json.loads(triggered)['index'])
+    store_session('graph_id', json.loads(triggered)['index'])
+
+    return '/apps/plot_graph/'

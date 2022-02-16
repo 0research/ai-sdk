@@ -89,9 +89,9 @@ def generate_expectations():
 @app.callback(Output(id('data_profile'), 'children'),
                 Input('url', 'pathname'))
 def generate_profile(pathname):
-    if get_session('dataset_id') is None: return no_update
+    if get_session('node_id') is None: return no_update
 
-    dataset = get_document('node', get_session('dataset_id'))
+    dataset = get_document('node', get_session('node_id'))
     store_session('changed_dataset_profile', dataset) # Clear Changes Session on page load
     datatype = dataset['features']
     # datatype_deleted = {}
@@ -150,7 +150,7 @@ def generate_profile(pathname):
                 State({'type':id('col_button_remove'), 'index': MATCH}, 'className'),
                 prevent_initial_call=True)
 def update_output(datatype, n_click_index, n_click_target, n_click_remove, column, button_index_class, button_target_class, button_remove_class):
-    if get_session('dataset_id') is None: return no_update
+    if get_session('node_id') is None: return no_update
     if callback_context.triggered == [{'prop_id': '.', 'value': None}]: return no_update
 
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
@@ -166,7 +166,7 @@ def update_output(datatype, n_click_index, n_click_target, n_click_remove, colum
     if get_session('changed_dataset_profile') is not None:
         dataset = ast.literal_eval(get_session('changed_dataset_profile'))
     else:
-        dataset = get_document('node', get_session('dataset_id'))
+        dataset = get_document('node', get_session('node_id'))
 
     if triggered['type'] == id('col_dropdown_datatype'):
         dataset['datatype'][column] = datatype
@@ -211,7 +211,7 @@ def generate_details(_, _2, _3, _4):
     # Get changes in updated original vs dataset document in the relevant keys
     keys = ['column', 'datatype', 'expectation', 'index', 'target']
 
-    dataset = get_document('node', get_session('dataset_id'))
+    dataset = get_document('node', get_session('node_id'))
     dataset = { k: dataset[k] for k in keys }
     changed_dataset = ast.literal_eval(get_session('changed_dataset_profile'))
     changed_dataset = { k: changed_dataset[k] for k in keys }
@@ -237,7 +237,7 @@ def button_confirm(n_clicks, details):
     # Successful
     else: 
         changed_dataset = ast.literal_eval(get_session('changed_dataset_profile'))
-        dataset_id = get_session('dataset_id')
+        dataset_id = get_session('node_id')
         action(get_session('project_id'), dataset_id, 'profile', '', details, changed_dataset, search_documents(dataset_id))
         # action(project_id, source_id, action, description, dataset, dataset_data_store)
 
