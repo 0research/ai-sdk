@@ -355,7 +355,7 @@ def enable_disable_tab(selectedNodeData, active_tab, tabs):
     if num_selected == 0: 
         active_tab = None
     elif num_selected == 1:
-        if selectedNodeData[0]['type'] == 'action':active_tab = 'tab2'
+        if selectedNodeData[0]['type'].startswith('action') :active_tab = 'tab2'
         elif selectedNodeData[0]['type'] == 'raw': active_tab = 'tab3'
         else:
             active_tab = 'tab1' if active_tab is None else active_tab
@@ -561,7 +561,7 @@ def generate_right_content(selectedNodeData, _, right_content_4):
             right_content_4 += [
                 dbc.Col([
                     dbc.Card([
-                        dbc.Button(dbc.CardHeader(graph['name']), id={'type': id('button_graph'), 'index': graph_id}),
+                        dbc.Button(dbc.CardHeader(graph['name']), id={'type': id('button_graph_id'), 'index': graph_id}, value=graph_id, href='/apps/plot_graph'),
                         dbc.CardBody([
                             dcc.Graph(figure=fig, style={'height':'240px'}),
                         ]),
@@ -569,6 +569,7 @@ def generate_right_content(selectedNodeData, _, right_content_4):
                 ], style={'width':'98%', 'display':'inline-block', 'text-align':'center', 'margin':'3px 3px 3px 3px', 'height':'310px'})
             ]
     return right_content_4
+
 
 
 # Generate Right Content (tab5)
@@ -901,9 +902,11 @@ def toggle_button_tabular(n_clicks):
 
 
 # Button Chart
-@app.callback(Output('url', 'pathname'),
-                Input(id('button_add_graph'), 'n_clicks'),
-                State(id('cytoscape'), 'selectedNodeData'))
+@app.callback(
+    Output('url', 'pathname'),
+    Input(id('button_add_graph'), 'n_clicks'),
+    State(id('cytoscape'), 'selectedNodeData')
+)
 def button_chart(n_clicks, selectedNodeData):
     if n_clicks is None: return no_update
     if selectedNodeData is None: return no_update
@@ -912,6 +915,15 @@ def button_chart(n_clicks, selectedNodeData):
 
     return '/apps/plot_graph'
 
+# Button Chart for specific ID
+@app.callback(
+    Output({'type': id('button_graph_id'), 'index': MATCH}, 'n_clicks'),
+    Input({'type': id('button_graph_id'), 'index': MATCH}, 'n_clicks'),
+    State({'type': id('button_graph_id'), 'index': MATCH}, 'value')
+)
+def load_graph(n_clicks, graph_id):
+    store_session('graph_id', graph_id)
+    return no_update
 
 
 # Add/Remove Headers, Params, Body

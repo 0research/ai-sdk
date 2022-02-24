@@ -198,7 +198,6 @@ def generate_graph_inputs(pathname):
 
     # Display Clean Graph if no Graph ID exist else Display Selected Graph Values
     graph_id = get_session('graph_id')
-    print("GRAPH_ID: ", graph_id, type(graph_id), graph_id is None)
     if graph_id == '':
         return (
             # Graph Type Dropdown
@@ -218,31 +217,32 @@ def generate_graph_inputs(pathname):
         )
     else:
         graph = get_document('graph', graph_id)
+        input1, input2, input3 = None, None, None
         if graph['type'] == 'line':
-            line_x = graph['x']
-            line_y = graph['y']
+            input1 = graph['x']
+            input2 = graph['y']
         elif graph['type'] == 'bar':
-            bar_x = graph['x']
-            bar_y = graph['y']
-            bar_barmode = graph['barmode']
+            input1 = graph['x']
+            input2 = graph['y']
+            input3 = graph['barmode']
         elif graph['type'] == 'pie':
-            pie_names = graph['names']
-            pie_values = graph['values']
+            input1 = graph['names']
+            input2 = graph['values']
         elif graph['type'] == 'scatter':
-            scatter_x = graph['x']
-            scatter_y = graph['y']
-            scatter_color = graph['color']
+            input1 = graph['x']
+            input2 = graph['y']
+            input3 = graph['color']
         return (
             # Graph Type Dropdown
             graph['type'],
             # Line Inputs
-            options_nonnumerical, options_numerical, line_x, line_y,
+            options_nonnumerical, options_numerical, input1, input2,
             # Bar Inputs
-            options_nonnumerical, options_numerical, bar_x, bar_y, bar_barmode,
+            options_nonnumerical, options_numerical, input1, input2, input3,
             # Pie Inputs
-            options_nonnumerical, options_numerical, pie_names, pie_values,
+            options_nonnumerical, options_numerical, input1, input2,
             # Scatter Inputs
-            options, options, options, scatter_x, scatter_y, scatter_color,
+            options, options, options, input1, input2, input3,
             # Graph Name & Description
             graph['name'], graph['description'],
             # Datatable
@@ -342,15 +342,21 @@ def save_graph(n_clicks, graph_type, graph_inputs, name, description):
         y = graph_inputs[3]['props']['children'][0]['props']['children'][3]['props']['value']
         color = graph_inputs[3]['props']['children'][0]['props']['children'][5]['props']['value']
         graph = {'type': 'scatter', 'x': x, 'y': y, 'color': color}
+    
+    graph_id = get_session('graph_id')
+    if graph_id == '':
+        graph_id = str(uuid.uuid1())
+        log_description = 'Create Graph: {}'.format(graph_id)
+    else:
+        log_description = 'Update Graph: {}'.format(graph_id)
 
     node_id = get_session('node_id')
-    graph_id = str(uuid.uuid1())
     graph['id'] = graph_id
     graph['name'] = name
     graph['description'] = description
 
-    add_graph_to_project(get_session('project_id'), node_id, graph_id)
-    upload_graph(graph)
+    
+    upsert_graph(get_session('project_id'), node_id, graph_id, log_description, graph)
 
     return '/apps/data_lineage'
 

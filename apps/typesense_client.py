@@ -397,21 +397,23 @@ def merge(project_id, source_id_list, dataset_data_store, dataset, details):
 
 
 
-def add_graph_to_project(project_id, node_id, graph_id):
+def upsert_graph(project_id, node_id, graph_id, log_description, graph):
     project = get_document('project', project_id)
+    pprint(project)
     if 'graph_dict' not in project:
         project['graph_dict'] = {}
 
     if node_id in project['graph_dict']:
-        project['graph_dict'][node_id].append(graph_id)
+        if graph_id not in project['graph_dict'][node_id]:
+            project['graph_dict'][node_id].append(graph_id)
     else:
         project['graph_dict'][node_id] = [graph_id]
+
     upsert('project', project)
-    update_node_log(project_id, node_id, 'Add Graph: ' + graph_id)
-
-
-def upload_graph(graph):
+    update_node_log(project_id, node_id, log_description + graph_id)
     upsert('graph', graph)
+
+    
 
 
 
