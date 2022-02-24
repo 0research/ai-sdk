@@ -49,13 +49,14 @@ def initialize_typesense():
         client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
         # client = typesense_client('typesense', '8108', 'http', 'Hu52dwsas2AdxdE')
 
-    collection_list = ['project', 'node', 'graph', 'session1'] # TODO Currently all users will use same session. Replace when generate user/session ID
+    collection_list = ['project', 'node', 'graph', 'node_log', 'session1'] # TODO Currently all users will use same session. Replace when generate user/session ID
     for name in collection_list:
         try:
             client.collections.create(generate_schema_auto(name))
             print('Create Typesense Collection: ', name)
         except typesense.exceptions.ObjectAlreadyExists:
-            print('Typesense Object Already Exist')
+            pass
+            # print('Typesense Object Already Exist')
         except Exception as e:
             print('Initialize Typesense Failed: ', e)
     
@@ -71,7 +72,7 @@ def get_document(collection_id, document_id):
     for k, v in doc.items():
         if len(v)>0:
             if (v[0] == '[' and v[-1] == ']') or (v[0] == '{' and v[-1] == '}'):
-                try: 
+                try:
                     doc[k] = ast.literal_eval(v)
                 except Exception as e: 
                     print(e)
@@ -123,7 +124,7 @@ def get_session(key):
     return session_value
 
 # Typesense Object
-def Project(id, type, dataset=[], edge=[], graph_dict={}, experiment=[], node_logs={}):
+def Project(id, type, dataset=[], edge=[], graph_dict={}, experiment=[], node_log={}):
     return {
         'id': id, 
         'type': type,
@@ -131,7 +132,7 @@ def Project(id, type, dataset=[], edge=[], graph_dict={}, experiment=[], node_lo
         'edge_list': edge,
         'graph_dict': graph_dict,
         'experiment': experiment,
-        'node_logs': node_logs,
+        'node_log': node_log,
     }
 def Node(id, name, description, documentation, type, details={}, features={}, expectation={}, index=[], target=[], graphs=[]):
     return {
@@ -193,46 +194,42 @@ def get_all_collections():
 
 
 
-def update_dataset_particulars():
-    pass
-    # dataset['name'] = name
-    # dataset['description'] = description
-    # dataset['documentation'] = documentation
 
-def update_node_logs(project_id, node_id, log):
+def update_node_log(project_id, node_id, description):
     project = get_document('project', project_id)
-    
-    print(project)
-    # if node_id in project['node_logs']:
-    #     print('inside')
-    #     project['node_logs'][node_id] += [log]
-    # else:
-    #     print('outside')
-    #     project['node_logs'][node_id] = [log]
+    log_id = str(uuid.uuid1())
+    log = {
+        'id': log_id,
+        'timestamp': str(datetime.now()),
+        'description': description,
+    }
+    if node_id in project['node_log']: project['node_log'][node_id].append(log_id)
+    else: project['node_log'][node_id] = [log_id]
+
     upsert('project', project)
+    upsert('node_log', log)
 
 
-def upload_datasource(df, type, details):
-    if df is not None:
-        dataset_id = get_session('dataset_id')
-        dataset = get_document('node', dataset_id)
-        dataset['type'] = type
-        dataset['details'] = details
-        dataset['features'] = {str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)}
-        dataset['expectation'] = {col:None for col in df.columns}
+def save_data_source(df, type, details):
+    node_id = get_session('node_id')
+    node = get_document('node', node_id)
+    node['type'] = type
+    node['details'] = details
+    node['features'] = {str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)}
+    node['expectation'] = {col:None for col in df.columns}
 
-        # Upload to Typesense
-        upsert('node', dataset)
-        update_node_logs(get_session('project_id'), dataset_id, (datetime.now(), 'Saved Dataset Config'))
-        try:
-            client.collections.create(generate_schema_auto(dataset_id))
-        except Exception as e:
-            print("Exception: ", e)
-            client.collections[dataset_id].delete()
-            client.collections.create(generate_schema_auto(dataset_id))
-            jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-            r = client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
+    # Upload to Typesense
+    upsert('node', node)
+    update_node_log(get_session('project_id'), node_id, 'Uploaded Data Source {}'.format(details))
     
+    collection_name_list = [row['name'] for row in client.collections.retrieve()]
+    if node_id in collection_name_list:
+        client.collections[node_id].delete()
+        print("Dropped Collection: ", node_id)
+    client.collections.create(generate_schema_auto(node_id))
+    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+    r = client.collections[node_id].documents.import_(jsonl, {'action': 'create'})
+    print("Created Collection: ", node_id)
 
 
 
@@ -410,10 +407,12 @@ def add_graph_to_project(project_id, node_id, graph_id):
     else:
         project['graph_dict'][node_id] = [graph_id]
     upsert('project', project)
+    update_node_log(project_id, node_id, 'Add Graph: ' + graph_id)
 
 
 def upload_graph(graph):
     upsert('graph', graph)
+
 
 
 def generate_cytoscape_elements(project_id):

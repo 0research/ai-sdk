@@ -8,7 +8,7 @@ from app import app
 from app import server 
 from app import dbc
 from apps.typesense_client import *
-from apps import (new_project, new_dataset, upload_dataset, join, search, feature_engineering, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
+from apps import (new_project, upload_dataset, join, search, feature_engineering, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage,
                 page2, page3, page6, page6,page7, page8, page9, test)
 import ast
