@@ -145,6 +145,7 @@ layout = html.Div([
 
 # Generate Graph Inputs from Graph Session
 @app.callback(
+    Output(id('dropdown_graph_type'), 'value'),
     Output(id('line_x'), 'options'),
     Output(id('line_y'), 'options'),
     Output(id('line_x'), 'value'),
@@ -154,6 +155,7 @@ layout = html.Div([
     Output(id('bar_y'), 'options'),
     Output(id('bar_x'), 'value'),
     Output(id('bar_y'), 'value'),
+    Output(id('bar_barmode'), 'value'),
 
     Output(id('pie_names'), 'options'),
     Output(id('pie_values'), 'options'),
@@ -194,37 +196,61 @@ def generate_graph_inputs(pathname):
 
     columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
 
-    # If Graph Session Exist, set saved values
+    # Display Clean Graph if no Graph ID exist else Display Selected Graph Values
     graph_id = get_session('graph_id')
-    if graph_id is not None:
+    print("GRAPH_ID: ", graph_id, type(graph_id), graph_id is None)
+    if graph_id == '':
+        return (
+            # Graph Type Dropdown
+            no_update,
+            # Line Inputs
+            options_nonnumerical, options_numerical, default_nonnumerical, default_numerical,
+            # Bar Inputs
+            options_nonnumerical, options_numerical, default_nonnumerical, default_numerical, no_update,
+            # Pie Inputs
+            options_nonnumerical, options_numerical, default_nonnumerical, default_numerical,
+            # Scatter Inputs
+            options, options, options, default, default, default,
+            # Graph Name & Description
+            '', '',
+            # Datatable
+            df.to_dict('records'), columns,
+        )
+    else:
         graph = get_document('graph', graph_id)
         if graph['type'] == 'line':
-            default_nonnumerical = graph['x']
-            default_numerical = graph['y']
+            line_x = graph['x']
+            line_y = graph['y']
         elif graph['type'] == 'bar':
-            default_nonnumerical = graph['x']
-            default_numerical = graph['y']
+            bar_x = graph['x']
+            bar_y = graph['y']
+            bar_barmode = graph['barmode']
         elif graph['type'] == 'pie':
-            default_nonnumerical = graph['names']
-            default_numerical = graph['values']
+            pie_names = graph['names']
+            pie_values = graph['values']
         elif graph['type'] == 'scatter':
-            default = graph['x']
-            default = graph['y']
+            scatter_x = graph['x']
+            scatter_y = graph['y']
+            scatter_color = graph['color']
+        return (
+            # Graph Type Dropdown
+            graph['type'],
+            # Line Inputs
+            options_nonnumerical, options_numerical, line_x, line_y,
+            # Bar Inputs
+            options_nonnumerical, options_numerical, bar_x, bar_y, bar_barmode,
+            # Pie Inputs
+            options_nonnumerical, options_numerical, pie_names, pie_values,
+            # Scatter Inputs
+            options, options, options, scatter_x, scatter_y, scatter_color,
+            # Graph Name & Description
+            graph['name'], graph['description'],
+            # Datatable
+            df.to_dict('records'), columns,
+        )
+        
 
-    return (
-        # Line Inputs
-        options_nonnumerical, options_numerical, default_nonnumerical, default_numerical,
-        # Bar Inputs
-        options_nonnumerical, options_numerical, default_nonnumerical, default_numerical,
-        # Pie Inputs
-        options_nonnumerical, options_numerical, default_nonnumerical, default_numerical,
-        # Scatter Inputs
-        options, options, options, default, default, default,
-        # Graph Name & Description
-        graph['name'], graph['description'],
-        # Datatable
-        df.to_dict('records'), columns,
-    )
+    
 
 
 

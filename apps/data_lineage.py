@@ -229,7 +229,7 @@ layout = html.Div([
 
                     # Right Body Tab 4 (Graph)
                     dbc.Row([
-                        dbc.Col(dbc.Button(children='Plot Graph', id=id('button_add_graph'), href='/apps/plot_graph', color='warning', style={'width':'100%', 'font-size':'22px'}), width={"size": 8, "offset": 2}),
+                        dbc.Col(dbc.Button(children='Plot Graph', id=id('button_add_graph'), color='warning', style={'width':'100%', 'font-size':'22px'}), width={"size": 8, "offset": 2}),
                     ], id=id('right_content_4'), style={'display':'none'}),
 
                     # Right Body Tab 5 (Logs)
@@ -902,13 +902,13 @@ def toggle_button_tabular(n_clicks):
 
 # Button Chart
 @app.callback(Output('url', 'pathname'),
-                Input(id('button_chart'), 'n_clicks'),
+                Input(id('button_add_graph'), 'n_clicks'),
                 State(id('cytoscape'), 'selectedNodeData'))
 def button_chart(n_clicks, selectedNodeData):
     if n_clicks is None: return no_update
     if selectedNodeData is None: return no_update
     if len(selectedNodeData) != 1: return no_update
-    if selectedNodeData[0]['type'].startswith('action'): return no_update
+    store_session('graph_id', '')
 
     return '/apps/plot_graph'
 
