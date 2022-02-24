@@ -456,6 +456,7 @@ def upload_data_source(n_clicks_button_save_config,
 @app.callback(
     Output(id('right_header_1'), 'children'),
     Output(id('right_header_2'), 'style'),
+    Output(id('merge_type_container'), 'style'),
     Output(id('right_header_3'), 'style'),
     Input(id('cytoscape'), 'selectedNodeData'),
     Input(id('tabs_node'), 'active_tab'),
@@ -464,6 +465,7 @@ def generate_right_header(selectedNodeData, active_tab):
     num_selected = len(selectedNodeData)
     right_header_1 = no_update
     right_header_2_style = {'display': 'none'}
+    merge_type_container_style = {'display': 'none'}
     right_header_3_style = {'display': 'none'}
 
     # Output based on Number of Nodes Selected
@@ -471,14 +473,21 @@ def generate_right_header(selectedNodeData, active_tab):
 
     elif num_selected == 1:
         right_header_1 = [dbc.Input(id=id('node_name'), value=selectedNodeData[0]['name'], style={'font-size':'14px', 'text-align':'center'})]
-        if selectedNodeData[0]['type'].startswith('raw_') and active_tab == 'tab1': right_header_2_style['display'] = 'block'
-        if active_tab == 'tab3': right_header_3_style['display'] = 'block'
+        if (selectedNodeData[0]['type'].startswith('raw_') or selectedNodeData[0]['type'].startswith('processed')) and active_tab == 'tab1': 
+            right_header_2_style['display'] = 'block'
+        if active_tab == 'tab3': 
+            right_header_3_style['display'] = 'block'
 
-    elif num_selected > 1: right_header_1 = [
-        dbc.Input(value='{}) '.format(i+1) + node['name'], disabled=True, style={'margin':'5px', 'text-align':'center'}) for i, node in enumerate(selectedNodeData)
-    ] + [dbc.Input(id=id('node_name'), style={'display': 'none'})]
+    elif num_selected > 1: 
+        right_header_1 = [
+            dbc.Input(value='{}) '.format(i+1) + node['name'], disabled=True, style={'margin':'5px', 'text-align':'center'}) for i, node in enumerate(selectedNodeData)
+        ] + [dbc.Input(id=id('node_name'), style={'display': 'none'})]
 
-    return right_header_1, right_header_2_style, right_header_3_style
+        if all(not node['type'].startswith('action') for node in selectedNodeData) and active_tab == 'tab1':
+            right_header_2_style['display'] = 'block'
+            merge_type_container_style['display'] = 'block'
+
+    return right_header_1, right_header_2_style, merge_type_container_style, right_header_3_style
 
 
 # Update Dataset Particulars (Name, Description, Documentation)
@@ -599,7 +608,7 @@ def generate_right_content(selectedNodeData, _):
     Output(id('right_content_0'), 'children'),
     Output(id('right_content_1'), 'children'),
     Output(id('right_content_2'), 'children'),
-    Output(id('merge_type_container'), 'style'),
+    
     Output(id('range'), 'min'),
     Output(id('range'), 'max'),
     Output(id('range'), 'value'),
@@ -624,7 +633,6 @@ def generate_right_content(selectedNodeData, range_value, merge_type, merge_idRe
     range_min, range_max = None, None
     dropdown_datasourcetype_container_style = {'display': 'none'}
     
-    merge_type_container_style = {'display': 'none'}
     merge_idRef_style = {'display':'none', 'text-align':'center'}
     merge_options, merge_value = no_update, no_update
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
@@ -652,7 +660,6 @@ def generate_right_content(selectedNodeData, range_value, merge_type, merge_idRe
     elif num_selected > 1:
         
         # Tab 1 Content
-        merge_type_container_style['display'] = 'block'
         dataset_id_list = [node['id'] for node in selectedNodeData]
 
         print("Merge Type: ", merge_type)
@@ -692,7 +699,7 @@ def generate_right_content(selectedNodeData, range_value, merge_type, merge_idRe
 
 
     return (right_content_0, right_content_1, right_content_2,
-            merge_type_container_style, range_min, range_max, range_value,
+            range_min, range_max, range_value,
             merge_idRef_style, merge_options, merge_value, 
             dropdown_datasourcetype_container_style)
 

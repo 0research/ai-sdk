@@ -43,11 +43,11 @@ def generate_schema_auto(name):
 def initialize_typesense():
     # Initialize Typesense
     print('Initializing Typesense')
-    if socket.gethostname() == 'DESKTOP-9IOI6RV':
-        client = typesense_client('127.0.0.1', '8108', 'http', 'Hu52dwsas2AdxdE')
-    else:
-        client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
-        # client = typesense_client('typesense', '8108', 'http', 'Hu52dwsas2AdxdE')
+    client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
+    # if socket.gethostname() == 'DESKTOP-9IOI6RV':
+    #     client = typesense_client('127.0.0.1', '8108', 'http', 'Hu52dwsas2AdxdE')
+    # else:
+    #     client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
 
     collection_list = ['project', 'node', 'graph', 'node_log', 'session1'] # TODO Currently all users will use same session. Replace when generate user/session ID
     for name in collection_list:
@@ -225,11 +225,11 @@ def save_data_source(df, type, details):
     collection_name_list = [row['name'] for row in client.collections.retrieve()]
     if node_id in collection_name_list:
         client.collections[node_id].delete()
-        print("Dropped Collection: ", node_id)
+        # print("Dropped Collection: ", node_id)
     client.collections.create(generate_schema_auto(node_id))
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
     r = client.collections[node_id].documents.import_(jsonl, {'action': 'create'})
-    print("Created Collection: ", node_id)
+    # print("Created Collection: ", node_id)
 
 
 
@@ -399,7 +399,6 @@ def merge(project_id, source_id_list, dataset_data_store, dataset, details):
 
 def upsert_graph(project_id, node_id, graph_id, log_description, graph):
     project = get_document('project', project_id)
-    pprint(project)
     if 'graph_dict' not in project:
         project['graph_dict'] = {}
 

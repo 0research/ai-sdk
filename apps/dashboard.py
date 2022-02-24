@@ -29,35 +29,6 @@ app.css.config.serve_locally = True
 id = id_factory('dashboard')
 
 
-def bar_graph(component_id, barmode, x=None, y=None, data=None, orientation='v', showlegend=True):
-    colors = {
-        'background': '#111111',
-        'text': '#7FDBFF'
-    }
-
-    if x == None: x='Fruit'
-    if y == None: y='Amount'
-    if data == None:
-        data = pd.DataFrame({
-            "Fruit": ["Apples", "Oranges", "Bananas", "Apples", "Oranges", "Bananas"],
-            "Amount": [4, 1, 2, 2, 4, 5],
-            "City": ["SF", "SF", "SF", "Montreal", "Montreal", "Montreal"]
-        })
-
-    fig = px.bar(data, x=x, y=y, color="City", barmode=barmode, orientation=orientation)
-
-    fig.update_layout(
-        plot_bgcolor=colors['background'],
-        paper_bgcolor=colors['background'],
-        font_color=colors['text'],
-        showlegend=showlegend
-    )
-
-    return dcc.Graph(
-        id=component_id,
-        figure=fig
-    ),
-
 
 option_date = [
     {'label': 'Minute', 'value': 'minute'},
@@ -88,7 +59,34 @@ layout = html.Div([
 ])
 
 
+# def bar_graph(component_id, barmode, x=None, y=None, data=None, orientation='v', showlegend=True):
+#     colors = {
+#         'background': '#111111',
+#         'text': '#7FDBFF'
+#     }
 
+#     if x == None: x='Fruit'
+#     if y == None: y='Amount'
+#     if data == None:
+#         data = pd.DataFrame({
+#             "Fruit": ["Apples", "Oranges", "Bananas", "Apples", "Oranges", "Bananas"],
+#             "Amount": [4, 1, 2, 2, 4, 5],
+#             "City": ["SF", "SF", "SF", "Montreal", "Montreal", "Montreal"]
+#         })
+
+#     fig = px.bar(data, x=x, y=y, color="City", barmode=barmode, orientation=orientation)
+
+#     fig.update_layout(
+#         plot_bgcolor=colors['background'],
+#         paper_bgcolor=colors['background'],
+#         font_color=colors['text'],
+#         showlegend=showlegend
+#     )
+
+#     return dcc.Graph(
+#         id=component_id,
+#         figure=fig
+#     ),
 
 
 @app.callback(
@@ -99,7 +97,7 @@ def generate_graphs(pathname):
     project_id = get_session('project_id')
     project = get_document('project', project_id)
     content = []
-
+    pprint(project)
     for node_id in project['graph_dict'].keys():
         for graph_id in project['graph_dict'][node_id]:
             graph = get_document('graph', graph_id)
@@ -112,7 +110,7 @@ def generate_graphs(pathname):
             content += [
                 dbc.Col([
                     dbc.Card([
-                        dbc.Button(dbc.CardHeader(graph['name']), id={'type': id('button_graph'), 'index': graph_id}),
+                        dbc.Button(dbc.CardHeader(graph['name']), id={'type': id('button_graph_id'), 'index': graph_id}, href='/apps/plot_graph/', value=graph_id),
                         dbc.CardBody([
                             dcc.Graph(figure=fig, style={'height':'270px'}),
                         ]),
@@ -123,16 +121,26 @@ def generate_graphs(pathname):
 
 
 
+# @app.callback(
+#     Output('url', 'pathname'),
+#     Input({'type': id('button_graph'), 'index': ALL}, 'n_clicks')
+# )
+# def save_graph_id_session(n_clicks):
+#     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+#     if triggered == '': return no_update
+#     if len(callback_context.triggered) != 1: return no_update
+
+#     print("Store graph_id: ", json.loads(triggered)['index'])
+#     store_session('graph_id', json.loads(triggered)['index'])
+
+#     return '/apps/plot_graph/'
+
+# Button Chart for specific ID
 @app.callback(
-    Output('url', 'pathname'),
-    Input({'type': id('button_graph'), 'index': ALL}, 'n_clicks')
+    Output({'type': id('button_graph_id'), 'index': MATCH}, 'n_clicks'),
+    Input({'type': id('button_graph_id'), 'index': MATCH}, 'n_clicks'),
+    State({'type': id('button_graph_id'), 'index': MATCH}, 'value')
 )
-def save_graph_id_session(n_clicks):
-    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-    if triggered == '': return no_update
-    if len(callback_context.triggered) != 1: return no_update
-
-    print("Store graph_id: ", json.loads(triggered)['index'])
-    store_session('graph_id', json.loads(triggered)['index'])
-
-    return '/apps/plot_graph/'
+def load_graph(n_clicks, graph_id):
+    store_session('graph_id', graph_id)
+    return no_update
