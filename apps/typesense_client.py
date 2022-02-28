@@ -43,7 +43,8 @@ def generate_schema_auto(name):
 def initialize_typesense():
     # Initialize Typesense
     print('Initializing Typesense')
-    client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
+    client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', 'ON8Qi0o4Fh8oDWQHVVPeRQx9Unh6VoR3') # Typesense Cloud
+    # client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
     # if socket.gethostname() == 'DESKTOP-9IOI6RV':
     #     client = typesense_client('127.0.0.1', '8108', 'http', 'Hu52dwsas2AdxdE')
     # else:
@@ -86,7 +87,7 @@ def upsert(collection_id, document):
     document = {k:str(v) for k, v in document.items()}
     client.collections[collection_id].documents.upsert(document)
 
-def search_documents(collection_id, per_page=100, search_parameters=None):
+def search_documents(collection_id, per_page=250, search_parameters=None):
     if search_parameters is None:
         search_parameters = {
             'q': '*',
@@ -195,12 +196,13 @@ def get_all_collections():
 
 
 
-def update_node_log(project_id, node_id, description):
+def update_node_log(project_id, node_id, description, timestamp=None):
     project = get_document('project', project_id)
     log_id = str(uuid.uuid1())
+    timestamp = str(datetime.now()) if timestamp is None else timestamp
     log = {
         'id': log_id,
-        'timestamp': str(datetime.now()),
+        'timestamp': timestamp,
         'description': description,
     }
     if node_id in project['node_log']: project['node_log'][node_id].append(log_id)
@@ -215,7 +217,9 @@ def save_data_source(df, type, details):
     node = get_document('node', node_id)
     node['type'] = type
     node['details'] = details
-    node['features'] = {str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)}
+    features = {str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)}
+    features['timestamp'] = 'datetime64'
+    node['features'] = features
     node['expectation'] = {col:None for col in df.columns}
 
     # Upload to Typesense
@@ -415,6 +419,7 @@ def upsert_graph(project_id, node_id, graph_id, log_description, graph):
     
 
 
+    
 
 def generate_cytoscape_elements(project_id):
     project = get_document('project', project_id)

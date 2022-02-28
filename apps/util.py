@@ -594,10 +594,7 @@ def process_fileupload(upload_id, filename):
     return df, details
 
 
-def process_restapi(method, url, header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list):
-    header = dict(zip(header_key_list, header_value_list))
-    param = dict(zip(param_key_list, param_value_list))
-    body = dict(zip(body_key_list, body_value_list))
+def process_restapi(method, url, header, param, body):
     # Remove empty keys
     if '' in header: header.pop('') 
     if '' in param: param.pop('') 
@@ -616,17 +613,16 @@ def process_restapi(method, url, header_key_list, header_value_list, param_key_l
         df = pd.DataFrame(result)
     # JSON
     else:
-        print('3'*100)
-        pprint(result)
         result = do_flatten(json.loads(result))
         for row in result:
             for k, v in row.items():
                 if row[k] == []:
                     row[k] = ''
         df = json_normalize(result)
-    print('2'*100)
     df = df.fillna('')
-    details = details = {'method': method, 'url': url, 'header': header, 'param':param, 'body':body}
+    timestamp = str(datetime.now())
+    df['timestamp'] = timestamp
+    details = details = {'method': method, 'url': url, 'header': header, 'param':param, 'body':body, 'timestamp': timestamp}
 
     return df, details
 

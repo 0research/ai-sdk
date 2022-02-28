@@ -146,16 +146,18 @@ layout = html.Div([
                         dbc.Tab(label="Logs", tab_id="tab5", disabled=True),
                     ], id=id("tabs_node")), style={'float':'left', 'text-align':'left', 'display':'inline-block'}),
 
-                    html.Div('Last Run: <TODO>', id=id('last_run_config'), style={'float':'right', 'display':'inline-block'}),
+                    
+                    # html.Div('Last Run: <TODO>', id=id('last_run_config'), style={'float':'right', 'display':'inline-block'}),
 
-                    # html.Div([
+                    html.Div([
+                        dbc.Button("Run (Last run: <TODO>)", id=id('run_config'), color='warning', disabled=True),
                     #     dbc.Button(html.I(n_clicks=0, className='far fa-play'), id=id('button_run_config'), disabled=False, className='btn btn-warning', style={'margin-left':'1px', 'display':'block'}),
                     #     dbc.Button(html.I(n_clicks=0, className='fas fa-chart-area'), id=id('button_chart'), disabled=True, className='btn btn-success', style={'margin-left':'1px', 'display': 'none'}),
                     #     dbc.Button(html.I(n_clicks=0, className='fas fa-times'), id=id('button_remove'), disabled=True, className='btn btn-danger', style={'margin-left':'1px', 'display':'none'}),
                     #     dbc.Tooltip('Perform Action', target=id('button_run_config')),
                     #     dbc.Tooltip('Chart', target=id('button_chart')),
                     #     dbc.Tooltip('Remove Action or Raw Dataset', target=id('button_callapi')),
-                    # ], style={'float':'right', 'text-align':'right', 'display':'inline-block'}),
+                    ], style={'float':'right', 'text-align':'right', 'display':'inline-block'}),
                 ], style={'display':'inline-block', 'width':'100%'}),
                   
                 dbc.Card([
@@ -303,6 +305,43 @@ def save_cytoscape_position(position1, position2):
     return f"Last Saved: {dt_string}", position1
 
 
+@app.callback(
+    Output(id('run_config'), 'disabled'),
+    Input(id('cytoscape'), 'selectedNodeData'),
+)
+def enable_run_button(selectedNodeData):
+    if selectedNodeData is None: return True
+    if len(selectedNodeData) == 1 and selectedNodeData[0]['type'] == 'raw_restapi':
+        return False
+
+@app.callback(
+    Output(id('tabs_node'), 'active_tab'),
+    Input(id('run_config'), 'n_clicks'),
+    State(id('cytoscape'), 'selectedNodeData'),
+)
+def run_config(n_clicks, selectedNodeData):
+    if n_clicks is None: return no_update
+    node = get_document('node', selectedNodeData[0]['id'])
+    method = node['details']['method']
+    url = node['details']['url']
+    header = node['details']['header']
+    param =node['details']['param']
+    body = node['details']['body']
+    df, details = process_restapi(method, url, header, param, body)
+    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+
+    update_node_log(get_session('project_id'), node['id'], 'Run Config: '+str(details), details['timestamp'])
+    r = client.collections[node['id']].documents.import_(jsonl, {'action': 'create'})
+    print("HERE: ", node['id'])
+    pprint(df)
+    pprint(jsonl)
+    data = get_dataset_data(node['id'])
+    pprint(data)
+    pprint(r)
+   
+
+    return 'tab1'
+
 
 # Load Dataset Config 
 @app.callback(
@@ -424,7 +463,10 @@ def upload_data_source(n_clicks_button_save_config,
 
         # RestAPI
         elif upload_type == 'raw_restapi':
-            df, details = process_restapi(method, url, header_key_list, header_value_list, param_key_list, param_value_list, body_key_list, body_value_list)
+            header = dict(zip(header_key_list, header_value_list))
+            param = dict(zip(param_key_list, param_value_list))
+            body = dict(zip(body_key_list, body_value_list))
+            df, details = process_restapi(method, url, header, param, body)
             save_data_source(df, upload_type, details)
 
             # Add Edges if dataset is dependent on other datasets
@@ -475,6 +517,7 @@ def generate_right_header(selectedNodeData, active_tab):
         right_header_1 = [dbc.Input(id=id('node_name'), value=selectedNodeData[0]['name'], style={'font-size':'14px', 'text-align':'center'})]
         if (selectedNodeData[0]['type'].startswith('raw_') or selectedNodeData[0]['type'].startswith('processed')) and active_tab == 'tab1': 
             right_header_2_style['display'] = 'block'
+            right_header_3_style['display'] = 'none'
         if active_tab == 'tab3': 
             right_header_3_style['display'] = 'block'
 
@@ -713,6 +756,7 @@ def generate_right_content(selectedNodeData, range_value, merge_type, merge_idRe
     Output(id('cytoscape'), 'elements'),
     Output(id('cytoscape'), 'layout'),
     Input(id('button_reset_layout'), 'n_clicks'),
+    Input(id('node_name'), 'value'),
     Input({'type': id('button_merge'), 'index': ALL}, 'n_clicks'),
     Input({'type': id('button_clonemetadata'), 'index': ALL}, 'n_clicks'),
     Input({'type': id('button_truncatedataset'), 'index': ALL}, 'n_clicks'),
@@ -731,7 +775,7 @@ def generate_right_content(selectedNodeData, range_value, merge_type, merge_idRe
     State(id('right_content_1'), 'style'),
     State(id('range'), 'value'),
 )
-def cytoscape_triggers(n_clicks_reset_layout, n_clicks_merge, n_clicks_clonemetadata, n_clicks_truncatedataset, pathname, n_clicks_remove_list, do_cytoscape_reload, merge_type, merge_idRef,
+def cytoscape_triggers(n_clicks_reset_layout, node_name_input, n_clicks_merge, n_clicks_clonemetadata, n_clicks_truncatedataset, pathname, n_clicks_remove_list, do_cytoscape_reload, merge_type, merge_idRef,
                         n_clicks_add_data_source_list,
                         selectedNodeData, active_tab, feature_list, new_feature_list, datatype_list, button_remove_feature_list,
                         right_content_style,
@@ -1083,8 +1127,8 @@ def generate_dropdown_actions(selectedNodeData):
             ]
         else:
             options = [
-                dbc.DropdownMenuItem('Clone Metadata', id={'type': id('button_clonemetadata'), 'index': 0}, href='#', className='action_dropdown'),
                 dbc.DropdownMenuItem('Truncate Dataset', id={'type': id('button_truncatedataset'), 'index': 0}, href='#', className='action_dropdown'),
+                dbc.DropdownMenuItem('Clone Metadata', id={'type': id('button_clonemetadata'), 'index': 0}, href='#', className='action_dropdown'),
                 dbc.DropdownMenuItem('Feature Engineering', href='/apps/feature_engineering', className='action_dropdown'),
                 dbc.DropdownMenuItem('Impute Data', href='/apps/impute_data', className='action_dropdown'),
                 

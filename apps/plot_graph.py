@@ -203,7 +203,7 @@ def generate_graph_inputs(pathname):
             # Graph Type Dropdown
             no_update,
             # Line Inputs
-            options_nonnumerical, options_numerical, default_nonnumerical, default_numerical,
+            options, options, default, default,
             # Bar Inputs
             options_nonnumerical, options_numerical, default_nonnumerical, default_numerical, no_update,
             # Pie Inputs
