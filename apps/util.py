@@ -272,17 +272,31 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
                         metadata_id = None, 
                         cell_editable=False,
                         row_deletable=False, row_selectable=False, selected_row_id = None,
-                        col_selectable=False, col_deletable=False, selected_column_id = None,):
-    # Datatable            
+                        col_selectable=False, col_deletable=False, selected_column_id = None, 
+                        style_data_conditional=None):
+    # Datatable
     datatable_columns = [{"name": c, "id": c, "deletable": col_deletable, "selectable": col_selectable} for c in columns]
+    if style_data_conditional is None:
+        style_data_conditional = [
+            {
+                "if": {"state": "active"},
+                "backgroundColor": "rgba(150, 180, 225, 0.2)",
+                "border": "1px solid blue",
+            },
+            {
+                "if": {"state": "selected"},
+                "backgroundColor": "rgba(0, 116, 217, .03)",
+                "border": "1px solid blue",
+            },
+        ]
     datatable = dash_table.DataTable(
         id=component_id,
         data=data,
         columns=datatable_columns,
         editable=cell_editable,
         filter_action="none",
-        sort_action="native",
-        sort_mode="multi",
+        # sort_action="native",
+        # sort_mode="multi",
         column_selectable=col_selectable,
         row_selectable=row_selectable,
         row_deletable=row_deletable,
@@ -670,28 +684,158 @@ def merge_dataset_data(dataset_id_list, merge_type='objectMerge', idRef=None):
     return data
 
 
+def generate_graph_inputs(id):
+    return (
+        dbc.Select(id=id('dropdown_graph_type'), options=options_graph, value=options_graph[0]['value'], persistence=True, style={'text-align':'center'}),
+
+        # Line Plot
+        html.Div([
+            dbc.InputGroup([
+                dbc.InputGroupText("X Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.Select(id=id('line_x'), options=[], value=None, style={'width':'80%', 'text-align': 'center'}),
+                dbc.InputGroupText("Y Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                html.Div(dcc.Dropdown(id=id('line_y'), multi=True, options=[], value=None), style={'width':'80%'}),
+            ]),
+        ], style={'display': 'none'}, id=id('line_input_container')),
+
+        # Bar Plot
+        html.Div([
+            dbc.InputGroup([
+                dbc.InputGroupText("X Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.Select(id=id('bar_x'), options=[], value=None, style={'width':'80%', 'text-align': 'center'}),
+                dbc.InputGroupText("Y Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                html.Div(dcc.Dropdown(id=id('bar_y'), multi=True, options=[], value=None), style={'width':'80%'}),
+                dbc.InputGroupText("Mode", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                html.Div(
+                    dbc.RadioItems(
+                        options=[{"label": "Stack", "value": 'stack'}, {"label": "Group", "value": 'group'}, ],
+                        value='stack',
+                        id=id('bar_barmode'),
+                        inline=True,
+                    ),
+                )
+            ]),
+        ], style={'display': 'none'}, id=id('bar_input_container')),
+
+        # Pie Plot
+        html.Div([
+            dbc.InputGroup([
+                dbc.InputGroupText("Names", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.Select(id=id('pie_names'), options=[], value=None, style={'width':'80%', 'text-align': 'center'}),
+                dbc.InputGroupText("Values", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.Select(id=id('pie_values'), options=[], value=None, style={'width':'80%', 'text-align': 'center'}),
+            ]),
+        ], style={'display': 'none'}, id=id('pie_input_container')),
+
+        # Scatter Plot
+        html.Div([
+            dbc.InputGroup([
+                dbc.InputGroupText("X Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.Select(id=id('scatter_x'), options=[], value=None, style={'width':'80%', 'text-align': 'center'}),
+                dbc.InputGroupText("Y Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.Select(id=id('scatter_y'), options=[], value=None, style={'width':'80%', 'text-align': 'center'}),
+                dbc.InputGroupText("Color", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.Select(id=id('scatter_color'), options=[], value=None, style={'width':'80%', 'text-align': 'center'}),
+            ]),
+        ], style={'display': 'none'}, id=id('scatter_input_container')),
+    )
+
+def graph_inputs_callback():
+    node_id = get_session('node_id')
+    dataset = get_document('node', node_id)
+    df = get_dataset_data(node_id)
+    features = dataset['features']
+    options = [{'label': f, 'value': f} for f in features.keys()]
+
+    features_nonnumerical = [f for f, dtype in features.items() if dtype in DATATYPE_NONNUMERICAL]
+    features_numerical = [f for f, dtype in features.items() if dtype in DATATYPE_NUMERICAL]
+
+    options_nonnumerical =[{'label': f, 'value': f} for f in features_nonnumerical]
+    options_numerical = [{'label': f, 'value': f} for f in features_numerical]
+
+    default = None if len(list(features.keys())) == 0 else list(features.keys())[0]
+    default_nonnumerical = None if len(features_nonnumerical) == 0 else features_nonnumerical[0]
+    default_numerical = None if len(features_numerical) == 0 else features_numerical[0]
+
+    columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
+
+    # Display Clean Graph if no Graph ID exist else Display Selected Graph Values
+    graph_id = get_session('graph_id')
+    if graph_id == '':
+        return (
+            # Graph Type Dropdown
+            no_update,
+            # Line Inputs
+            options, options, default, default,
+            # Bar Inputs
+            options_nonnumerical, options_numerical, default_nonnumerical, default_numerical, no_update,
+            # Pie Inputs
+            options_nonnumerical, options_numerical, default_nonnumerical, default_numerical,
+            # Scatter Inputs
+            options, options, options, default, default, default,
+            # Datatable
+            df.to_dict('records'), columns,
+            # Graph Name & Description
+            '', '',
+        )
+    else:
+        graph = get_document('graph', graph_id)
+        input1, input2, input3 = None, None, None
+        if graph['type'] == 'line':
+            input1 = graph['x']
+            input2 = graph['y']
+        elif graph['type'] == 'bar':
+            input1 = graph['x']
+            input2 = graph['y']
+            input3 = graph['barmode']
+        elif graph['type'] == 'pie':
+            input1 = graph['names']
+            input2 = graph['values']
+        elif graph['type'] == 'scatter':
+            input1 = graph['x']
+            input2 = graph['y']
+            input3 = graph['color']
+        return (
+            # Graph Type Dropdown
+            graph['type'],
+            # Line Inputs
+            options, options, input1, input2,
+            # Bar Inputs
+            options, options, input1, input2, input3,
+            # Pie Inputs
+            options, options, input1, input2,
+            # Scatter Inputs
+            options, options, options, input1, input2, input3,
+            # Datatable
+            df.to_dict('records'), columns,
+            # Graph Name & Description
+            graph['name'], graph['description'],
+        )
 
 
+def graph_input_visibility_callback(graph_type):
+    style1, style2, style3, style4 = {'display': 'none'}, {'display': 'none'}, {'display': 'none'}, {'display': 'none'}, 
+    if graph_type == 'line': style1 = {'display': 'block'}
+    if graph_type == 'bar': style2 = {'display': 'block'}
+    if graph_type == 'pie': style3 = {'display': 'block'}
+    if graph_type == 'scatter': style4 = {'display': 'block'}
+    return style1, style2, style3, style4
 
 
 # Graph Callbacks
-def get_line_figure(x, y):
-    node_id = get_session('node_id')
+def get_line_figure(node_id, x, y):
     df = get_dataset_data(node_id)
     fig = px.line(df, x=x, y=y)
     return fig
-def get_bar_figure(x, y, barmode):
-    node_id = get_session('node_id')
+def get_bar_figure(node_id, x, y, barmode):
     df = get_dataset_data(node_id)
     fig = px.bar(df, x=y, y=x, barmode=barmode)
     return fig
-def get_pie_figure(names, values):
-    node_id = get_session('node_id')
+def get_pie_figure(node_id, names, values):
     df = get_dataset_data(node_id)
     fig = px.pie(df, names=names, values=values)
     return fig
-def get_scatter_figure(x, y, color):
-    node_id = get_session('node_id')
+def get_scatter_figure(node_id, x, y, color):
     df = get_dataset_data(node_id)
     fig = px.scatter(df, x=x, y=y, color=color)
     return fig

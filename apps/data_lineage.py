@@ -150,11 +150,10 @@ layout = html.Div([
                     # html.Div('Last Run: <TODO>', id=id('last_run_config'), style={'float':'right', 'display':'inline-block'}),
 
                     html.Div([
-                        dbc.Button("Run (Last run: <TODO>)", id=id('run_config'), color='warning', disabled=True),
-                    #     dbc.Button(html.I(n_clicks=0, className='far fa-play'), id=id('button_run_config'), disabled=False, className='btn btn-warning', style={'margin-left':'1px', 'display':'block'}),
+                        dbc.Button("Run (Last run: <TODO>)", id=id('button_run_config'), color='warning', style={'display': 'none'}),
                     #     dbc.Button(html.I(n_clicks=0, className='fas fa-chart-area'), id=id('button_chart'), disabled=True, className='btn btn-success', style={'margin-left':'1px', 'display': 'none'}),
                     #     dbc.Button(html.I(n_clicks=0, className='fas fa-times'), id=id('button_remove'), disabled=True, className='btn btn-danger', style={'margin-left':'1px', 'display':'none'}),
-                    #     dbc.Tooltip('Perform Action', target=id('button_run_config')),
+                        dbc.Tooltip('Run Config', target=id('button_run_config')),
                     #     dbc.Tooltip('Chart', target=id('button_chart')),
                     #     dbc.Tooltip('Remove Action or Raw Dataset', target=id('button_callapi')),
                     ], style={'float':'right', 'text-align':'right', 'display':'inline-block'}),
@@ -236,7 +235,7 @@ layout = html.Div([
 
                     # Right Body Tab 5 (Logs)
                     dbc.Row([
-                        dbc.Textarea(id=id('node_log'), placeholder='No Logs Found.', disabled=True, style={'height':'700px', 'font-size': '15px'})
+                        dbc.Textarea(id=id('node_log'), placeholder='No Logs Found.', disabled=True, style={'height':'650px', 'font-size': '12px'})
                     ], id=id('right_content_5'), style={'display':'none', 'padding':'20px'}),
 
                 ], className='bg-dark', inverse=True, style={'min-height':'780px', 'max-height':'780px', 'overflow-y':'auto'}),
@@ -305,18 +304,23 @@ def save_cytoscape_position(position1, position2):
     return f"Last Saved: {dt_string}", position1
 
 
+# Only display Run Config if Selected Node is a RestAPI
 @app.callback(
-    Output(id('run_config'), 'disabled'),
+    Output(id('button_run_config'), 'style'),
     Input(id('cytoscape'), 'selectedNodeData'),
+    State(id('button_run_config'), 'style'),
 )
-def enable_run_button(selectedNodeData):
-    if selectedNodeData is None: return True
+def enable_run_button(selectedNodeData, style):
+    if selectedNodeData is None: return no_update
     if len(selectedNodeData) == 1 and selectedNodeData[0]['type'] == 'raw_restapi':
-        return False
+        style['display'] = 'block'
+    else:
+        style['display'] = 'none'
+    return style
 
 @app.callback(
     Output(id('tabs_node'), 'active_tab'),
-    Input(id('run_config'), 'n_clicks'),
+    Input(id('button_run_config'), 'n_clicks'),
     State(id('cytoscape'), 'selectedNodeData'),
 )
 def run_config(n_clicks, selectedNodeData):
@@ -330,15 +334,10 @@ def run_config(n_clicks, selectedNodeData):
     df, details = process_restapi(method, url, header, param, body)
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
 
-    update_node_log(get_session('project_id'), node['id'], 'Run Config: '+str(details), details['timestamp'])
+    # Upsert
     r = client.collections[node['id']].documents.import_(jsonl, {'action': 'create'})
-    print("HERE: ", node['id'])
-    pprint(df)
-    pprint(jsonl)
-    data = get_dataset_data(node['id'])
-    pprint(data)
-    pprint(r)
-   
+    # upsert(node)
+    update_node_log(get_session('project_id'), node['id'], 'Run Config: '+str(details), details['timestamp'])
 
     return 'tab1'
 
@@ -378,33 +377,28 @@ def populate_dataset_config(tapNodeData):
 
 
 
-# Set Active Tab and Enable/Disable Tabs
+# Enable/Disable Tabs
 @app.callback(
-    Output(id('tabs_node'), 'active_tab'),
     Output(id('tabs_node'), 'children'),
     Input(id('cytoscape'), 'selectedNodeData'),
-    State(id('tabs_node'), 'active_tab'),
+    Input(id('tabs_node'), 'active_tab'),
     State(id('tabs_node'), 'children'),
 )
 def enable_disable_tab(selectedNodeData, active_tab, tabs):
     if selectedNodeData is None: return no_update
     num_selected = len(selectedNodeData)
     disabled1, disabled2, disabled3, disabled4, disabled5 = True, True, True, True, True
-
+    
     if num_selected == 0: 
-        active_tab = None
+        disabled1, disabled2, disabled3, disabled4, disabled5 = True, True, True, False, False
     elif num_selected == 1:
-        if selectedNodeData[0]['type'].startswith('action') :active_tab = 'tab2'
-        elif selectedNodeData[0]['type'] == 'raw': active_tab = 'tab3'
-        else:
-            active_tab = 'tab1' if active_tab is None else active_tab
+        if not selectedNodeData[0]['type'].startswith('action') and selectedNodeData[0]['type'] != 'raw':
             disabled1, disabled2, disabled3, disabled4, disabled5 = False, False, False, False, False
     elif (num_selected > 1 and 
             all(not node['type'].startswith('action') for node in selectedNodeData) and
             all(node['type'] != 'raw' for node in selectedNodeData)
             ):
-        active_tab = 'tab1' if (active_tab != 'tab1' or active_tab != 'tab2') else active_tab
-        disabled1, disabled2 = False, False
+        disabled1, disabled2, disabled3, disabled4, disabled5 = False, False, True, False, False
     
     tabs[0]['props']['disabled'] = disabled1
     tabs[1]['props']['disabled'] = disabled2
@@ -412,7 +406,31 @@ def enable_disable_tab(selectedNodeData, active_tab, tabs):
     tabs[3]['props']['disabled'] = disabled4
     tabs[4]['props']['disabled'] = disabled5
 
-    return active_tab, tabs
+    return tabs
+
+# Set Active Tab
+@app.callback(
+    Output(id('tabs_node'), 'active_tab'),
+    Input(id('cytoscape'), 'selectedNodeData'),
+    State(id('tabs_node'), 'active_tab'),
+)
+def set_active_tab(selectedNodeData, active_tab):
+    if selectedNodeData is None: return no_update
+    num_selected = len(selectedNodeData)
+
+    if num_selected == 0: 
+        active_tab = 'tab5' if active_tab is None else active_tab
+    elif num_selected == 1:
+        if selectedNodeData[0]['type'].startswith('action') :active_tab = 'tab2'
+        elif selectedNodeData[0]['type'] == 'raw': active_tab = 'tab3'
+        else: active_tab = 'tab1' if active_tab is None else active_tab
+    elif (num_selected > 1 and 
+            all(not node['type'].startswith('action') for node in selectedNodeData) and
+            all(node['type'] != 'raw' for node in selectedNodeData)
+            ):
+        active_tab = 'tab1' if (active_tab == 'tab3') else active_tab
+
+    return active_tab
 
 
 
@@ -591,35 +609,39 @@ def generate_right_content_display(active_tab, style0, style1, style2, style3, s
 # Generate Right Content (tab4)
 @app.callback(
     Output(id('right_content_4'), 'children'),
-    Input(id('cytoscape'), 'selectedNodeData'),
-    Input(id('right_content_4'), 'style'),
+    Input(id('tabs_node'), 'active_tab'),
+    State(id('cytoscape'), 'selectedNodeData'),
     State(id('right_content_4'), 'children'),
 )
-def generate_right_content(selectedNodeData, _, right_content_4):
-    if len(selectedNodeData) == 0: return no_update
+def generate_right_content(active_tab, selectedNodeData, right_content_4):
+    num_selected = len(selectedNodeData)
     project_id = get_session('project_id')
     project = get_document('project', project_id)
     right_content_4 = [right_content_4[0]]
-    
-    if selectedNodeData[0]['id'] in project['graph_dict']:
-        for graph_id in project['graph_dict'][selectedNodeData[0]['id']]:
-            graph = get_document('graph', graph_id)
 
-            if graph['type'] == 'line': fig = get_line_figure(graph['x'], graph['y'])
-            elif graph['type'] == 'bar': fig = get_bar_figure(graph['x'], graph['y'], graph['barmode'])
-            elif graph['type'] == 'pie': fig = get_pie_figure(graph['names'], graph['values'])
-            elif graph['type'] == 'scatter': fig = get_scatter_figure(graph['x'], graph['y'], graph['color'])
+    if num_selected == 0: node_id_list = project['graph_dict'].keys()
+    else: node_id_list = [node['id'] for node in selectedNodeData]
 
-            right_content_4 += [
-                dbc.Col([
-                    dbc.Card([
-                        dbc.Button(dbc.CardHeader(graph['name']), id={'type': id('button_graph_id'), 'index': graph_id}, value=graph_id, href='/apps/plot_graph'),
-                        dbc.CardBody([
-                            dcc.Graph(figure=fig, style={'height':'240px'}),
-                        ]),
-                    ], color='primary', inverse=True, style={})
-                ], style={'width':'98%', 'display':'inline-block', 'text-align':'center', 'margin':'3px 3px 3px 3px', 'height':'310px'})
-            ]
+    for node_id in node_id_list:
+        if node_id in project['graph_dict']:
+            for graph_id in project['graph_dict'][node_id]:
+                graph = get_document('graph', graph_id)
+                if graph['type'] == 'line': fig = get_line_figure(node_id, graph['x'], graph['y'])
+                elif graph['type'] == 'bar': fig = get_bar_figure(node_id, graph['x'], graph['y'], graph['barmode'])
+                elif graph['type'] == 'pie': fig = get_pie_figure(node_id, graph['names'], graph['values'])
+                elif graph['type'] == 'scatter': fig = get_scatter_figure(node_id, graph['x'], graph['y'], graph['color'])
+
+                right_content_4 += [
+                    dbc.Col([
+                        dbc.Card([
+                            dbc.Button(dbc.CardHeader(graph['name']), id={'type': id('button_graph_id'), 'index': graph_id}, value=graph_id, href='/apps/plot_graph'),
+                            dbc.CardBody([
+                                dcc.Graph(figure=fig, style={'height':'240px'}),
+                            ]),
+                        ], color='primary', inverse=True, style={})
+                    ], style={'width':'98%', 'display':'inline-block', 'text-align':'center', 'margin':'3px 3px 3px 3px', 'height':'310px'})
+                ]
+        
     return right_content_4
 
 
@@ -627,22 +649,25 @@ def generate_right_content(selectedNodeData, _, right_content_4):
 # Generate Right Content (tab5)
 @app.callback(
     Output(id('right_content_5'), 'children'),
-    Input(id('cytoscape'), 'selectedNodeData'),
-    Input(id('right_content_5'), 'style'),
+    Input(id('tabs_node'), 'active_tab'),
+    State(id('cytoscape'), 'selectedNodeData'),
 )
-def generate_right_content(selectedNodeData, _):
-    if len(selectedNodeData) == 0: return no_update
+def generate_right_content(active_tab, selectedNodeData):
+    num_selected = len(selectedNodeData)
     project_id = get_session('project_id')
     project = get_document('project', project_id)
     logs = None
-    node_id = selectedNodeData[0]['id']
-    logs = ''
-    if node_id in project['node_log']:
-        for node_log_id in project['node_log'][node_id]:
-            node_log = get_document('node_log', node_log_id)
-            logs += '{}: {} \n'.format(node_log['timestamp'], node_log['description'])
+    if num_selected == 0: node_id_list = project['node_log'].keys()
+    else: node_id_list = [node['id'] for node in selectedNodeData]
 
-    right_content_5 = dbc.Textarea(id=id('logs'), placeholder='No Logs Found.', value=logs, disabled=True, style={'height':'700px', 'font-size': '15px'})
+    logs = ''
+    for node_id in node_id_list:
+        if node_id in project['node_log']:
+            for node_log_id in project['node_log'][node_id]:
+                node_log = get_document('node_log', node_log_id)
+                logs += '{}: {} \n'.format(node_log['timestamp'], node_log['description'])
+
+    right_content_5 = dbc.Textarea(id=id('logs'), placeholder='No Logs Found.', value=logs, disabled=True, style={'height':'670px', 'font-size': '12px'})
     return right_content_5
 
 
@@ -974,7 +999,7 @@ def button_chart(n_clicks, selectedNodeData):
 )
 def load_graph(n_clicks, graph_id):
     store_session('graph_id', graph_id)
-    return no_update
+    return no_update 
 
 
 # Add/Remove Headers, Params, Body

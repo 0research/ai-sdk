@@ -51,3 +51,11 @@ style_data_conditional = [
 
 
 
+# Graph Options
+options_graph = [
+    {'label':'Line Graph', 'value':'line'},
+    {'label':'Bar Plot', 'value':'bar'},
+    {'label':'Pie Plot', 'value':'pie'},
+    {'label':'Scatter Plot', 'value':'scatter'},
+    # {'label':'Box Plot', 'value':'box'},
+]

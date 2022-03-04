@@ -97,15 +97,15 @@ def generate_graphs(pathname):
     project_id = get_session('project_id')
     project = get_document('project', project_id)
     content = []
-    pprint(project)
+    
     for node_id in project['graph_dict'].keys():
         for graph_id in project['graph_dict'][node_id]:
             graph = get_document('graph', graph_id)
 
-            if graph['type'] == 'line': fig = get_line_figure(graph['x'], graph['y'])
-            elif graph['type'] == 'bar': fig = get_bar_figure(graph['x'], graph['y'], graph['barmode'])
-            elif graph['type'] == 'pie': fig = get_pie_figure(graph['names'], graph['values'])
-            elif graph['type'] == 'scatter': fig = get_scatter_figure(graph['x'], graph['y'], graph['color'])
+            if graph['type'] == 'line': fig = get_line_figure(node_id, graph['x'], graph['y'])
+            elif graph['type'] == 'bar': fig = get_bar_figure(node_id, graph['x'], graph['y'], graph['barmode'])
+            elif graph['type'] == 'pie': fig = get_pie_figure(node_id, graph['names'], graph['values'])
+            elif graph['type'] == 'scatter': fig = get_scatter_figure(node_id, graph['x'], graph['y'], graph['color'])
 
             content += [
                 dbc.Col([
