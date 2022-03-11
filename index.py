@@ -8,7 +8,7 @@ from app import app
 from app import server 
 from app import dbc
 from apps.typesense_client import *
-from apps import (new_project, upload_dataset, join, search, feature_engineering, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
+from apps import (new_project, transform_node, upload_dataset, join, search, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage,
                 page2, page3, page6, page6,page7, page8, page9, test)
 import ast
@@ -96,7 +96,7 @@ sidebar_1 = [
     dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
     dbc.NavLink("Plot Graph", href="/apps/plot_graph", active="exact", className="fas fa-upload", disabled=True),
     dbc.NavLink("Impute Data", href="/apps/impute_data", active="exact", className="fas fa-upload", disabled=True),
-    dbc.NavLink("Feature Engineering", href="/apps/feature_engineering", active="exact", className="fas fa-upload", disabled=True),
+    dbc.NavLink("Transform Node", href="/apps/transform_node", active="exact", className="fas fa-upload", disabled=True),
 ]
 sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className'], disabled=nav['disabled']) for nav in SIDEBAR_2_LIST]
 sidebar_3 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_3_LIST]
@@ -157,7 +157,7 @@ def display_page(pathname):
     if pathname.startswith('/apps/plot_graph'): return plot_graph.layout
     if pathname.startswith('/apps/search'): return search.layout
     if pathname.startswith('/apps/impute_data'): return impute_data.layout
-    if pathname.startswith('/apps/feature_engineering'): return feature_engineering.layout
+    if pathname.startswith('/apps/transform_node'): return transform_node.layout
     
     if pathname.startswith('/apps/merge_strategy'): return merge_strategy.layout
     if pathname.startswith('/apps/temporal_evolution'): return temporal_evolution.layout

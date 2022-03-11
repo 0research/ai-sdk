@@ -136,7 +136,7 @@ def generate_graph_inputs_visibility(graph_type, pathname):
 
 
 
-# Line Graph Callback
+# Graph Callbacks
 @app.callback(
     Output(id('graph'), 'figure'),
     Input(id('line_input_container'), 'style'),
@@ -164,14 +164,14 @@ def display_graph_inputs(style1, style2, style3, style4,
                         pie_names, pie_values,
                         scatter_x, scatter_y, scatter_color):
     node_id = get_session('node_id')
-    if style1['display'] != 'none':
-        return get_line_figure(node_id, line_x, line_y)
-    elif style2['display'] != 'none':
-        return get_bar_figure(node_id, bar_x, bar_y, bar_barmode)
-    elif style3['display'] != 'none':
-        return get_pie_figure(node_id, pie_names, pie_values)
-    elif style4['display'] != 'none':
-        return get_scatter_figure(node_id, scatter_x, scatter_y, scatter_color)
+    return display_graph_inputs_callback(node_id, 
+                                style1, style2, style3, style4, 
+                                line_x, line_y,
+                                bar_x, bar_y, bar_barmode,
+                                pie_names, pie_values,
+                                scatter_x, scatter_y, scatter_color)
+
+
     
 
 @app.callback(

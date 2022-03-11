@@ -273,7 +273,8 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
                         cell_editable=False,
                         row_deletable=False, row_selectable=False, selected_row_id = None,
                         col_selectable=False, col_deletable=False, selected_column_id = None, 
-                        style_data_conditional=None):
+                        style_data_conditional=None,
+                        sort_action=None):
     # Datatable
     datatable_columns = [{"name": c, "id": c, "deletable": col_deletable, "selectable": col_selectable} for c in columns]
     if style_data_conditional is None:
@@ -295,8 +296,8 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
         columns=datatable_columns,
         editable=cell_editable,
         filter_action="none",
-        # sort_action="native",
-        # sort_mode="multi",
+        sort_action='native',
+        sort_mode="multi",
         column_selectable=col_selectable,
         row_selectable=row_selectable,
         row_deletable=row_deletable,
@@ -839,3 +840,19 @@ def get_scatter_figure(node_id, x, y, color):
     df = get_dataset_data(node_id)
     fig = px.scatter(df, x=x, y=y, color=color)
     return fig
+
+
+def display_graph_inputs_callback(node_id, 
+                                style1, style2, style3, style4, 
+                                line_x, line_y,
+                                bar_x, bar_y, bar_barmode,
+                                pie_names, pie_values,
+                                scatter_x, scatter_y, scatter_color):
+    if style1['display'] != 'none':
+        return get_line_figure(node_id, line_x, line_y)
+    elif style2['display'] != 'none':
+        return get_bar_figure(node_id, bar_x, bar_y, bar_barmode)
+    elif style3['display'] != 'none':
+        return get_pie_figure(node_id, pie_names, pie_values)
+    elif style4['display'] != 'none':
+        return get_scatter_figure(node_id, scatter_x, scatter_y, scatter_color)

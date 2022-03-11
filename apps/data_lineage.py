@@ -144,10 +144,8 @@ layout = html.Div([
                         dbc.Tab(label="Config", tab_id="tab3", disabled=True),
                         dbc.Tab(label="Graph", tab_id="tab4", disabled=True),
                         dbc.Tab(label="Logs", tab_id="tab5", disabled=True),
+                        dbc.Tab(label="Summary", tab_id="tab6", disabled=False),
                     ], id=id("tabs_node")), style={'float':'left', 'text-align':'left', 'display':'inline-block'}),
-
-                    
-                    # html.Div('Last Run: <TODO>', id=id('last_run_config'), style={'float':'right', 'display':'inline-block'}),
 
                     html.Div([
                         dbc.Button("Run (Last run: <TODO>)", id=id('button_run_config'), color='warning', style={'display': 'none'}),
@@ -178,8 +176,8 @@ layout = html.Div([
                                 dbc.Select(options=[], value=None, id=id('merge_idRef'), style={'text-align':'center', 'display':'none'}),
                             ], id=id('merge_type_container'), style={'display':'none'}, width=4),
                             dbc.Col([
-                                dbc.Button(html.I(n_clicks=0, className='fa fa-table'), color='info', outline=True, id=id('button_tabular'), n_clicks=0),
-                                dbc.Tooltip('View in Tabular Format', target=id('button_tabular')),
+                                dbc.Button(html.I(n_clicks=0, className='fa fa-table'), color='info', outline=True, id=id('button_display_mode'), n_clicks=0),
+                                dbc.Tooltip('View in Tabular Format', target=id('button_display_mode')),
                             ], width=1),
                             dbc.Col([dbc.Input(id=id('search_json'), placeholder='Search', style={'text-align':'center'})], width=12),
                         ]),
@@ -238,6 +236,17 @@ layout = html.Div([
                         dbc.Textarea(id=id('node_log'), placeholder='No Logs Found.', disabled=True, style={'height':'650px', 'font-size': '12px'})
                     ], id=id('right_content_5'), style={'display':'none', 'padding':'20px'}),
 
+                    # Right Body Tab 6 (Summary)
+                    dbc.Row([
+                        dbc.InputGroup([
+                            dbc.InputGroupText('Group By ', style={'width':'20%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px'}),
+                            dbc.Select(id=id('dropdown_groupby_feature'), options=[], value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
+                        ]),
+                        dbc.Table([], id=id('table_aggregate_function'), bordered=True, dark=True, hover=True, striped=True, style={'overflow-y': 'auto', 'height':'350px'}),
+
+                        dbc.Col(generate_datatable(id('datatable_aggregate'), height='800px')),
+
+                    ], id=id('right_content_6'), style={'display':'none', 'padding':'20px'}),
                 ], className='bg-dark', inverse=True, style={'min-height':'780px', 'max-height':'780px', 'overflow-y':'auto'}),
             
             ], width=6),
@@ -578,6 +587,7 @@ def update_node_particulars(node_name, description, documentation, selectedNodeD
     Output(id('right_content_3'), 'style'),
     Output(id('right_content_4'), 'style'),
     Output(id('right_content_5'), 'style'),
+    Output(id('right_content_6'), 'style'),
     Input(id('tabs_node'), 'active_tab'),
     State(id('right_content_0'), 'style'),
     State(id('right_content_1'), 'style'),
@@ -585,17 +595,19 @@ def update_node_particulars(node_name, description, documentation, selectedNodeD
     State(id('right_content_3'), 'style'),
     State(id('right_content_4'), 'style'),
     State(id('right_content_5'), 'style'),
+    State(id('right_content_6'), 'style'),
 )
-def generate_right_content_display(active_tab, style0, style1, style2, style3, style4, style5):
-    style0['display'], style1['display'], style2['display'], style3['display'], style4['display'], style5['display'] = 'none', 'none', 'none', 'none', 'none', 'none'
+def generate_right_content_display(active_tab, style0, style1, style2, style3, style4, style5, style6):
+    style0['display'], style1['display'], style2['display'], style3['display'], style4['display'], style5['display'], style6['display'] = 'none', 'none', 'none', 'none', 'none', 'none', 'none'
     if active_tab is None: style0['display'] = 'block'
     elif active_tab == 'tab1': style1['display'] = 'block'
     elif active_tab == 'tab2': style2['display'] = 'block'
     elif active_tab == 'tab3': style3['display'] = 'block'
     elif active_tab == 'tab4': style4['display'] = 'block'
     elif active_tab == 'tab5': style5['display'] = 'block'
+    elif active_tab == 'tab6': style6['display'] = 'block'
 
-    return style0, style1, style2, style3, style4, style5
+    return style0, style1, style2, style3, style4, style5, style6
 
 
 # # Generate Right Content (tab3)
@@ -671,6 +683,52 @@ def generate_right_content(active_tab, selectedNodeData):
     return right_content_5
 
 
+# Right Content (tab6) TODO
+@app.callback(
+    Output(id('dropdown_groupby_feature'), 'options'),
+    Output(id('dropdown_groupby_feature'), 'value'),
+    Input(id('cytoscape'), 'selectedNodeData'),
+)
+def generate_right_content_6(selectedNodeData):
+    if len(selectedNodeData) != 1: return no_update
+    node = get_document('node', get_session('node_id'))
+    options = [{'label': f, 'value': f} for f in node['features'].keys()]
+
+    return options, options[0]['value']
+
+@app.callback(
+    Output(id('table_aggregate_function'), 'children'),
+    Input(id('dropdown_groupby_feature'), 'value'),
+)
+def generate_right_content_6(groupby_feature):
+    node = get_document('node', get_session('node_id'))
+    print(groupby_feature)
+    print(list(node['features'].keys()))
+    feature_list = list(node['features'].keys())
+    feature_list.remove(groupby_feature)
+    aggregate_button_name_list = ['Distinct', 'Min', 'Max', 'Avg', 'Sum', 'Concat', 'Std Dev', 'Count', 'First', 'Last']
+    aggregate_button_id_list = ['button_agg_{}'.format(i) for i in range(len(aggregate_button_name_list))]
+    aggregate_button_list = [dbc.Button(name, id={'type':idd, 'index': i}, color='primary', outline=True) for i, (name, idd) in enumerate(zip(aggregate_button_name_list, aggregate_button_id_list))]
+    table_header = [html.Thead(html.Tr([html.Th("Feature", style={'width':'25%'}), html.Th("Function")]))]
+    table_body = [html.Tbody([html.Tr([
+        html.Td(f),
+        html.Td(aggregate_button_list),
+    ]) for f in feature_list])]
+    table = table_header + table_body
+
+    return table
+
+
+# TODO
+@app.callback(
+    Output(id('datatable_aggregate'), 'data'),
+    Output(id('datatable_aggregate'), 'columns'),
+    Input(id('dropdown_groupby_feature'), 'value'),
+)
+def generate_datatable_aggregate(groupby_feature):
+    return no_update
+
+
 # Generate Right Content (default, tab1, tab2)
 @app.callback(
     Output(id('right_content_0'), 'children'),
@@ -688,12 +746,12 @@ def generate_right_content(active_tab, selectedNodeData):
     Input(id('range'), 'value'),
     Input(id('merge_type'), 'value'),
     Input(id('merge_idRef'), 'value'),
-    Input(id('button_tabular'), 'n_clicks'),
+    Input(id('button_display_mode'), 'n_clicks'),
     Input(id('right_content_0'), 'style'),
     Input(id('right_content_1'), 'style'),
     Input(id('right_content_2'), 'style'),
 )
-def generate_right_content(selectedNodeData, range_value, merge_type, merge_idRef, n_clicks_button_tabular, _, _2, _3):
+def generate_right_content(selectedNodeData, range_value, merge_type, merge_idRef, n_clicks_display_mode, _, _2, _3):
     num_selected = len(selectedNodeData)
     if num_selected == 0: return no_update
 
@@ -762,8 +820,8 @@ def generate_right_content(selectedNodeData, range_value, merge_type, merge_idRe
         range_value = [range_min, range_max]
     data = data[range_value[0]-1:range_value[1]]
     
-    if n_clicks_button_tabular % 2 == 0: right_content_1 = display_dataset_data(data, format='json')
-    else: right_content_1 = display_dataset_data(data, format='tabular')
+    if n_clicks_display_mode % 2 == 0: right_content_1 = display_dataset_data(data, format='tabular')
+    else: right_content_1 = display_dataset_data(data, format='json')
 
 
     return (right_content_0, right_content_1, right_content_2,
@@ -924,7 +982,7 @@ def preview_dataset(n_clicks_list, node_id_list):
     df = get_dataset_data(node_id)
     return [
         # dbc.ModalHeader(dbc.ModalTitle('')),
-        dbc.ModalBody(generate_datatable(id('preview_dataset_datatable'), df.to_dict('records'), df.columns, height='800px')),
+        dbc.ModalBody(generate_datatable(id('preview_dataset_datatable'), df.to_dict('records'), df.columns, height='800px', sort_action='native')),
         # dbc.ModalFooter(''),
     ], True
 
@@ -968,10 +1026,10 @@ def button_remove_feature(n_clicks):
 
 # Toggle button Tabular
 @app.callback(
-    Output(id('button_tabular'), 'outline'),
-    Input(id('button_tabular'), 'n_clicks'),
+    Output(id('button_display_mode'), 'outline'),
+    Input(id('button_display_mode'), 'n_clicks'),
 )
-def toggle_button_tabular(n_clicks):
+def toggle_button_display_mode(n_clicks):
     if n_clicks is None: return no_update
     if n_clicks % 2 == 0: return True
     else: return False
@@ -1154,7 +1212,7 @@ def generate_dropdown_actions(selectedNodeData):
             options = [
                 dbc.DropdownMenuItem('Truncate Dataset', id={'type': id('button_truncatedataset'), 'index': 0}, href='#', className='action_dropdown'),
                 dbc.DropdownMenuItem('Clone Metadata', id={'type': id('button_clonemetadata'), 'index': 0}, href='#', className='action_dropdown'),
-                dbc.DropdownMenuItem('Feature Engineering', href='/apps/feature_engineering', className='action_dropdown'),
+                dbc.DropdownMenuItem('Transform Node', href='/apps/transform_node', className='action_dropdown'),
                 dbc.DropdownMenuItem('Impute Data', href='/apps/impute_data', className='action_dropdown'),
                 
                 dbc.DropdownMenuItem(divider=True),

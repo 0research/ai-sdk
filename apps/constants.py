@@ -6,7 +6,7 @@ UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"
 SIDEBAR_2_LIST = [
     {'label': 'Modify Metadata',            'value': '#',                       'multiple':False,   'disabled': True,  'className': 'fas fa-search-plus'},
     {'label': 'Impute Data',                'value': '/apps/impute_data',       'multiple':False,   'disabled': False,   'className': 'fas fa-search-plus'},
-    {'label': 'Extract & Transform',        'value': '/apps/feature_engineering', 'multiple':False,   'disabled': False,   'className': 'fas fa-search-plus'},
+    {'label': 'Extract & Transform',        'value': '/apps/transform_node', 'multiple':False,   'disabled': False,   'className': 'fas fa-search-plus'},
     
     {'label': 'Merge Datasets',             'value': '#',                       'multiple':True,    'disabled': False,  'className': 'fas fa-search-plus'},
 
@@ -35,19 +35,7 @@ MERGE_TYPES = ['arrayMergeByIndex', 'arrayMergeById', 'objectMerge'] # 'overwrit
 
 
 
-# Datatable
-style_data_conditional = [
-    {
-        "if": {"state": "active"},
-        "backgroundColor": "rgba(150, 180, 225, 0.2)",
-        "border": "1px solid blue",
-    },
-    {
-        "if": {"state": "selected"},
-        "backgroundColor": "rgba(0, 116, 217, .03)",
-        "border": "1px solid blue",
-    },
-]
+
 
 
 
