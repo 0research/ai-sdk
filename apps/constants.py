@@ -47,3 +47,7 @@ options_graph = [
     {'label':'Scatter Plot', 'value':'scatter'},
     # {'label':'Box Plot', 'value':'box'},
 ]
+
+
+# Names of all Groupby Aggregate functions
+aggregate_button_name_list = ['Distinct', 'Min', 'Max', 'Avg', 'Median', 'Sum', 'Concat', 'Std Dev']

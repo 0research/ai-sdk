@@ -163,10 +163,9 @@ layout = html.Div([
                         # Shift Function
                         dbc.InputGroup([
                             dbc.InputGroupText('Size', style={'width':'20%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-                            dbc.InputGroupText('Features', style={'width':'80%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
+                            dbc.InputGroupText('Feature', style={'width':'80%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
                             dbc.Select(id=id('dropdown_shift_size'), options=[], value=None, style={'text-align':'center', 'width':'20%'}, persistence=True),
-                            html.Div(dcc.Dropdown(id=id('dropdown_shift_feature'), multi=True, options=[], value=None, persistence=True), style={'width':'50%'}),
-                            dbc.Button('Use Features', id=id('button_shift_use_features'), color='info', style={'width':'30%'}),
+                            dbc.Select(id=id('dropdown_shift_feature'), options=[], value=None, persistence=True, style={'width':'80%'}),
                         ], id=id('shift_inputs'), style={'display': 'none'}),
 
                         # Conditions
@@ -275,8 +274,8 @@ def generate_graph_inputs(pathname):
 )
 def generate_feature_dropdown(features, data):
     options = [{'label': f['name'], 'value': f['name']} for f in features]
-    options_slidingwindow_size = [{'label': i, 'value': i} for i in range(1, len(data)-1)]
-    options_shift_size = [{'label': i, 'value': i} for i in range(1, len(data)-1)]
+    options_slidingwindow_size = [{'label': i, 'value': i} for i in range(2, len(data)-1)]
+    options_shift_size = [{'label': i, 'value': i} for i in range(2, len(data)-1)]
     options_custom = options + [{'label': 'Custom Input', 'value': '_custom'}]
     return options, options, options_custom, options, options_custom, options, options, options, options_slidingwindow_size, options_shift_size, options
 
@@ -353,17 +352,19 @@ def generate_feature_dropdown(n_clicks, selected_columns):
     State(id('dropdown_arithmeticfeature1'), 'value'),
     State(id('dropdown_arithmeticfeature2'), 'value'),
 )
-def add_feature_arithmetic(n_clicks, function_type, data, function, feature1, feature2):
+def add_feature1(n_clicks, function_type, data, function, feature1, feature2):
     if n_clicks is None: return no_update
     if function_type != 'arithmetic': return no_update
     df = pd.DataFrame(data)
-    if function == 'add': feature = df[feature1] + df[feature2]
-    elif function == 'subtract': feature = df[feature1] - df[feature2]
-    elif function == 'divide': feature = df[feature1] / df[feature2]
-    elif function == 'multiply': feature = df[feature1] * df[feature2]
-    elif function == 'exponent': feature = df[feature1] ** df[feature2]
-    elif function == 'modulus': feature = df[feature1] % df[feature2]
-    else: feature = 'error'
+    try:
+        if function == 'add': feature = df[feature1] + df[feature2]
+        elif function == 'subtract': feature = df[feature1] - df[feature2]
+        elif function == 'divide': feature = df[feature1] / df[feature2]
+        elif function == 'multiply': feature = df[feature1] * df[feature2]
+        elif function == 'exponent': feature = df[feature1] ** df[feature2]
+        elif function == 'modulus': feature = df[feature1] % df[feature2]
+    except:
+        feature = 'error'
     return feature
 
 # Add Feature (Comparison)
@@ -376,19 +377,41 @@ def add_feature_arithmetic(n_clicks, function_type, data, function, feature1, fe
     State(id('dropdown_comparisonfeature1'), 'value'),
     State(id('dropdown_comparisonfeature2'), 'value'),
 )
-def add_feature_comparison(n_clicks, function_type, data, function, feature1, feature2):
+def add_feature2(n_clicks, function_type, data, function, feature1, feature2):
     if n_clicks is None: return no_update
     if function_type != 'comparison': return no_update
     df = pd.DataFrame(data)
-    f1 = df[feature1] # TODO
+    try:
+        if function == 'gt': feature = df[feature1].gt(df[feature2])
+        elif function == 'lt': feature = df[feature1].lt(df[feature2])
+        elif function == 'ge': feature = df[feature1].ge(df[feature2])
+        elif function == 'le': feature = df[feature1].le(df[feature2])
+        elif function == 'eq': feature = df[feature1].eq(df[feature2])
+        elif function == 'ne': feature = df[feature1].ne(df[feature2])
+    except: 
+        feature = 'error'
+    return feature
 
-    if function == 'gt': feature = df[feature1].gt(df[feature2])
-    elif function == 'lt': feature = df[feature1].lt(df[feature2])
-    elif function == 'ge': feature = df[feature1].ge(df[feature2])
-    elif function == 'le': feature = df[feature1].le(df[feature2])
-    elif function == 'eq': feature = df[feature1].eq(df[feature2])
-    elif function == 'ne': feature = df[feature1].ne(df[feature2])
-    else: feature = 'error'
+# Add Feature (aggregate)
+@app.callback(
+    Output(id('new_feature'), 'data'),
+    Input(id('button_add'), 'n_clicks'),
+    State(id('dropdown_function_type'), 'value'),
+    State(id('dropdown_aggregate_function'), 'value'),
+    State(id('datatable'), 'data'),
+    State(id('dropdown_aggregatefeatures'), 'value'),
+)
+def add_feature3(n_clicks, function_type, func, data, features):
+    if n_clicks is None: return no_update
+    if function_type != 'aggregate': return no_update
+    df = pd.DataFrame(data)
+    try:
+        if func == 'sum': feature = df[features].sum(axis=1)
+        elif func == 'avg': feature = df[features].mean(axis=1)
+        elif func == 'min': feature = df[features].min(axis=1)
+        elif func == 'max': feature = df[features].max(axis=1)
+    except:
+        feature = 'error'
     return feature
 
 # Add Feature (Sliding Window)
@@ -401,17 +424,20 @@ def add_feature_comparison(n_clicks, function_type, data, function, feature1, fe
     State(id('dropdown_slidingwindow_size'), 'value'),
     State(id('dropdown_slidingwindow_feature'), 'value'),
 )
-def add_feature_comparison(n_clicks, function_type, data, func, window_size, feature):
+def add_feature4(n_clicks, function_type, data, func, window_size, feature):
     if n_clicks is None: return no_update
-    if function_type != 'comparison': return no_update
+    if function_type != 'slidingwindow': return no_update
     df = pd.DataFrame(data)
-    new_feature = df[feature].rolling(window_size)
-    if func == 'sum': new_feature.sum()
-    elif func == 'avg': new_feature.mean()
-    elif func == 'min': new_feature.min()
-    elif func == 'max': new_feature.max()
+    try:
+        window = df[feature].rolling(int(window_size))
+        if func == 'sum': feature = window.sum()
+        elif func == 'avg': feature = window.mean()
+        elif func == 'min': feature = window.min()
+        elif func == 'max': feature = window.max()
+    except:
+        feature = 'error'
 
-    return new_feature
+    return feature
 
 # Add Feature (Format Date)
 @app.callback(
@@ -422,12 +448,15 @@ def add_feature_comparison(n_clicks, function_type, data, func, window_size, fea
     State(id('dropdown_dateformat'), 'value'),
     State(id('dropdown_formatdatefeature'), 'value'),
 )
-def add_feature_formatdate(n_clicks, function_type, data, date_format, feature):
+def add_feature5(n_clicks, function_type, data, date_format, feature):
     if n_clicks is None: return no_update
-    if function_type != 'comparison': return no_update
+    if function_type != 'formatdate': return no_update
     df = pd.DataFrame(data)
 
-    # TODO Format Date
+    try:
+        pass
+    except:
+        pass
 
     return feature
 
@@ -437,16 +466,15 @@ def add_feature_formatdate(n_clicks, function_type, data, date_format, feature):
     Input(id('button_add'), 'n_clicks'),
     State(id('dropdown_function_type'), 'value'),
     State(id('datatable'), 'data'),
-    State(id('dropdown_aggregatefeatures'), 'value'),
+    State(id('dropdown_cumulativefeature'), 'value'),
 )
-def add_feature_cumulative(n_clicks, function_type, data, features):
+def add_feature5(n_clicks, function_type, data, feature):
     if n_clicks is None: return no_update
-    if function_type != 'aggregate': return no_update
-    # print(data)
+    if function_type != 'cumulative': return no_update
     df = pd.DataFrame(data)
-    print(features)
+    feature = df[feature].cumsum()
 
-    # return feature
+    return feature
 
 # Add Feature (Shift)
 @app.callback(
@@ -457,14 +485,13 @@ def add_feature_cumulative(n_clicks, function_type, data, features):
     State(id('dropdown_shift_size'), 'value'),
     State(id('dropdown_shift_feature'), 'value'),
 )
-def add_feature_shift(n_clicks, function_type, data, size, features):
+def add_feature7(n_clicks, function_type, data, size, features):
     if n_clicks is None: return no_update
-    if function_type != 'aggregate': return no_update
-    # print(data)
+    if function_type != 'shift': return no_update
     df = pd.DataFrame(data)
-    print(features)
+    feature = df[features].shift(int(size))
 
-    # return feature
+    return feature.squeeze()
 
 
 
@@ -628,3 +655,20 @@ def function_input_style(function_type, style1, style2, style3, style4, style5, 
         conditions_style['display'] = 'flex'
         
     return style1, style2, style3, style4, style5, style6, style7, conditions_style
+
+
+
+# Confirm Action
+@app.callback(
+    Output('url', 'pathname'),
+    Input(id('button_confirm'), "n_clicks"),
+    State(id('datatable'), 'data'),
+)
+def button_confirm(n_clicks, data):
+    if n_clicks is None: return no_update
+    df = pd.DataFrame(data)
+    node_id = get_session('node_id')
+    node = get_document('node', node_id)
+    action(get_session('project_id'), node_id, 'Transform Node', node, df_dataset_data=df, details=None)
+    
+    return '/apps/data_lineage'

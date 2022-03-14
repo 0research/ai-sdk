@@ -240,11 +240,11 @@ layout = html.Div([
                     dbc.Row([
                         dbc.InputGroup([
                             dbc.InputGroupText('Group By ', style={'width':'20%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px'}),
-                            dbc.Select(id=id('dropdown_groupby_feature'), options=[], value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
+                            html.Div(dcc.Dropdown(id=id('dropdown_groupby_feature'), multi=True, options=[], value=None, persistence=True, style={'color':'black', 'text-align':'center'}), style={'width':'80%'}),
                         ]),
                         dbc.Table([], id=id('table_aggregate_function'), bordered=True, dark=True, hover=True, striped=True, style={'overflow-y': 'auto', 'height':'350px'}),
 
-                        dbc.Col(generate_datatable(id('datatable_aggregate'), height='800px')),
+                        dbc.Col(generate_datatable(id('datatable_aggregate'), height='400px')),
 
                     ], id=id('right_content_6'), style={'display':'none', 'padding':'20px'}),
                 ], className='bg-dark', inverse=True, style={'min-height':'780px', 'max-height':'780px', 'overflow-y':'auto'}),
@@ -683,7 +683,7 @@ def generate_right_content(active_tab, selectedNodeData):
     return right_content_5
 
 
-# Right Content (tab6) TODO
+# Right Content (tab6)
 @app.callback(
     Output(id('dropdown_groupby_feature'), 'options'),
     Output(id('dropdown_groupby_feature'), 'value'),
@@ -700,33 +700,56 @@ def generate_right_content_6(selectedNodeData):
     Output(id('table_aggregate_function'), 'children'),
     Input(id('dropdown_groupby_feature'), 'value'),
 )
-def generate_right_content_6(groupby_feature):
+def generate_right_content_6(groupby_features):
     node = get_document('node', get_session('node_id'))
-    print(groupby_feature)
-    print(list(node['features'].keys()))
     feature_list = list(node['features'].keys())
-    feature_list.remove(groupby_feature)
-    aggregate_button_name_list = ['Distinct', 'Min', 'Max', 'Avg', 'Sum', 'Concat', 'Std Dev', 'Count', 'First', 'Last']
-    aggregate_button_id_list = ['button_agg_{}'.format(i) for i in range(len(aggregate_button_name_list))]
-    aggregate_button_list = [dbc.Button(name, id={'type':idd, 'index': i}, color='primary', outline=True) for i, (name, idd) in enumerate(zip(aggregate_button_name_list, aggregate_button_id_list))]
+    feature_list = [f for f in feature_list if f not in groupby_features]
+    
+    aggregate_button_id_list = [id('button_agg_function{}'.format(i)) for i in range(len(aggregate_button_name_list))]
+    aggregate_button_list = []
+
     table_header = [html.Thead(html.Tr([html.Th("Feature", style={'width':'25%'}), html.Th("Function")]))]
     table_body = [html.Tbody([html.Tr([
         html.Td(f),
-        html.Td(aggregate_button_list),
+        html.Td([dbc.Button(name, id={'type': idd, 'index': f}, color='primary', outline=True) for i, (name, idd) in enumerate(zip(aggregate_button_name_list, aggregate_button_id_list))]),
     ]) for f in feature_list])]
     table = table_header + table_body
 
     return table
 
 
-# TODO
-@app.callback(
-    Output(id('datatable_aggregate'), 'data'),
-    Output(id('datatable_aggregate'), 'columns'),
-    Input(id('dropdown_groupby_feature'), 'value'),
-)
-def generate_datatable_aggregate(groupby_feature):
-    return no_update
+
+for i in range(len(aggregate_button_name_list)):
+    @app.callback(
+        Output({'type': id('button_agg_function{}'.format(i)), 'index': MATCH}, 'outline'),
+        Input({'type': id('button_agg_function{}'.format(i)), 'index': MATCH}, 'n_clicks'),
+        prevent_initial_call=True,
+    )
+    def agg_function_style(n_clicks):
+        if n_clicks is None: return no_update
+        if n_clicks % 2 == 0: return True
+        else: return False
+
+    # TODO
+    @app.callback(
+        Output(id('datatable_aggregate'), 'data'),
+        Output(id('datatable_aggregate'), 'columns'),
+        Input({'type': id('button_agg_function{}'.format(i)), 'index': ALL}, 'n_clicks'),
+        State({'type': id('button_agg_function{}'.format(i)), 'index': ALL}, 'id'),
+    )
+    def generate_datatable_aggregate(n_clicks_list, id_list):
+        if all(n_click is None for n_click in n_clicks_list): return no_update
+        feature_list = []
+        agg_function = aggregate_button_name_list[int(id_list[0]['type'][-1])]
+        for i in range(len(n_clicks_list)):
+            if n_clicks_list[i] is None: pass
+            elif n_clicks_list[i] % 2 == 0: pass
+            else:
+                feature = id_list[i]['index']
+                feature_list.append(feature)
+        
+        print(feature_list, agg_function)
+        return {}, {}
 
 
 # Generate Right Content (default, tab1, tab2)
@@ -908,6 +931,7 @@ def cytoscape_triggers(n_clicks_reset_layout, node_name_input, n_clicks_merge, n
             df = df[dataset_range[0]-1:dataset_range[1]]
             details = { 'range_before': [0, len(df)], 'range_after': [dataset_range[0]-1, dataset_range[1]] }
             action(project_id, dataset_id, 'action_2', dataset_metadata, df)
+            print(project_id)
 
         # Action 3 - Merge Datasets Action
         elif triggered == '{"index":0,"type":"data_lineage-button_merge"}' and all(not node['type'].startswith('action') for node in selectedNodeData):
