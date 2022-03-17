@@ -103,6 +103,7 @@ layout = html.Div([
         dcc.Store(id=id('do_cytoscape_reload'), storage_type='session', data=False),
         dcc.Store(id=id('cytoscape_position_store'), storage_type='session', data=[]),
         dcc.Store(id=id('cytoscape_position_store_2'), storage_type='session', data=[]),
+        dcc.Store(id=id('agg_function_store'), storage_type='session', data={}),
 
         dcc.Interval(id=id('interval_cytoscape'), interval=500, n_intervals=0),
         
@@ -175,6 +176,9 @@ layout = html.Div([
                                 dbc.Select(options=options_merge, value=options_merge[0]['value'], id=id('merge_type'), style={'text-align':'center'}),
                                 dbc.Select(options=[], value=None, id=id('merge_idRef'), style={'text-align':'center', 'display':'none'}),
                             ], id=id('merge_type_container'), style={'display':'none'}, width=4),
+                            dbc.Col([
+                                dbc.Button('Add Feature', id=id('add_feature'), color='warning', outline=True),
+                            ], id=id('add_feature_container'), width=3),
                             dbc.Col([
                                 dbc.Button(html.I(n_clicks=0, className='fa fa-table'), color='info', outline=True, id=id('button_display_mode'), n_clicks=0),
                                 dbc.Tooltip('View in Tabular Format', target=id('button_display_mode')),
@@ -255,6 +259,15 @@ layout = html.Div([
         # Modal (view dataset)
         dbc.Modal(id=id('modal_dataset'), size='xl'),
 
+        # Modal Select Function
+        dbc.Modal([
+                dbc.ModalHeader(dbc.ModalTitle("Transform Node")),
+                dbc.ModalBody(generate_transform_node_inputs(id)),
+                dbc.ModalFooter(dbc.Button('Add Feature', color='warning', id=id('button_add'), style={'width':'100%'})),
+            ],
+            id=id('modal_transform_node'),
+            is_open=False,
+        ),
 
     ], style={'width':'100%'}),
 ])
@@ -513,10 +526,7 @@ def upload_data_source(n_clicks_button_save_config,
                         add_edge(project_id, source_id, node_id)
                         
             active_tab = 'tab1'
-    
-    
-
-
+   
     return active_tab
 
 
@@ -705,51 +715,63 @@ def generate_right_content_6(groupby_features):
     feature_list = list(node['features'].keys())
     feature_list = [f for f in feature_list if f not in groupby_features]
     
-    aggregate_button_id_list = [id('button_agg_function{}'.format(i)) for i in range(len(aggregate_button_name_list))]
+    # aggregate_button_id_list = [id('button_agg_function{}'.format(i)) for i in range(len(aggregate_button_name_list))]
     aggregate_button_list = []
 
     table_header = [html.Thead(html.Tr([html.Th("Feature", style={'width':'25%'}), html.Th("Function")]))]
     table_body = [html.Tbody([html.Tr([
-        html.Td(f),
-        html.Td([dbc.Button(name, id={'type': idd, 'index': f}, color='primary', outline=True) for i, (name, idd) in enumerate(zip(aggregate_button_name_list, aggregate_button_id_list))]),
-    ]) for f in feature_list])]
+        html.Td(feature_list[j]),
+        html.Td([dbc.Button(name, id={'type': id('button_agg_function'), 'index': feature_list[j]+'_'+aggregate_button_name_list[i]}, n_clicks=0, color='primary', outline=True) for i, name in enumerate(aggregate_button_name_list)]),
+    ]) for j in range(len(feature_list))])]
     table = table_header + table_body
 
     return table
 
 
+# Outline true/false Buttons onclick
+@app.callback(
+    Output({'type': id('button_agg_function'), 'index': MATCH}, 'outline'),
+    Input({'type': id('button_agg_function'), 'index': MATCH}, 'n_clicks'),
+    prevent_initial_call=True,
+)
+def agg_function_style(n_clicks):
+    if n_clicks == 0: return no_update
+    if n_clicks % 2 == 0: return True
+    else: return False
 
-for i in range(len(aggregate_button_name_list)):
-    @app.callback(
-        Output({'type': id('button_agg_function{}'.format(i)), 'index': MATCH}, 'outline'),
-        Input({'type': id('button_agg_function{}'.format(i)), 'index': MATCH}, 'n_clicks'),
-        prevent_initial_call=True,
-    )
-    def agg_function_style(n_clicks):
-        if n_clicks is None: return no_update
-        if n_clicks % 2 == 0: return True
-        else: return False
 
-    # TODO
-    @app.callback(
-        Output(id('datatable_aggregate'), 'data'),
-        Output(id('datatable_aggregate'), 'columns'),
-        Input({'type': id('button_agg_function{}'.format(i)), 'index': ALL}, 'n_clicks'),
-        State({'type': id('button_agg_function{}'.format(i)), 'index': ALL}, 'id'),
-    )
-    def generate_datatable_aggregate(n_clicks_list, id_list):
-        if all(n_click is None for n_click in n_clicks_list): return no_update
-        feature_list = []
-        agg_function = aggregate_button_name_list[int(id_list[0]['type'][-1])]
-        for i in range(len(n_clicks_list)):
-            if n_clicks_list[i] is None: pass
-            elif n_clicks_list[i] % 2 == 0: pass
-            else:
-                feature = id_list[i]['index']
-                feature_list.append(feature)
-        
-        print(feature_list, agg_function)
-        return {}, {}
+@app.callback(
+    Output(id('datatable_aggregate'), 'data'),
+    Output(id('datatable_aggregate'), 'columns'),
+    Input({'type': id('button_agg_function'), 'index': ALL}, 'n_clicks'),
+    State({'type': id('button_agg_function'), 'index': ALL}, 'id'),
+    State(id('dropdown_groupby_feature'), 'value'),
+    State(id('cytoscape'), 'selectedNodeData'),
+    prevent_initial_call=True,
+)
+def generate_datatable_aggregate(n_clicks_list, id_list, groupby_features, selectedNodeData):
+    if all(n_click == 0 for n_click in n_clicks_list): return no_update
+
+    selected_list = [n_clicks % 2 == 1 for n_clicks in n_clicks_list]
+    feature_func_dict = {}
+
+    for i in range(len(selected_list)):
+        if selected_list[i] == True:
+            feature, agg_func = id_list[i]['index'].rsplit('_', 1)
+            if feature in feature_func_dict: feature_func_dict[feature].append(agg_func)
+            else: feature_func_dict[feature] = [agg_func]
+
+    node_id = selectedNodeData[0]['id']
+    df = get_dataset_data(node_id)
+    df_agg = df.groupby(groupby_features).sum() # TODO
+    # df_agg = df.groupby(groupby_features).agg({feature: ['sum', 'mean']}) # TODO
+    columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
+
+    pprint(feature_func_dict)
+    print(df_agg)
+
+    return df_agg.to_dict('records'), columns
+
 
 
 # Generate Right Content (default, tab1, tab2)
@@ -931,7 +953,6 @@ def cytoscape_triggers(n_clicks_reset_layout, node_name_input, n_clicks_merge, n
             df = df[dataset_range[0]-1:dataset_range[1]]
             details = { 'range_before': [0, len(df)], 'range_after': [dataset_range[0]-1, dataset_range[1]] }
             action(project_id, dataset_id, 'action_2', dataset_metadata, df)
-            print(project_id)
 
         # Action 3 - Merge Datasets Action
         elif triggered == '{"index":0,"type":"data_lineage-button_merge"}' and all(not node['type'].startswith('action') for node in selectedNodeData):
@@ -966,7 +987,13 @@ def cytoscape_triggers(n_clicks_reset_layout, node_name_input, n_clicks_merge, n
     return elements, layout
 
 
-
+@app.callback(
+    Output(id('modal_transform_node'), 'is_open'),
+    Input(id('add_feature'), 'n_clicks'),
+    prevent_initial_call=True
+)
+def select_function(n_clicks):
+    return True
 
 
 
@@ -1249,3 +1276,81 @@ def generate_dropdown_actions(selectedNodeData):
     return options
 
 
+
+
+
+
+# Generate List of feature dropdown
+@app.callback(
+    Output(id('dropdown_aggregatefeatures'), 'options'),
+    Output(id('dropdown_arithmeticfeature1'), 'options'),
+    Output(id('dropdown_arithmeticfeature2'), 'options'),
+    Output(id('dropdown_comparisonfeature1'), 'options'),
+    Output(id('dropdown_comparisonfeature2'), 'options'),
+    Output(id('dropdown_formatdatefeature'), 'options'),
+    Output(id('dropdown_cumulativefeature'), 'options'),
+    Output(id('dropdown_slidingwindow_feature'), 'options'),
+    Output(id('dropdown_slidingwindow_size'), 'options'),
+    Output(id('dropdown_shift_size'), 'options'),
+    Output(id('dropdown_shift_feature'), 'options'),
+    Input(id('add_feature'), 'n_clicks'),
+    State(id('datatable'), 'columns'),
+    State(id('datatable'), 'data')
+)
+def generate_feature_dropdown(n_clicks, features, data):
+    print("AAAAAAAAAAAAAAAAAAAAAAA")
+    options = [{'label': f['name'], 'value': f['name']} for f in features]
+    options_slidingwindow_size = [{'label': i, 'value': i} for i in range(2, len(data)-1)]
+    options_shift_size = [{'label': i, 'value': i} for i in range(2, len(data)-1)]
+    options_custom = options + [{'label': 'Custom Input', 'value': '_custom'}]
+    return options, options, options_custom, options, options_custom, options, options, options, options_slidingwindow_size, options_shift_size, options
+
+# Display Custom Inputs
+@app.callback(
+    Output(id('custom_input'), 'style'),
+    Input(id('dropdown_arithmeticfeature2'), 'value'),
+    Input(id('dropdown_comparisonfeature2'), 'value'),
+    Input(id('dropdown_function_type'), 'value'),
+    State(id('custom_input'), 'style'),
+)
+def display_custom_inputs(arithmetic_feature, comparison_feature, function_type, style):
+    style['display'] = 'none'
+    if arithmetic_feature == '_custom' and function_type == 'arithmetic': style['display'] = 'flex'
+    if comparison_feature == '_custom' and function_type == 'comparison': style['display'] = 'flex'
+    return style
+
+# Function Input Visibility
+@app.callback(
+    Output(id('arithmetic_inputs'), "style"),
+    Output(id('comparison_inputs'), "style"),
+    Output(id('aggregate_inputs'), "style"),
+    Output(id('slidingwindow_inputs'), "style"),
+    Output(id('formatdate_inputs'), "style"),
+    Output(id('cumulative_inputs'), "style"),
+    Output(id('shift_inputs'), "style"),
+    Output(id('conditions'), "style"),
+    Input(id('dropdown_function_type'), "value"),
+    State(id('arithmetic_inputs'), "style"),
+    State(id('comparison_inputs'), "style"),
+    State(id('aggregate_inputs'), "style"),
+    State(id('slidingwindow_inputs'), "style"),
+    State(id('formatdate_inputs'), "style"),
+    State(id('cumulative_inputs'), "style"),
+    State(id('shift_inputs'), "style"),
+    State(id('conditions'), "style"),
+)
+def function_input_style(function_type, style1, style2, style3, style4, style5, style6, style7, conditions_style):
+    style1['display'], style2['display'], style3['display'], style4['display'], style5['display'], style6['display'], style7['display'] = 'none', 'none', 'none', 'none', 'none', 'none', 'none'
+    conditions_style['display'] = 'none'
+    if function_type == 'arithmetic': style1['display'] = 'flex'
+    elif function_type == 'comparison': style2['display'] = 'flex'
+    elif function_type == 'aggregate': style3['display'] = 'flex'
+    elif function_type == 'slidingwindow': style4['display'] = 'flex'
+    elif function_type == 'formatdate': style5['display'] = 'flex'
+    elif function_type == 'cumulative': style6['display'] = 'flex'
+    elif function_type == 'shift': style7['display'] = 'flex'
+
+    if function_type in ['arithmetic', 'comparison']:
+        conditions_style['display'] = 'flex'
+        
+    return style1, style2, style3, style4, style5, style6, style7, conditions_style

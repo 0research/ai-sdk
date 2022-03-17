@@ -669,6 +669,10 @@ def button_confirm(n_clicks, data):
     df = pd.DataFrame(data)
     node_id = get_session('node_id')
     node = get_document('node', node_id)
-    action(get_session('project_id'), node_id, 'Transform Node', node, df_dataset_data=df, details=None)
-    
+    # TODO add new features to node 
+    for col in df.columns:
+        if col not in node['features']:
+            node['features'][col] = 'string'
+    action(get_session('project_id'), node_id, 'action_4', node, df_dataset_data=df, details=None)
+
     return '/apps/data_lineage'

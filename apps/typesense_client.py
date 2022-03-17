@@ -446,7 +446,7 @@ def get_action_label(node_type):
     if node_type == 'action_1': action_label = 'Clone Metadata'
     elif node_type == 'action_2': action_label = 'Truncate Dataset'
     elif node_type == 'action_3': action_label = 'Merge'
-    elif node_type == 'action_4': action_label = 'action_4'
+    elif node_type == 'action_4': action_label = 'Transform Node'
     elif node_type == 'action_5': action_label = 'action_5'
     elif node_type == 'action_6': action_label = 'action_6'
     elif node_type == 'action_7': action_label = 'action_7'
