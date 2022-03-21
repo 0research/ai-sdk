@@ -115,7 +115,11 @@ layout = html.Div([
                     dbc.ButtonGroup([
                         dbc.Button('Reset Layout', id=id('button_reset_layout'), color='dark', className='btn btn-secondary btn-lg', style={'margin-right':'1px', 'display':'block'}),
                         # html.Button('Hide/Show', id=id('button_hide_show'), className='btn btn-warning btn-lg', style={'margin-right':'1px'}), 
-                        dbc.DropdownMenu(label="Action", children=[dbc.Spinner(size="sm"), " Loading..."], id=id('dropdown_action'), size='lg', color='warning', style={'display':'inline-block', 'margin':'1px'}),        
+                        dbc.DropdownMenu(label="Action", children=[
+                            dbc.DropdownMenuItem('Add Data Source', href='#', id={'type': id('button_add_data_source'), 'index': 0}, style={'background-color':'#90ee90', 'padding':'10px'}),
+                            dbc.DropdownMenuItem('Transform Node', id=id('button_action_transformnode'), href='#', className='action_dropdown'),
+                            dbc.DropdownMenuItem('Group', href='#', className='group_nodes', id=id('button_group'), style={'background-color':'#00FF00', 'padding':'10px', 'text-align':'center'}),
+                        ], id=id('dropdown_action'), size='lg', color='warning', style={'display':'inline-block', 'margin':'1px'}),        
                     ]),
                     dbc.Spinner(html.Div(id="loading-output"), color="danger"),
                 ], style={'float':'right', 'display':'inline-block'}),
@@ -865,8 +869,8 @@ def generate_right_content(selectedNodeData, range_value, merge_type, merge_idRe
         range_value = [range_min, range_max]
     data = data[range_value[0]-1:range_value[1]]
     
-    if n_clicks_display_mode % 2 == 0: right_content_1 = display_dataset_data(data, format='tabular')
-    else: right_content_1 = display_dataset_data(data, format='json')
+    if n_clicks_display_mode % 2 == 0: right_content_1 = display_dataset_data(id, data, format='tabular')
+    else: right_content_1 = display_dataset_data(id, data, format='json')
 
 
     return (right_content_0, right_content_1, right_content_2,
@@ -894,6 +898,7 @@ def generate_right_content(selectedNodeData, range_value, merge_type, merge_idRe
     Input(id('merge_type'), 'value'),
     Input(id('merge_idRef'), 'value'),
     Input({'type': id('button_add_data_source'), 'index': ALL}, 'n_clicks'),
+    Input(id('button_group'), 'n_clicks'),
     State(id('cytoscape'), 'selectedNodeData'),
     State(id('tabs_node'), 'active_tab'),
     State({'type':id('col_feature_hidden'), 'index': ALL}, 'value'),
@@ -904,7 +909,7 @@ def generate_right_content(selectedNodeData, range_value, merge_type, merge_idRe
     State(id('range'), 'value'),
 )
 def cytoscape_triggers(n_clicks_reset_layout, node_name_input, n_clicks_merge, n_clicks_clonemetadata, n_clicks_truncatedataset, pathname, n_clicks_remove_list, do_cytoscape_reload, merge_type, merge_idRef,
-                        n_clicks_add_data_source_list,
+                        n_clicks_add_data_source_list, n_clicks_group,
                         selectedNodeData, active_tab, feature_list, new_feature_list, datatype_list, button_remove_feature_list,
                         right_content_style,
                         dataset_range):
@@ -963,8 +968,6 @@ def cytoscape_triggers(n_clicks_reset_layout, node_name_input, n_clicks_merge, n
             details = {'merge_type': merge_type}
             merge(project_id, dataset_id_list, dataset_data, dataset_metadata, details)
 
-        
-
         # Button Remove Node
         elif triggered == '{"index":0,"type":"data_lineage-button_remove"}' and n_clicks_remove_list[0] != None:
             remove(project_id, selectedNodeData)
@@ -975,6 +978,17 @@ def cytoscape_triggers(n_clicks_reset_layout, node_name_input, n_clicks_merge, n
         'name': 'preset',
         'fit': True,
     }
+
+    if triggered == id('button_group'):
+        pprint(selectedNodeData)
+        selected_datasets = [node['id'] for node in selectedNodeData if not node['type'].startswith('action')]
+
+        for i in range(len(elements)):
+            if elements[i]['data']['id'] in selected_datasets:
+                elements[i]['data']['parent'] = 'parent'
+        
+        elements.append({'data': {'id': 'parent', 'label': 'Parent'}})
+                
 
     # Reset Button pressed
     if triggered == id('button_reset_layout'):
@@ -1016,26 +1030,26 @@ def select_function(n_clicks):
 #     return button1, button2, button3 
 
 
-# Preview Dataset from Data Catalog
-@app.callback(
-    Output(id('modal_dataset'), 'children'),
-    Output(id('modal_dataset'), 'is_open'),
-    Input({'type':id('col_button_preview'), 'index': ALL}, 'n_clicks'),
-    State({'type':id('col_button_preview'), 'index': ALL}, 'value'),
-    prevent_initial_call=True
-)
-def preview_dataset(n_clicks_list, node_id_list):
-    triggered = json.loads(callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0])
-    index = triggered['index']
-    if n_clicks_list[index] is None: return no_update
-    node_id = node_id_list[index]
+# # Preview Dataset from Data Catalog
+# @app.callback(
+#     Output(id('modal_dataset'), 'children'),
+#     Output(id('modal_dataset'), 'is_open'),
+#     Input({'type':id('col_button_preview'), 'index': ALL}, 'n_clicks'),
+#     State({'type':id('col_button_preview'), 'index': ALL}, 'value'),
+#     prevent_initial_call=True
+# )
+# def preview_dataset(n_clicks_list, node_id_list):
+#     triggered = json.loads(callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0])
+#     index = triggered['index']
+#     if n_clicks_list[index] is None: return no_update
+#     node_id = node_id_list[index]
 
-    df = get_dataset_data(node_id)
-    return [
-        # dbc.ModalHeader(dbc.ModalTitle('')),
-        dbc.ModalBody(generate_datatable(id('preview_dataset_datatable'), df.to_dict('records'), df.columns, height='800px', sort_action='native')),
-        # dbc.ModalFooter(''),
-    ], True
+#     df = get_dataset_data(node_id)
+#     return [
+#         # dbc.ModalHeader(dbc.ModalTitle('')),
+#         dbc.ModalBody(generate_datatable(id('preview_dataset_datatable'), df.to_dict('records'), df.columns, height='800px', sort_action='native')),
+#         # dbc.ModalFooter(''),
+#     ], True
 
 
 # Load Dataset Config Options
@@ -1240,70 +1254,76 @@ for option_type in ['header', 'param', 'body']:
 
 
 
-# Generate options in dropdown and button 
-@app.callback(
-    Output(id('dropdown_action'), 'children'),
-    Input(id('cytoscape'), 'selectedNodeData'),
-    # Input(id('dropdown_action'), 'children')
-)
-def generate_dropdown_actions(selectedNodeData):
-    if selectedNodeData is None: return no_update
+# # Generate options in dropdown and button 
+# @app.callback(
+#     Output(id('dropdown_action'), 'children'),
+#     Input(id('cytoscape'), 'selectedNodeData'),
+#     # Input(id('dropdown_action'), 'children')
+# )
+# def generate_dropdown_actions(selectedNodeData):
+#     if selectedNodeData is None: return no_update
     
-    # Generate Options
-    options = []
-    if len(selectedNodeData) == 0:
-        options = [dbc.DropdownMenuItem('Add Data Source', href='#', id={'type': id('button_add_data_source'), 'index': 0}, style={'background-color':'#90ee90', 'padding':'10px'})]
-    if len(selectedNodeData) == 1:
-        if selectedNodeData[0]['type'] == 'raw':
-            options = [
-                dbc.DropdownMenuItem('No Data Source', href='#', className='action_dropdown', disabled=True),
-                dbc.DropdownMenuItem('Remove', href='#', id={'type': id('button_remove'), 'index': 0}, style={'background-color':'#FF7F7F', 'padding':'10px', 'text-align':'center'}),
-            ]
-        else:
-            options = [
-                dbc.DropdownMenuItem('Truncate Dataset', id={'type': id('button_truncatedataset'), 'index': 0}, href='#', className='action_dropdown'),
-                dbc.DropdownMenuItem('Clone Metadata', id={'type': id('button_clonemetadata'), 'index': 0}, href='#', className='action_dropdown'),
-                dbc.DropdownMenuItem('Transform Node', href='/apps/transform_node', className='action_dropdown'),
-                dbc.DropdownMenuItem('Impute Data', href='/apps/impute_data', className='action_dropdown'),
+#     # Generate Options
+#     options = []
+#     if len(selectedNodeData) == 0:
+#         options = [dbc.DropdownMenuItem('Add Data Source', href='#', id={'type': id('button_add_data_source'), 'index': 0}, style={'background-color':'#90ee90', 'padding':'10px'})]
+#     if len(selectedNodeData) == 1:
+#         if selectedNodeData[0]['type'] == 'raw':
+#             options = [
+#                 dbc.DropdownMenuItem('No Data Source', href='#', className='action_dropdown', disabled=True),
+#                 dbc.DropdownMenuItem('Remove', href='#', id={'type': id('button_remove'), 'index': 0}, style={'background-color':'#FF7F7F', 'padding':'10px', 'text-align':'center'}),
+#             ]
+#         else:
+#             options = [
+#                 dbc.DropdownMenuItem('Transform Node', id=id('button_action_transformnode'), href='#', className='action_dropdown'),
                 
-                dbc.DropdownMenuItem(divider=True),
-                dbc.DropdownMenuItem('Remove', href='#', id={'type': id('button_remove'), 'index': 0}, style={'background-color':'#FF7F7F', 'padding':'10px', 'text-align':'center'}),
-            ]
+#                 # dbc.DropdownMenuItem('Truncate Dataset', id={'type': id('button_truncatedataset'), 'index': 0}, href='#', className='action_dropdown'),
+#                 # dbc.DropdownMenuItem('Clone Metadata', id={'type': id('button_clonemetadata'), 'index': 0}, href='#', className='action_dropdown'),
+#                 # dbc.DropdownMenuItem('Impute Data', href='/apps/impute_data', className='action_dropdown'),
+                
+#                 dbc.DropdownMenuItem(divider=True),
+                
+#                 # dbc.DropdownMenuItem(divider=True),
+#                 dbc.DropdownMenuItem('Remove', href='#', id={'type': id('button_remove'), 'index': 0}, style={'background-color':'#FF7F7F', 'padding':'10px', 'text-align':'center'}),
+#             ]
         
-    elif len(selectedNodeData) > 1 and all(not node['type'].startswith('action') for node in selectedNodeData):
-        options = [dbc.DropdownMenuItem("Merge Datasets", href='#', style={'background-color':'yellow', 'padding':'10px'}, id={'type': id('button_merge'), 'index': 0})]
+        
+#         # pprint(options)
+        
+#     elif len(selectedNodeData) > 1 and all(not node['type'].startswith('action') for node in selectedNodeData):
+#         options = [dbc.DropdownMenuItem("Merge Datasets", href='#', style={'background-color':'yellow', 'padding':'10px'}, id={'type': id('button_merge'), 'index': 0})]
 
-    return options
+#     return options
 
 
 
 
 
-
-# Generate List of feature dropdown
-@app.callback(
-    Output(id('dropdown_aggregatefeatures'), 'options'),
-    Output(id('dropdown_arithmeticfeature1'), 'options'),
-    Output(id('dropdown_arithmeticfeature2'), 'options'),
-    Output(id('dropdown_comparisonfeature1'), 'options'),
-    Output(id('dropdown_comparisonfeature2'), 'options'),
-    Output(id('dropdown_formatdatefeature'), 'options'),
-    Output(id('dropdown_cumulativefeature'), 'options'),
-    Output(id('dropdown_slidingwindow_feature'), 'options'),
-    Output(id('dropdown_slidingwindow_size'), 'options'),
-    Output(id('dropdown_shift_size'), 'options'),
-    Output(id('dropdown_shift_feature'), 'options'),
-    Input(id('add_feature'), 'n_clicks'),
-    State(id('datatable'), 'columns'),
-    State(id('datatable'), 'data')
-)
-def generate_feature_dropdown(n_clicks, features, data):
-    print("AAAAAAAAAAAAAAAAAAAAAAA")
-    options = [{'label': f['name'], 'value': f['name']} for f in features]
-    options_slidingwindow_size = [{'label': i, 'value': i} for i in range(2, len(data)-1)]
-    options_shift_size = [{'label': i, 'value': i} for i in range(2, len(data)-1)]
-    options_custom = options + [{'label': 'Custom Input', 'value': '_custom'}]
-    return options, options, options_custom, options, options_custom, options, options, options, options_slidingwindow_size, options_shift_size, options
+# # Generate List of feature dropdown # TODO
+# @app.callback(
+#     Output(id('dropdown_aggregatefeatures'), 'options'),
+#     Output(id('dropdown_arithmeticfeature1'), 'options'),
+#     Output(id('dropdown_arithmeticfeature2'), 'options'),
+#     Output(id('dropdown_comparisonfeature1'), 'options'),
+#     Output(id('dropdown_comparisonfeature2'), 'options'),
+#     Output(id('dropdown_formatdatefeature'), 'options'),
+#     Output(id('dropdown_cumulativefeature'), 'options'),
+#     Output(id('dropdown_slidingwindow_feature'), 'options'),
+#     Output(id('dropdown_slidingwindow_size'), 'options'),
+#     Output(id('dropdown_shift_size'), 'options'),
+#     Output(id('dropdown_shift_feature'), 'options'),
+#     Input(id('add_feature'), 'n_clicks'),
+#     State(id('datatable'), 'columns'),
+#     State(id('datatable'), 'data')
+# )
+# def generate_feature_dropdown(n_clicks, features, data):
+#     if n_clicks is None: return no_update
+#     print("AAAAAAAAAAAAAAAAAAAAAAA")
+#     options = [{'label': f['name'], 'value': f['name']} for f in features]
+#     options_slidingwindow_size = [{'label': i, 'value': i} for i in range(2, len(data)-1)]
+#     options_shift_size = [{'label': i, 'value': i} for i in range(2, len(data)-1)]
+#     options_custom = options + [{'label': 'Custom Input', 'value': '_custom'}]
+#     return options, options, options_custom, options, options_custom, options, options, options, options_slidingwindow_size, options_shift_size, options
 
 # Display Custom Inputs
 @app.callback(
@@ -1354,3 +1374,18 @@ def function_input_style(function_type, style1, style2, style3, style4, style5, 
         conditions_style['display'] = 'flex'
         
     return style1, style2, style3, style4, style5, style6, style7, conditions_style
+
+
+
+# Select Datatable Column
+@app.callback(
+    Output(id('datatable'), "selected_columns"),
+    Input(id('datatable'), "active_cell"),
+    State(id('datatable'), "selected_columns"),
+)
+def generate_datatable(active_cell, selected_columns):
+    if active_cell is None: return no_update
+    active_column = active_cell['column_id']
+    if active_column in selected_columns: selected_columns.remove(active_column)
+    else: selected_columns.append(active_column)
+    return selected_columns

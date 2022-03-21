@@ -326,12 +326,17 @@ def generate_transform_node_inputs(id):
     ]
 
 
-def display_dataset_data(dataset_data, format='json', height='800px'):
+def display_dataset_data(id, dataset_data, format='json', height='800px'):
     if format == 'json': 
         out = html.Pre(json.dumps(dataset_data, indent=2), style={'height': '650px', 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
     elif format == 'tabular':
         df = json_normalize(dataset_data)
-        out = generate_datatable('datatable', df.to_dict('records'), df.columns, height='650px', col_deletable=True, sort_action='native') # TODO selectable
+        dropdown_data = [ {c: {'options': [{'label': datatype, 'value': datatype} for datatype in DATATYPE_LIST]} for c in df.columns }]
+        out = generate_datatable(id('datatable'), df.to_dict('records'), df.columns, cell_editable=True,
+                                    height='650px', sort_action='native', filter_active='native', 
+                                    renamable=True, col_selectable='multi', col_deletable=True,
+                                    row_deletable=True, row_selectable=False)
+
     return out
 
 def display_metadata(dataset, id, disabled=True, height='750px'):
@@ -413,9 +418,14 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
                         row_deletable=False, row_selectable=False, selected_row_id = None,
                         col_selectable=False, col_deletable=False, selected_column_id = None, 
                         style_data_conditional=None,
-                        sort_action=None):
+                        sort_action='none',
+                        filter_active='none',
+                        dropdown={}, dropdown_data=[],
+                        renamable=False):
     # Datatable
-    datatable_columns = [{"name": c, "id": c, "deletable": col_deletable, "selectable": col_selectable} for c in columns]
+    selectable = True if col_selectable is not False else False
+    datatable_columns = [{"name": c, "id": c, "deletable": col_deletable, "selectable": selectable, 'renamable': renamable, 'presentation':'dropdown'} for c in columns]
+
     if style_data_conditional is None:
         style_data_conditional = [
             {
@@ -434,8 +444,8 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
         data=data,
         columns=datatable_columns,
         editable=cell_editable,
-        filter_action="none",
-        sort_action='native',
+        filter_action=filter_active,
+        sort_action=sort_action,
         # sort_mode="multi",
         column_selectable=col_selectable,
         row_selectable=row_selectable,
@@ -443,6 +453,8 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
         selected_columns=[],
         selected_rows=[],
         page_size= 100,
+        # dropdown=dropdown,
+        dropdown_data=dropdown_data,
         style_table={'height': height, 'overflowY': 'auto'},
         style_header={
             'backgroundColor': 'rgb(105,105,105)',
@@ -454,15 +466,15 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
             'color': 'white',
             'whiteSpace': 'normal',
         },
-        css=[{
-            'selector': '.dash-spreadsheet td div',
-            'rule': '''
-                line-height: 15px;
-                max-height: 30px; min-height: 30px; height: 30px;
-                display: block;
-                overflow-y: hidden;
-            '''
-        }],
+        # css=[{
+        #     'selector': '.dash-spreadsheet td div',
+        #     'rule': '''
+        #         line-height: 15px;
+        #         max-height: 30px; min-height: 30px; height: 30px;
+        #         display: block;
+        #         overflow-y: hidden;
+        #     '''
+        # }],
         style_data_conditional=style_data_conditional,
     ),
 
