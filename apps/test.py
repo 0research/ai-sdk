@@ -66,9 +66,9 @@ def generate_datatable_aggregate(_):
     columns = [{"name": i, "id": i, "deletable": False, "selectable": True, 'presentation': 'dropdown'} for i in df.columns]
 
     dropdown_data = [
-        {                #their keys represent column IDs
-            c['name']: {                #their values are 'options' and 'clearable'
-                'options': [            #'options' represent cell data
+        {               
+            c['name']: {
+                'options': [
                     {'label': 'one', 'value': 1},
                     {'label': 'two', 'value': 2},
                 ],

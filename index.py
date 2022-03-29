@@ -8,7 +8,7 @@ from app import app
 from app import server 
 from app import dbc
 from apps.typesense_client import *
-from apps import (new_project, transform_node, upload_dataset, join, search, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
+from apps import (login, new_project, transform_node, upload_dataset, join, search, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage,
                 page2, page3, page6, page6,page7, page8, page9, test)
 import ast
@@ -88,6 +88,7 @@ navbar = dbc.Navbar([
 
 # Sidebar
 sidebar_0 = [
+    dbc.NavLink("Login", href="/apps/login", active="exact", className="fas fa-upload"),
     dbc.NavLink("New Project", href="/apps/new_project", active="exact", className="fas fa-upload"),
     dbc.NavLink("Dashboard", href="/apps/dashboard", active="exact", className="fas fa-chart-pie"),
     dbc.NavLink("Storyboard", href="/apps/storyboard", active="exact", className="fas fa-chart-pie", disabled=True),
@@ -150,6 +151,7 @@ app.layout = serve_layout
 
 @app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
 def display_page(pathname):
+    if pathname.startswith('/apps/login'): return login.layout
     if pathname.startswith('/apps/new_project'): return new_project.layout
     if pathname.startswith('/apps/dashboard'): return dashboard.layout
     if pathname.startswith('/apps/data_lineage'): return data_lineage.layout

@@ -285,7 +285,7 @@ def generate_transform_node_inputs(id):
             dbc.InputGroupText('Function', style={'width':'25%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
             dbc.InputGroupText('Window Size', style={'width':'25%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
             dbc.InputGroupText('Feature', style={'width':'50%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.Select(id=id('dropdown_slidingwindow_function'), options=aggregate_options, value=aggregate_options[0]['value'], style={'text-align':'center', 'width':'25%'}, persistence=True),
+            dbc.Select(id=id('dropdown_slidingwindow_function'), options=slidingwindow_options, value=slidingwindow_options[0]['value'], style={'text-align':'center', 'width':'25%'}, persistence=True),
             dbc.Select(id=id('dropdown_slidingwindow_size'), options=[], value=None, style={'text-align':'center', 'width':'25%'}, persistence=True),
             dbc.Select(id=id('dropdown_slidingwindow_feature'), options=[], value=None, style={'width':'50%', 'text-align':'center'}, persistence=True),
         ], id=id('slidingwindow_inputs'), style={'display': 'none'}),
@@ -294,8 +294,8 @@ def generate_transform_node_inputs(id):
         dbc.InputGroup([
             dbc.InputGroupText('Feature', style={'width':'50%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
             dbc.InputGroupText('Format', style={'width':'50%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.Select(id=id('dropdown_dateformat'), options=dateformat_options, value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
             dbc.Select(id=id('dropdown_formatdatefeature'), options=[], value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
+            dbc.Select(id=id('dropdown_dateformat'), options=dateformat_options, value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
         ], id=id('formatdate_inputs'), style={'display': 'none'}),
 
         # Cumulative Function
@@ -331,12 +331,22 @@ def display_dataset_data(id, dataset_data, format='json', height='800px'):
         out = html.Pre(json.dumps(dataset_data, indent=2), style={'height': '650px', 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
     elif format == 'tabular':
         df = json_normalize(dataset_data)
-        dropdown_data = [ {c: {'options': [{'label': datatype, 'value': datatype} for datatype in DATATYPE_LIST]} for c in df.columns }]
-        out = generate_datatable(id('datatable'), df.to_dict('records'), df.columns, cell_editable=True,
-                                    height='650px', sort_action='native', filter_active='native', 
-                                    renamable=True, col_selectable='multi', col_deletable=True,
-                                    row_deletable=True, row_selectable=False)
+        node = get_document('node', get_session('node_id'))
 
+        # Add Datatypes to first row
+        dropdown_data = [ {c: {'options': [{'label': datatype, 'value': datatype} for datatype in DATATYPE_LIST], 'clearable': False} for c in df.columns }]
+        df.reset_index(inplace=True)
+        df = df.rename(columns = {'index':'no.'})
+        df.loc[-1] = [''] + [f for f in node['features'].values()]     
+        df.index += 1
+        df = df.sort_index()
+
+        out = generate_datatable(id('datatable'), df.to_dict('records'), df.columns, cell_editable=True,
+                                    height='620px', sort_action='native', filter_active='native', 
+                                    renamable=True, col_selectable='multi', col_deletable=True,
+                                    row_deletable=False, row_selectable=False,
+                                    dropdown_data=dropdown_data)
+        
     return out
 
 def display_metadata(dataset, id, disabled=True, height='750px'):
