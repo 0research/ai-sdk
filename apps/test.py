@@ -50,7 +50,11 @@ layout = html.Div([
     ),
 
     html.Div(generate_datatable('abc', height='400px')),
+
+
 ])
+
+
 
 
 
@@ -61,9 +65,9 @@ layout = html.Div([
     Input('url', 'pathname'),
 )
 def generate_datatable_aggregate(_):
-    node_id = get_session('node_id')
+    node_id = "022897a3-a3fb-11ec-829c-dc719685b14a"
     df = get_dataset_data(node_id)
-    columns = [{"name": i, "id": i, "deletable": False, "selectable": True, 'presentation': 'dropdown'} for i in df.columns]
+    columns = [{"name": i, "id": i, 'presentation': 'dropdown'} for i in df.columns]
 
     dropdown_data = [
         {               
@@ -75,5 +79,8 @@ def generate_datatable_aggregate(_):
             },
         } for c in columns
     ]
+    print(df)
 
     return df.to_dict('records'), columns, dropdown_data
+
+

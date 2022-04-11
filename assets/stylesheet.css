@@ -2,6 +2,11 @@
 	display : block !important;
 }
 
+/* Datatabke Dropdown Color */
+.dash-spreadsheet .Select.has-value.Select--single > .Select-control .Select-value .Select-value-label, .dash-spreadsheet .Select.has-value.is-pseudo-focused.Select--single > .Select-control .Select-value .Select-value-label {
+	color: pink !important;
+}
+
 
 /* Side Navigation Bar */
 .onHoverNavigation {

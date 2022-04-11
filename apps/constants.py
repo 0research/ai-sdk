@@ -25,7 +25,7 @@ SIDEBAR_3_LIST = [
 
 
 # Datatypes
-DATATYPE_LIST = ['string', 'Int64', 'Float64', 'bool', 'datetime64', 'geopoint']
+DATATYPE_LIST = ['string', 'numerical', 'bool', 'datetime', 'geopoint', 'Float64']
 DATATYPE_NUMERICAL = ['Int64', 'Float64']
 DATATYPE_NONNUMERICAL = ['string', 'bool', 'datetime64', 'geopoint']
 
@@ -51,3 +51,8 @@ options_graph = [
 
 # Names of all Groupby Aggregate functions
 aggregate_button_name_list = ['Distinct', 'Min', 'Max', 'Avg', 'Median', 'Sum', 'Concat', 'Std Dev']
+
+
+
+# Datatable Default Name of Index Column
+index_col_name = 'no.'

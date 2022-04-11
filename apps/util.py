@@ -234,7 +234,6 @@ def generate_transform_node_inputs(id):
         {'label': 'DD-MM-YYYY', 'value':'YYYY-MM-DD'},
         {'label': 'MM-DD-YYYY', 'value':'YYYY-MM-DD'},
         {'label': 'YYYY-MM-DD', 'value':'YYYY-MM-DD'},
-        {'label': 'TODO', 'value':'TODO'},
     ]
 
     return [
@@ -325,29 +324,53 @@ def generate_transform_node_inputs(id):
         ], id=id('conditions'), style={'display': 'none'}),
     ]
 
+def get_action_source(node_id):
+    project = get_document('project', get_session('project_id'))
+    node_id_list = [edge.split('_')[0] for edge in project['edge_list'] if edge.split('_')[1] == node_id]
 
-def display_dataset_data(id, dataset_data, format='json', height='800px'):
-    if format == 'json': 
-        out = html.Pre(json.dumps(dataset_data, indent=2), style={'height': '650px', 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
-    elif format == 'tabular':
-        df = json_normalize(dataset_data)
-        node = get_document('node', get_session('node_id'))
+    # Single Source
+    if len(node_id_list) == 1:
+        node = get_document('node', node_id_list[0])
+        data = get_dataset_data(node_id_list[0]).to_dict('records')
 
-        # Add Datatypes to first row
-        dropdown_data = [ {c: {'options': [{'label': datatype, 'value': datatype} for datatype in DATATYPE_LIST], 'clearable': False} for c in df.columns }]
-        df.reset_index(inplace=True)
-        df = df.rename(columns = {'index':'no.'})
-        df.loc[-1] = [''] + [f for f in node['features'].values()]     
-        df.index += 1
-        df = df.sort_index()
+    # Multiple Sources (Merge) # TODO add merge node & data
+    else:
+        # node =
+        # data = 
+        pass 
 
-        out = generate_datatable(id('datatable'), df.to_dict('records'), df.columns, cell_editable=True,
-                                    height='620px', sort_action='native', filter_active='native', 
-                                    renamable=True, col_selectable='multi', col_deletable=True,
-                                    row_deletable=False, row_selectable=False,
-                                    dropdown_data=dropdown_data)
+    return node_id_list, node, data
+
+
+def generate_right_content_1_data(node, data):
+    df = json_normalize(data)
+
+    # Add First Row for Datatype Dropdown
+    print("AAA")
+    print(df)
+    print([f for f in node['features'].values()])
+    df.loc[-1] = [f for f in node['features'].values()]
+    df.index += 1
+
+    # Add Index Column
+    df = df.sort_index()
+    df.reset_index(inplace=True)
+    df.rename(columns = {'index': index_col_name}, inplace=True)
+    df.iloc[0,0] = ''
+
+    # Get Datatable Columns & Dropdown Data
+    columns = [{"name": i, "id": i, "selectable": True, 'presentation': 'dropdown'} for i in df.columns]
+    for i in range(len(columns)):
+        if columns[i]['name'] == index_col_name:
+            columns[i]['selectable'] = False
+    dropdown_data = [ {c: {'options': [{'label': datatype, 'value': datatype} for datatype in DATATYPE_LIST], 'clearable': False} for c in df.columns if c != index_col_name }]
+
+    # out = html.Pre(json.dumps(node, indent=2), style={'height': height, 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
         
-    return out
+    return df, columns, dropdown_data
+
+
+
 
 def display_metadata(dataset, id, disabled=True, height='750px'):
     features = dataset['features']
@@ -390,27 +413,6 @@ def display_metadata(dataset, id, disabled=True, height='750px'):
         ], style={'overflow-x':'auto', 'overflow-y':'auto', 'height':height})
     )
 
-def display_action(action):
-    return (
-        html.Div([
-            dbc.InputGroup([
-                dbc.InputGroupText("Action ID", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                dbc.Input(disabled=True, value=action['id'], style={'font-size': '12px', 'text-align':'center'}),
-            ], className="mb-3 lg"),
-            dbc.InputGroup([
-                dbc.InputGroupText("Action", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                dbc.Input(disabled=True, value=get_action_label(action['type']), style={'font-size': '12px', 'text-align':'center'}),
-            ], className="mb-3 lg"),
-            dbc.InputGroup([
-                dbc.InputGroupText("Description", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                dbc.Textarea(disabled=True, value=action['description'], style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
-            ], className="mb-3 lg"),
-            dbc.InputGroup([
-                dbc.InputGroupText("Changes", style={'width':'120px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'20px'}),
-                dbc.Textarea(disabled=True, value=str(action['details']), style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
-            ], className="mb-3 lg"),
-        ])
-    )
 
 def generate_options(label_list, input_list):
     return [
@@ -423,18 +425,15 @@ def generate_options(label_list, input_list):
     ]
 
 def generate_datatable(component_id, data=[], columns=[], height='450px',
-                        metadata_id = None, 
                         cell_editable=False,
-                        row_deletable=False, row_selectable=False, selected_row_id = None,
-                        col_selectable=False, col_deletable=False, selected_column_id = None, 
+                        row_deletable=False, row_selectable=False,
+                        col_selectable=False,
                         style_data_conditional=None,
                         sort_action='none',
                         filter_active='none',
-                        dropdown={}, dropdown_data=[],
-                        renamable=False):
+                        dropdown={}, dropdown_data=[]):
     # Datatable
     selectable = True if col_selectable is not False else False
-    datatable_columns = [{"name": c, "id": c, "deletable": col_deletable, "selectable": selectable, 'renamable': renamable, 'presentation':'dropdown'} for c in columns]
 
     if style_data_conditional is None:
         style_data_conditional = [
@@ -452,7 +451,7 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
     datatable = dash_table.DataTable(
         id=component_id,
         data=data,
-        columns=datatable_columns,
+        columns=columns,
         editable=cell_editable,
         filter_action=filter_active,
         sort_action=sort_action,
@@ -463,18 +462,23 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
         selected_columns=[],
         selected_rows=[],
         page_size= 100,
-        # dropdown=dropdown,
+        dropdown=dropdown,
         dropdown_data=dropdown_data,
         style_table={'height': height, 'overflowY': 'auto'},
         style_header={
-            'backgroundColor': 'rgb(105,105,105)',
+            'backgroundColor': 'rgb(30, 30, 30)',
             'color': 'white',
-            'fontWeight': 'bold'
+            'fontWeight': 'bold',
+            'text-align':'center'
+        },
+        style_filter={
+            'text-align':'center'
         },
         style_data={
-            'backgroundColor': 'black',
+            'backgroundColor': 'rgb(50, 50, 50)',
             'color': 'white',
             'whiteSpace': 'normal',
+            'text-align':'center'
         },
         # css=[{
         #     'selector': '.dash-spreadsheet td div',

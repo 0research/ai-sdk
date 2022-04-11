@@ -192,7 +192,7 @@ layout = html.Div([
                             id=id('el_datatable'),
                             events=[{"event": "click", "props": ["srcElement.className", "srcElement.innerText"]}],
                             logging=True,
-                            children=generate_datatable(id('datatable'), col_selectable="multi", height='320px', metadata_id=id('metadata'), selected_column_id=id('selected_features')),
+                            children=generate_datatable(id('datatable'), col_selectable="multi", height='320px'),
                         )
                     ])
                 ])

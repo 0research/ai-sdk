@@ -135,7 +135,7 @@ def Project(id, type, dataset=[], edge=[], graph_dict={}, experiment=[], node_lo
         'experiment': experiment,
         'node_log': node_log,
     }
-def Node(id, name, description, documentation, type, details={}, features={}, expectation={}, index=[], target=[], graphs=[]):
+def Node(id, name, description, type, documentation='', details={}, features={}, expectation={}, index=[], target=[], graphs=[]):
     return {
         'id': id,
         'name': name,
@@ -302,6 +302,34 @@ def remove(project_id, selectedNodeData):
     
     upsert('project', project)
     
+def cytoscape_action(source_id_list, action): # TODO 1
+    # Get Node Position
+    project = get_document('project', get_session('project_id'))
+    dataset_position_list = [d for d in project['node_list'] if d['id'] in source_id_list]
+    x, y, num_sources = 0, [], len(source_id_list)
+    for d in dataset_position_list:
+        x += d['position']['x']
+        y.append(d['position']['y'])
+    x = x/num_sources
+    y = max(y) + 100
+
+    # Generate New Node/Edges
+    action_id = str(uuid.uuid1())
+    new_node_id = str(uuid.uuid1())
+    project['node_list'].append({'id': action_id, 'position': {'x': x, 'y': y}})
+    project['node_list'].append({'id': new_node_id, 'position': {'x': x, 'y': y+100}})
+    for dataset_id_source in source_id_list:
+        edge_id = dataset_id_source + '_' + action_id
+        project['edge_list'].append(edge_id)
+    project['edge_list'].append(action_id + '_' + new_node_id)
+
+    action = Node(id=action_id, name='', description='', type=action)
+    new_node = Node(id=new_node_id, name='', description='', type='processed')
+    
+    # Upload Changes
+    upsert('project', project)
+    upsert('node', action)
+    upsert('node', new_node)
 
 
 def action(project_id, dataset_id_source, action, dataset_metadata, df_dataset_data=None, details=None):
@@ -323,29 +351,29 @@ def action(project_id, dataset_id_source, action, dataset_metadata, df_dataset_d
     project['edge_list'].append(edge1)
     project['edge_list'].append(edge2)
 
-    # Action Document
-    if details is None:
-        details = diff(get_document('node', dataset_id_source), dataset_metadata, syntax='symmetric', marshal=True)
-        action_metadata = Node(id=action_id, name='', description='', documentation='', type=action, details=details)
+    # # Action Document
+    # if details is None:
+    #     details = diff(get_document('node', dataset_id_source), dataset_metadata, syntax='symmetric', marshal=True)
+    #     action_metadata = Node(id=action_id, name='', description='', documentation='', type=action, details=details)
 
-    # Dataset Document
-    dataset_metadata['id'] =  dataset_id # Overwrite previous dataset ID
-    dataset_metadata['type'] = 'processed'
-    dataset_metadata['details'] = None
-    dataset_metadata['name'] = ''
+    # # Dataset Document
+    # dataset_metadata['id'] =  dataset_id # Overwrite previous dataset ID
+    # dataset_metadata['type'] = 'processed'
+    # dataset_metadata['details'] = None
+    # dataset_metadata['name'] = ''
 
-    # Dataset Data Collection
-    if df_dataset_data is None:
-        dataset_data = search_documents(dataset_id)
-        df_dataset_data = json_normalize(dataset_data)
-    jsonl = df_dataset_data.to_json(orient='records', lines=True) # Convert to jsonl
+    # # Dataset Data Collection
+    # if df_dataset_data is None:
+    #     dataset_data = search_documents(dataset_id)
+    #     df_dataset_data = json_normalize(dataset_data)
+    # jsonl = df_dataset_data.to_json(orient='records', lines=True) # Convert to jsonl
     
     # Upload
     upsert('project', project)
-    upsert('node', action_metadata)
-    upsert('node', dataset_metadata)
-    client.collections.create(generate_schema_auto(dataset_id))
-    client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
+    # upsert('node', action_metadata)
+    # upsert('node', dataset_metadata)
+    # client.collections.create(generate_schema_auto(dataset_id))
+    # client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
 
 def add_edge(project_id, source_id, destination_id):

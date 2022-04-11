@@ -41,5 +41,4 @@ id = id_factory('login')
 
 layout = html.Div([
     html.H2('Login'),
-
 ])
