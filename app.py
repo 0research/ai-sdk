@@ -61,10 +61,7 @@ app = DashProxy(__name__,
                 title='AI-SDK'
                 )
 
-app.layout = dbc.Container(
-    dbc.Alert("Wrangle Data!", color="success"),
-    className="p-5",
-)
+
 
 app.index_string = '''
 <!DOCTYPE html>

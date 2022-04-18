@@ -4,20 +4,22 @@ services:
     typesense:
         image: typesense/typesense:0.21.0
         environment:
-            API_KEY: Hu52dwsas2AdxdE
-        entrypoint: sh -c "/opt/typesense-server --data-dir /data --api-key=$${API_KEY} --enable-cors"
+            API_KEY: ${TYPESENSE_API_KEY}
+        entrypoint: sh -c "/opt/typesense-server --data-dir /data --api-key=$${TYPESENSE_API_KEY} --enable-cors"
         ports:
             - 8108:8108
         volumes:
             - typesense-data:/data
         
-        
     ai-sdk:
         build: .
         ports:
-            - 8889:8889
+            - 8050:8050
         depends_on:
             - typesense
+        environment:
+            - .env
+        restart: unless-stopped
 
 
 

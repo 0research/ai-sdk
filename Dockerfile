@@ -1,12 +1,5 @@
-FROM python:3-slim AS builder
-ADD . /app
-WORKDIR /app
-
-# Install Dependencies & Install git
-RUN pip install --target=/app -r requirements.txt
-RUN apt-get update && apt-get install -y git
-
-ENV PYTHONPATH /app
-CMD ["python", "/app/index.py"]
-
-
+FROM python:3.9-slim
+COPY requirements.txt ./requirements.txt
+RUN pip install -r requirements.txt
+COPY . ./
+CMD gunicorn --bind 0.0.0.0:8050 index:server

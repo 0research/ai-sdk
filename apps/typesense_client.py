@@ -43,11 +43,12 @@ def generate_schema_auto(name):
 def initialize_typesense():
     # Initialize Typesense
     print('Initializing Typesense')
-    # client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', 'ON8Qi0o4Fh8oDWQHVVPeRQx9Unh6VoR3') # Typesense Cloud
-    # client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
+    
+    
     if socket.gethostname() == 'DESKTOP-9IOI6RV':
         client = typesense_client('127.0.0.1', '8108', 'http', 'Hu52dwsas2AdxdE')
     else:
+        # client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', 'ON8Qi0o4Fh8oDWQHVVPeRQx9Unh6VoR3') # Typesense Cloud
         client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
 
     collection_list = ['project', 'node', 'graph', 'node_log', 'session1'] # TODO Currently all users will use same session. Replace when generate user/session ID
