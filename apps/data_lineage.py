@@ -87,9 +87,29 @@ cytoscape_stylesheet = [
             # 'width': 25,
             # 'height': 25,
             # 'background-image': "/assets/static/api.png"
-            'background-color': '#FFFF00',
+            # 'background-color': '#FFFF00',
             'shape': 'rectangle',
             'content': 'data(action_label)'
+        }
+    },
+
+    # States
+    {
+        'selector': '.red',
+        'style': {
+            'background-color': '#FF0000',
+        }
+    },
+    {
+        'selector': '.yellow',
+        'style': {
+            'background-color': '#FFFF00',
+        }
+    },
+    {
+        'selector': '.green',
+        'style': {
+            'background-color': '#00FF00',
         }
     },
 ]
@@ -112,18 +132,19 @@ layout = html.Div([
                 html.Div(id=id('last_saved'), style={'display':'inline-block', 'margin':'1px'}),
                 html.Div([
                     dbc.ButtonGroup([
-                        dbc.Button('Execute All', id=id('button_execute'), color='success', disabled=True, style={'margin-right':'2px', 'display':'block'}),
-                        dbc.Button('Reset Layout', id=id('button_reset_layout'), color='dark', style={'margin-right':'1px', 'display':'block'}),
-                        # html.Button('Hide/Show', id=id('button_hide_show'), color='secondary', style={'margin-right':'1px'}), 
+                        dbc.Button('New', id=id('button_new_data_source'), color='primary', className='cytoscape_buttons'),
+                        dbc.Button('Run', id=id('button_run_cytoscape'), color='success', disabled=True, className='cytoscape_buttons'),
+                        dbc.Button('Reset', id=id('button_reset_layout'), color='dark', className='cytoscape_buttons'),
+                        # html.Button('Hide/Show', id=id('button_hide_show'), className='cytoscape_buttons'),
+                        dbc.Button('Remove', id=id('button_remove'), color='danger', className='cytoscape_buttons'),
+
                         dbc.DropdownMenu(label="Action", children=[
-                            dbc.DropdownMenuItem('New Data Source', href='#', id={'type': id('button_new_data_source'), 'index': 0}, style={'background-color':'#00FF00', 'padding':'10px'}),
                             dbc.DropdownMenuItem("Merge", id=id('button_merge'), href='#', style={'background-color':'yellow', 'padding':'10px', 'text-align':'center', 'display':'none'}),
                             dbc.DropdownMenuItem('Transform', id=id('button_transform'), href='#', className='action_dropdown', style={'text-align':'center'}),
                             # dbc.DropdownMenuItem('Impute Data', href='/apps/impute_data', className='action_dropdown'),
                             # dbc.DropdownMenuItem(divider=True),
-                            dbc.DropdownMenuItem('Remove', href='#', id=id('button_remove'), style={'background-color':'#FF7F7F', 'padding':'10px', 'text-align':'center', 'display':'none'}),
                             dbc.DropdownMenuItem('Group', id=id('button_group'), href='#', className='group_nodes', style={'background-color':'#00FF00', 'padding':'10px', 'text-align':'center', 'display':'none'}),
-                        ], id=id('dropdown_cytoscape_action'), size='lg', color='warning', style={'display':'inline-block', 'margin':'1px'}),        
+                        ], id=id('dropdown_cytoscape_action'), size='lg', color='warning'),        
                     ]),
                     dbc.Spinner(html.Div(id="loading-output"), color="danger"),
                 ], style={'float':'right', 'display':'inline-block'}),
@@ -186,7 +207,7 @@ layout = html.Div([
                                 dbc.Button(html.I(className='fa fa-fast-backward'), id=id('button_default'), color='primary', outline=True),
                                 dbc.Button(html.I(className='fas fa-eraser'), id=id('button_clear'), color='info', outline=True),
                                 dbc.Button(html.I(className='fa fa-table'), color='secondary', outline=True, id=id('button_display_mode'), n_clicks=0),
-                                dbc.Button(html.I(className='fas fa-arrow-circle-right'), id=id('button_execute_action'), color='warning', outline=True, style={'display':'none'}),
+                                dbc.Button(html.I(className='fas fa-arrow-circle-right'), id=id('button_execute_action'), color='warning', outline=True),
                                 dbc.Tooltip('Add Feature', target=id('button_add_feature_modal')),
                                 dbc.Tooltip('Remove Feature', target=id('button_remove_feature')),
                                 dbc.Tooltip('Revert Changes', target=id('button_default')),
@@ -457,6 +478,31 @@ def populate_dataset_config(tapNodeData):
         dataset_type = 'raw_fileupload'
     return description, documentation, dataset_type, method, url, disabled
 
+
+# Display Node Buttons
+@app.callback(
+    Output(id('button_add_feature_modal'), 'style'),
+    Output(id('button_remove_feature'), 'style'),
+    Output(id('button_default'), 'style'),
+    Output(id('button_clear'), 'style'),
+    Output(id('button_display_mode'), 'style'),
+    Output(id('button_execute_action'), 'style'),
+    Input(id('cytoscape'), 'selectedNodeData'),
+)
+def display_node_buttons(selectedNodeData):
+    if selectedNodeData is None: return no_update
+    if len(selectedNodeData) != 1: return no_update
+    num_buttons = 6
+    s1, s2, s3, s4, s5, s6 = ({'display': 'none'}, ) * num_buttons
+    node_type = selectedNodeData[0]['type']
+
+    if node_type.startswith('action'):
+        s1['display'], s2['display'], s3['display'], s4['display'], s6['display'] = 'inline-block', 'inline-block', 'inline-block', 'inline-block', 'inline-block'
+    # else:
+    #     s5['display'] = 'inline-block'
+
+    print("AAA ", node_type, s1, s2, s3, s4, s5, s6)
+    return s1, s2, s3, s4, s5, s6
 
 
 # Enable/Disable Tabs
@@ -756,7 +802,7 @@ def generate_right_content(active_tab, selectedNodeData):
                 time = datetime_obj.strftime("%H:%M")
                 log_list.append([date, time, 'action', 'details'])
 
-    df = pd.DataFrame(log_list, columns=['Date', 'Time', 'Action', 'Details'])
+    df = pd.DataFrame(log_list, columns=['Date', 'Time', 'Log Type', 'Details'])
     columns = [{"name": i, "id": i} for i in df.columns]
     datatable = datatable = generate_datatable(id('datatable'), df.to_dict('records'), columns, height='150px', sort_action='native', filter_active='native')
 
@@ -847,7 +893,6 @@ def generate_datatable_aggregate(n_clicks_list, id_list, groupby_features, selec
 
 # Generate Right Content (tab1)
 @app.callback(
-    Output(id('button_execute_action'), 'style'),
     Output(id('dropdown_action'), 'options'),
     Output(id('dropdown_action'), 'value'),
     Output(id('dropdown_action_inputs'), 'options'),
@@ -865,9 +910,8 @@ def generate_datatable_aggregate(n_clicks_list, id_list, groupby_features, selec
     Input(id('button_display_mode'), 'n_clicks'),
     Input(id('right_content_1'), 'style'),
     State(id('cytoscape'), 'selectedNodeData'),
-    State(id('button_execute_action'), 'style'),
 )
-def generate_right_content(range_value, merge_type, merge_idRef, n_clicks_display_mode, _, selectedNodeData, button_execute_action_style):
+def generate_right_content(range_value, merge_type, merge_idRef, n_clicks_display_mode, _, selectedNodeData):
     num_selected = len(selectedNodeData)
     if num_selected == 0: return no_update
 
@@ -882,10 +926,8 @@ def generate_right_content(range_value, merge_type, merge_idRef, n_clicks_displa
         
         if selectedNodeData[0]['type'].startswith('action_'):
             node_id_list, node, data = get_action_source(selectedNodeData[0]['id'])
-            button_execute_action_style['display'] = 'inline-block'
 
         else:
-            button_execute_action_style['display'] = 'none'
             node = get_document('node', selectedNodeData[0]['id'])
             data = get_dataset_data(selectedNodeData[0]['id']).to_dict('records')
     
@@ -925,8 +967,7 @@ def generate_right_content(range_value, merge_type, merge_idRef, n_clicks_displa
                                 row_deletable=False, row_selectable=False,
                                 dropdown_data=dropdown_data)
 
-    return (button_execute_action_style,
-            [], None,
+    return ([], None,
             [], None,
             datatable,
             range_min, range_max, range_value,
@@ -952,7 +993,7 @@ def generate_right_content(range_value, merge_type, merge_idRef, n_clicks_displa
     Input(id('do_cytoscape_reload'), 'data'),
     Input(id('merge_type'), 'value'),
     Input(id('merge_idRef'), 'value'),
-    Input({'type': id('button_new_data_source'), 'index': ALL}, 'n_clicks'),
+    Input(id('button_new_data_source'), 'n_clicks'),
     Input(id('button_group'), 'n_clicks'),
     State(id('cytoscape'), 'selectedNodeData'),
     State(id('tabs_node'), 'active_tab'),
@@ -964,7 +1005,7 @@ def generate_right_content(range_value, merge_type, merge_idRef, n_clicks_displa
     State(id('range'), 'value'),
 )
 def cytoscape_triggers(n_clicks_reset_layout, node_name_input, n_clicks_merge, n_clicks_transform, n_clicks_clonemetadata, n_clicks_truncatedataset, pathname, n_clicks_remove, do_cytoscape_reload, merge_type, merge_idRef,
-                        n_clicks_add_data_source_list, n_clicks_group,
+                        n_clicks_new_data_source, n_clicks_group,
                         selectedNodeData, active_tab, feature_list, new_feature_list, datatype_list, button_remove_feature_list,
                         right_content_style,
                         dataset_range):
@@ -975,7 +1016,7 @@ def cytoscape_triggers(n_clicks_reset_layout, node_name_input, n_clicks_merge, n
     if num_selected <= 0:
         triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
         # New Data Source
-        if triggered == '{"index":0,"type":"data_lineage-button_new_data_source"}' and n_clicks_add_data_source_list[0] != None:
+        if triggered == id('button_new_data_source'):
             dataset_id = new_data_source()
             add_dataset(project_id, dataset_id)
     else:

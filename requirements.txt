@@ -20,4 +20,3 @@ dash-uploader
 packaging
 sentry-sdk
 gunicorn
-newrelic

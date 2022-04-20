@@ -7,28 +7,19 @@ import sys
 import os
 
 
-# Sentry
-try:
-    url = ''
-    # Heroku dev environment
-    if os.environ['environ'] == 'dev':
-        url = 'https://f38a51d68768466fb9b994ba3d8c0998@o1139317.ingest.sentry.io/6197574'
-    # Heroku production environment
-    elif os.environ['environ'] == 'prod':
-        url = 'https://b5a59239106f4af79e96d0ace1992117@o1139317.ingest.sentry.io/6197575'
+# # Sentry
+# try:
+#     url = "https://abd709165a4e4d059c7ae7310455d630@o1139317.ingest.sentry.io/6345275" # Dev
+#     # if os.environ['environ'] == 'dev':
+#     #     url = "https://abd709165a4e4d059c7ae7310455d630@o1139317.ingest.sentry.io/6345275"
+#     # elif os.environ['environ'] == 'prod':
+#     #     url = 'https://b5a59239106f4af79e96d0ace1992117@o1139317.ingest.sentry.io/6197575'
+#     sentry_sdk.init(url, traces_sample_rate=1.0)
+#     print('Initialized Sentry on environ: ')
+# except Exception as e:
+#     print("Init Sentry Failed, Exception: ", e)
 
-    if url != '':
-        sentry_sdk.init(
-            url,
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            # We recommend adjusting this value in production.
-            traces_sample_rate=1.0
-        )
-    print('Initialized Sentry on environ: ', os.environ['environ'])
-    sys.stdout.flush()
-except:
-    pass
+# sys.stdout.flush()
 
 
 # External Scripts

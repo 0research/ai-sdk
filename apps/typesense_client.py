@@ -41,9 +41,7 @@ def generate_schema_auto(name):
 
 
 def initialize_typesense():
-    # Initialize Typesense
     print('Initializing Typesense')
-    
     
     if socket.gethostname() == 'DESKTOP-9IOI6RV':
         client = typesense_client('127.0.0.1', '8108', 'http', 'Hu52dwsas2AdxdE')
@@ -136,19 +134,20 @@ def Project(id, type, dataset=[], edge=[], graph_dict={}, experiment=[], node_lo
         'experiment': experiment,
         'node_log': node_log,
     }
-def Node(id, name, description, type, documentation='', details={}, features={}, expectation={}, index=[], target=[], graphs=[]):
+def Node(id, name, description, type, inputs=[],
+            documentation='', details={}, features={}, expectation={}, index=[], graphs=[]):
     return {
         'id': id,
         'name': name,
         'description': description,
-        'documentation': documentation,
         'type': type,
+        'inputs': inputs,
+        'documentation': documentation,
         'details': details, 
         'features': features,
         'expectation': expectation,
-        'index': index, 
-        'target': target,
-        'graphs': graphs
+        'index': index,
+        'graphs': graphs,
     }
 
 

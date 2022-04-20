@@ -346,9 +346,6 @@ def generate_right_content_1_data(node, data):
     df = json_normalize(data)
 
     # Add First Row for Datatype Dropdown
-    print("AAA")
-    print(df)
-    print([f for f in node['features'].values()])
     df.loc[-1] = [f for f in node['features'].values()]
     df.index += 1
 
