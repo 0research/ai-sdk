@@ -1,4 +1,5 @@
 .Select-menu-outer {
+	color: black;
 	display : block !important;
 }
 
@@ -56,10 +57,13 @@
 .action_dropdown {
 	background-color: yellow;
 	padding: 10px;
+	text-align: center;
 }
 
 
 .cytoscape_buttons {
 	margin-right: 2px;
-	width: 65px
+	width: 85px;
+	font-weight: bold;
+	font-size: 12px;
 }

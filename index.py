@@ -8,9 +8,8 @@ from app import app
 from app import server 
 from app import dbc
 from apps.typesense_client import *
-from apps import (login, new_project, transform_node, upload_dataset, join, search, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
-                decomposition, impute_data, remove_duplicate, data_lineage,
-                page2, page3, page6, page6,page7, page8, page9, test)
+from apps import (login, new_project, transform_node, search, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
+                decomposition, impute_data, remove_duplicate, data_lineage, test)
 import ast
 from apps.constants import *
 

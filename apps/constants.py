@@ -35,7 +35,12 @@ MERGE_TYPES = ['arrayMergeByIndex', 'arrayMergeById', 'objectMerge'] # 'overwrit
 
 
 
-
+# List of Actions
+option_actions = [
+    {'label':'Merge', 'value':'merge'},
+    {'label':'Transform', 'value':'transform'},
+    {'label':'Impute', 'value':'impute'},
+]
 
 
 

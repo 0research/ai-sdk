@@ -44,13 +44,14 @@ external_stylesheets = [dbc.themes.BOOTSTRAP, FA, 'https://codepen.io/chriddyp/p
 
 # App
 app = DashProxy(__name__,
-                suppress_callback_exceptions=True,
-                external_scripts=external_scripts,
-                transforms=[MultiplexerTransform()],
-                external_stylesheets=external_stylesheets,
-                meta_tags=[{'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'}],
-                title='AI-SDK'
-                )
+    # prevent_initial_callbacks=True,
+    suppress_callback_exceptions=True,
+    external_scripts=external_scripts,
+    transforms=[MultiplexerTransform()],
+    external_stylesheets=external_stylesheets,
+    meta_tags=[{'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'}],
+    title='AI-SDK'
+)
 
 
 

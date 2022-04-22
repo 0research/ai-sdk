@@ -134,7 +134,7 @@ def Project(id, type, dataset=[], edge=[], graph_dict={}, experiment=[], node_lo
         'experiment': experiment,
         'node_log': node_log,
     }
-def Node(id, name, description, type, inputs=[],
+def Node(id, name, description, type, inputs=[], outputs=[], state='', action='',
             documentation='', details={}, features={}, expectation={}, index=[], graphs=[]):
     return {
         'id': id,
@@ -142,6 +142,9 @@ def Node(id, name, description, type, inputs=[],
         'description': description,
         'type': type,
         'inputs': inputs,
+        'outputs': outputs,
+        'state': state,
+        'action': action,
         'documentation': documentation,
         'details': details, 
         'features': features,
@@ -152,13 +155,13 @@ def Node(id, name, description, type, inputs=[],
 
 
 # Cytoscape Object 
-def cNode(id, name, type, className, action_label, position={'x': 0, 'y': 0}):
+def cNode(id, name, type, state='', action='', position={'x': 0, 'y': 0}, classes=''):
     return {
-        'data': {'id': id, 'name': name, 'type': type, 'action_label':action_label},
+        'data': {'id': id, 'name': name, 'type': type, 'state': state, 'action': action},
         'position': position,
-        'classes': className,
+        'classes': classes,
     }
-def cEdge(dataset_id_source, destination_id, position=None):
+def cEdge(dataset_id_source, destination_id, position=None, classes=''):
     return {
         'data': {
                 'id': dataset_id_source + '_' + destination_id,
@@ -167,7 +170,7 @@ def cEdge(dataset_id_source, destination_id, position=None):
             },
         'selectable': False,
         'position': position,
-        'classes': '',
+        'classes': classes,
     }
 
 
@@ -181,7 +184,7 @@ def new_data_source():
     dataset_id = str(uuid.uuid1())
     dataset = Node(
             id=dataset_id,
-            name='New Data Source',
+            name='New',
             description='',
             documentation='',
             type='raw',
@@ -212,8 +215,7 @@ def update_node_log(project_id, node_id, description, timestamp=None):
     upsert('node_log', log)
 
 
-def save_data_source(df, type, details):
-    node_id = get_session('node_id')
+def save_data_source(df, node_id, type, details):
     node = get_document('node', node_id)
     node['type'] = type
     node['details'] = details
@@ -268,14 +270,14 @@ def remove(project_id, selectedNodeData):
         node_id = node['id']
 
         # Debugging
-        if node['type'].startswith('processed'):
+        if node['type'] == 'processed':
             for edge in edge_list:
                 if node_id in edge:
                     return
             project['node_list'] = [node for node in project['node_list'] if node['id'] != node_id]
 
         # Remove Action or '' (for debugging)
-        elif node['type'].startswith('action') or node['type'] == '':
+        elif node['type'] == 'action' or node['type'] == '':
             destination_node_id_list = [edge.split('_')[1] for edge in edge_list if edge.startswith(node_id)]
 
             project['node_list'] = [node for node in project['node_list'] if node['id'] != node_id]
@@ -288,9 +290,9 @@ def remove(project_id, selectedNodeData):
                     return
    
         # Remove Raw Dataset
-        elif node['type'].startswith('raw'):
+        elif node['type'] == 'raw':
             dataset = get_document('node', node_id)
-            if dataset['type'].startswith('raw'):
+            if dataset['type'] == 'raw':
                 if any(edge.startswith(node_id) for edge in edge_list):
                     pass
                 else:
@@ -302,7 +304,7 @@ def remove(project_id, selectedNodeData):
     
     upsert('project', project)
     
-def cytoscape_action(source_id_list, action): # TODO 1
+def cytoscape_action(source_id_list):
     # Get Node Position
     project = get_document('project', get_session('project_id'))
     dataset_position_list = [d for d in project['node_list'] if d['id'] in source_id_list]
@@ -313,18 +315,14 @@ def cytoscape_action(source_id_list, action): # TODO 1
     x = x/num_sources
     y = max(y) + 100
 
-    # Generate New Node/Edges
+    # Generate New Node
     action_id = str(uuid.uuid1())
     new_node_id = str(uuid.uuid1())
     project['node_list'].append({'id': action_id, 'position': {'x': x, 'y': y}})
     project['node_list'].append({'id': new_node_id, 'position': {'x': x, 'y': y+100}})
-    for dataset_id_source in source_id_list:
-        edge_id = dataset_id_source + '_' + action_id
-        project['edge_list'].append(edge_id)
-    project['edge_list'].append(action_id + '_' + new_node_id)
 
-    action = Node(id=action_id, name='', description='', type=action)
-    new_node = Node(id=new_node_id, name='', description='', type='processed')
+    action = Node(id=action_id, name='', description='', type='action', inputs=source_id_list, outputs=[new_node_id], state='yellow')
+    new_node = Node(id=new_node_id, name='New', description='', type='processed')
     
     # Upload Changes
     upsert('project', project)
@@ -453,29 +451,24 @@ def upsert_graph(project_id, node_id, graph_id, log_description, graph):
 def generate_cytoscape_elements(project_id):
     project = get_document('project', project_id)
     
-    cNode_list = []
+    cNode_list, cEdge_list = [], []
     for d in project['node_list']:
         position = {'x': d['position']['x'], 'y': d['position']['y']}
         node = get_document('node', d['id'])
-    
-        if node['type'].startswith('raw'): className = 'raw'
-        elif node['type'].startswith('processed'): className = 'processed'
-        else: className = 'action'
 
-        action_label = get_action_label(node['type'])
+        cNode_list.append(
+            cNode(
+                node['id'], 
+                name=node['name'], 
+                type=node['type'],
+                state=node['state'], 
+                action=node['action'], 
+                position=position
+            )
+        )
 
-        cNode_list.append(cNode(node['id'], name=node['name'], type=node['type'], className=className, action_label=action_label, position=position))
+        if node['type'] == 'action':
+            cEdge_list += [cEdge(inp, node['id']) for inp in node['inputs']]
+            cEdge_list += [cEdge(node['id'], output) for output in node['outputs']]
 
-    cEdge_list = [cEdge(id.split('_')[0], id.split('_')[1]) for id in project['edge_list']]
     return cNode_list + cEdge_list
-
-
-def get_action_label(node_type):
-    if node_type == 'action_transform': action_label = 'Transform'
-    elif node_type == 'action_merge': action_label = 'Merge'
-    elif node_type == 'action_4': action_label = 'Transform Node'
-    elif node_type == 'action_5': action_label = 'action_5'
-    elif node_type == 'action_6': action_label = 'action_6'
-    elif node_type == 'action_7': action_label = 'action_7'
-    else: action_label = ''
-    return action_label

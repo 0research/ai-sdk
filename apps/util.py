@@ -324,25 +324,25 @@ def generate_transform_node_inputs(id):
         ], id=id('conditions'), style={'display': 'none'}),
     ]
 
-def get_action_source(node_id):
-    project = get_document('project', get_session('project_id'))
-    node_id_list = [edge.split('_')[0] for edge in project['edge_list'] if edge.split('_')[1] == node_id]
+def get_action_source_data(node_id, merge_type='arrayMergeByIndex'):
+    node = get_document('node', node_id)
+    inputs = node['inputs']
 
     # Single Source
-    if len(node_id_list) == 1:
-        node = get_document('node', node_id_list[0])
-        data = get_dataset_data(node_id_list[0]).to_dict('records')
+    if len(inputs) == 1:
+        node = get_document('node', inputs[0])
+        df = get_dataset_data(inputs[0])
 
     # Multiple Sources (Merge) # TODO add merge node & data
     else:
-        # node =
-        # data = 
-        pass 
+        node = merge_metadata(inputs, 'objectMerge')
+        df = merge_dataset_data(inputs, merge_type)
+        
 
-    return node_id_list, node, data
+    return node, df
 
 
-def generate_right_content_1_data(node, data):
+def generate_datatable_data(node, data):
     df = json_normalize(data)
 
     # Add First Row for Datatype Dropdown
@@ -725,16 +725,6 @@ def generate_datacatalog_table(id, search_value):
     
 
 
-def get_action_label(node_type):
-    if node_type == 'action_1': action_label = 'Clone Metadata'
-    elif node_type == 'action_2': action_label = 'Truncate Dataset'
-    elif node_type == 'action_3': action_label = 'Merge'
-    elif node_type == 'action_4': action_label = 'action_4'
-    elif node_type == 'action_5': action_label = 'action_5'
-    elif node_type == 'action_6': action_label = 'action_6'
-    elif node_type == 'action_7': action_label = 'action_7'
-    else: action_label = 'Error'
-    return action_label
 
 def do_flatten(json_file):
     data = []
@@ -837,14 +827,12 @@ def merge_dataset_data(dataset_id_list, merge_type='objectMerge', idRef=None):
 
         # Remove NaN
         df = json_normalize(data).fillna('')
-        data = df.to_dict('records')
-
 
     except Exception as e:
         print(e, idRef)
         data = []
     
-    return data
+    return df
 
 
 def generate_graph_inputs(id):
