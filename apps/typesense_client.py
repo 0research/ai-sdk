@@ -46,8 +46,8 @@ def initialize_typesense():
     if socket.gethostname() == 'DESKTOP-9IOI6RV':
         client = typesense_client('127.0.0.1', '8108', 'http', 'Hu52dwsas2AdxdE')
     else:
-        # client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', 'ON8Qi0o4Fh8oDWQHVVPeRQx9Unh6VoR3') # Typesense Cloud
-        client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
+        client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', 'ON8Qi0o4Fh8oDWQHVVPeRQx9Unh6VoR3') # Typesense Cloud
+        # client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
 
     collection_list = ['project', 'node', 'graph', 'node_log', 'session1'] # TODO Currently all users will use same session. Replace when generate user/session ID
     for name in collection_list:
@@ -134,13 +134,14 @@ def Project(id, type, dataset=[], edge=[], graph_dict={}, experiment=[], node_lo
         'experiment': experiment,
         'node_log': node_log,
     }
-def Node(id, name, description, type, inputs=[], outputs=[], state='', action='',
+def Node(id, name, description, type, upload_method='', inputs=[], outputs=[], state='', action='',
             documentation='', details={}, features={}, expectation={}, index=[], graphs=[]):
     return {
         'id': id,
         'name': name,
         'description': description,
         'type': type,
+        'upload_method': upload_method,
         'inputs': inputs,
         'outputs': outputs,
         'state': state,
@@ -155,9 +156,9 @@ def Node(id, name, description, type, inputs=[], outputs=[], state='', action=''
 
 
 # Cytoscape Object 
-def cNode(id, name, type, state='', action='', position={'x': 0, 'y': 0}, classes=''):
+def cNode(id, name, type, state='', action='', upload_method='', position={'x': 0, 'y': 0}, classes=''):
     return {
-        'data': {'id': id, 'name': name, 'type': type, 'state': state, 'action': action},
+        'data': {'id': id, 'name': name, 'type': type, 'state': state, 'action': action, 'upload_method': upload_method},
         'position': position,
         'classes': classes,
     }
@@ -215,9 +216,9 @@ def update_node_log(project_id, node_id, description, timestamp=None):
     upsert('node_log', log)
 
 
-def save_data_source(df, node_id, type, details):
+def save_data_source(df, node_id, upload_method, details):
     node = get_document('node', node_id)
-    node['type'] = type
+    node['upload_method'] = upload_method 
     node['details'] = details
     features = {str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)}
     if type == 'raw_restapi':
@@ -463,6 +464,7 @@ def generate_cytoscape_elements(project_id):
                 type=node['type'],
                 state=node['state'], 
                 action=node['action'], 
+                upload_method=node['upload_method'],
                 position=position
             )
         )

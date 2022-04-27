@@ -228,6 +228,11 @@ def load_project_id(value):
     if value == '' or value is None: return no_update
     return '/apps/search', value
 
+
+
+
+
+
 if __name__ == '__main__':
     app.run_server("0.0.0.0", 8050, debug=True)
     
