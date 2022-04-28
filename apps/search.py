@@ -111,11 +111,11 @@ def search(search_value, search_type):
     if search_value is None:
         search_value = '*'
         query_by = '',
-        filter_by = 'type:=[raw_userinput, raw_restapi]'
+        filter_by = 'type:=[raw_userinput, restapi]'
     else:
         if search_type == 'dataset': 
             query_by = 'name, description, details',
-            filter_by = 'type:=[raw_userinput, raw_restapi]'
+            filter_by = 'type:=[raw_userinput, restapi]'
         elif search_type == 'project': query_by = ['description']
         elif search_type == 'question': query_by = ['description']
 

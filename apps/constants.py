@@ -25,14 +25,20 @@ SIDEBAR_3_LIST = [
 
 
 # Datatypes
-DATATYPE_LIST = ['string', 'numerical', 'bool', 'datetime', 'geopoint', 'Float64']
+DATATYPE_LIST = ['string', 'Int64', 'numerical', 'bool', 'datetime', 'geopoint', 'Float64']
 DATATYPE_NUMERICAL = ['Int64', 'Float64']
 DATATYPE_NONNUMERICAL = ['string', 'bool', 'datetime64', 'geopoint']
 
 
 # Types of Merges
-MERGE_TYPES = ['arrayMergeByIndex', 'arrayMergeById', 'objectMerge'] # 'overwrite', 'version', 'append'
-
+options_merge = [
+    {'label': 'Merge by Index', 'value': 'arrayMergeByIndex'},
+    {'label': 'Object Merge', 'value': 'objectMerge'},
+    {'label': 'Merge by Id', 'value': 'arrayMergeById', 'disabled':True},
+    {'label': 'Overwrite', 'value': 'overwrite', 'disabled':True},
+    {'label': 'Version Merge', 'value': 'version', 'disabled':True},
+    {'label': 'Append', 'value': 'append', 'disabled':True},
+]
 
 
 # List of Actions
@@ -61,3 +67,54 @@ aggregate_button_name_list = ['Distinct', 'Min', 'Max', 'Avg', 'Median', 'Sum', 
 
 # Datatable Default Name of Index Column
 index_col_name = 'no.'
+
+
+
+# List of Transform Functions
+function_options = [
+    {'label': 'Arithmetic', 'value':'arithmetic'},
+    {'label': 'Comparison', 'value':'comparison'},
+    {'label': 'Aggregate', 'value':'aggregate'},
+    {'label': 'Sliding Window', 'value':'slidingwindow'},
+    {'label': 'Format Date', 'value':'formatdate'},
+    {'label': 'Cumulative', 'value':'cumulative'},
+    {'label': 'Shift', 'value':'shift'},
+]
+
+arithmetic_options = [
+    {'label': '[+] Add', 'value':'add'},
+    {'label': '[-] Subtract', 'value':'subtract'},
+    {'label': '[/] Divide', 'value':'divide'},
+    {'label': '[*] Multiply', 'value':'multiply'},
+    {'label': '[**] Exponent', 'value':'exponent'},
+    {'label': '[%] Modulus', 'value':'modulus'},
+]
+
+comparison_options = [
+    {'label': '[>] Greater than', 'value':'gt'},
+    {'label': '[<] Less than', 'value':'lt'},
+    {'label': '[>=] Greater than or Equal to', 'value':'ge'},
+    {'label': '[<=] Less than or Equal to', 'value':'le'},
+    {'label': '[==] Equal to', 'value':'eq'},
+    {'label': '[!=] Not equal to', 'value':'ne'},
+]
+
+aggregate_options = [
+    {'label': 'Sum', 'value':'sum'},
+    {'label': 'Average', 'value':'avg'},
+    {'label': 'Minimum', 'value':'min'},
+    {'label': 'Maximum', 'value':'max'},
+]
+
+slidingwindow_options = [
+    {'label': 'Sum', 'value':'sum'},
+    {'label': 'Average', 'value':'avg'},
+    {'label': 'Minimum', 'value':'min'},
+    {'label': 'Maximum', 'value':'max'},
+]
+
+dateformat_options = [
+    {'label': 'DD-MM-YYYY', 'value':'YYYY-MM-DD'},
+    {'label': 'MM-DD-YYYY', 'value':'YYYY-MM-DD'},
+    {'label': 'YYYY-MM-DD', 'value':'YYYY-MM-DD'},
+]

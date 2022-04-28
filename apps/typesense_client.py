@@ -221,7 +221,7 @@ def save_data_source(df, node_id, upload_method, details):
     node['upload_method'] = upload_method 
     node['details'] = details
     features = {str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)}
-    if type == 'raw_restapi':
+    if type == 'restapi':
         features['timestamp'] = 'datetime64'
     node['features'] = features
     node['expectation'] = {col:None for col in df.columns}
@@ -465,7 +465,7 @@ def generate_cytoscape_elements(project_id):
                 state=node['state'], 
                 action=node['action'], 
                 upload_method=node['upload_method'],
-                position=position
+                position=position,
             )
         )
 

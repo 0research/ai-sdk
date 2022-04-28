@@ -188,54 +188,6 @@ def generate_dropdown(component_id, options, value=None, multi=False, placeholde
     )
 
 def generate_transform_node_inputs(id):
-    function_options = [
-        {'label': 'Arithmetic', 'value':'arithmetic'},
-        {'label': 'Comparison', 'value':'comparison'},
-        {'label': 'Aggregate', 'value':'aggregate'},
-        {'label': 'Sliding Window', 'value':'slidingwindow'},
-        {'label': 'Format Date', 'value':'formatdate'},
-        {'label': 'Cumulative', 'value':'cumulative'},
-        {'label': 'Shift', 'value':'shift'},
-    ]
-
-    arithmetic_options = [
-        {'label': '[+] Add', 'value':'add'},
-        {'label': '[-] Subtract', 'value':'subtract'},
-        {'label': '[/] Divide', 'value':'divide'},
-        {'label': '[*] Multiply', 'value':'multiply'},
-        {'label': '[**] Exponent', 'value':'exponent'},
-        {'label': '[%] Modulus', 'value':'modulus'},
-    ]
-
-    comparison_options = [
-        {'label': '[>] Greater than', 'value':'gt'},
-        {'label': '[<] Less than', 'value':'lt'},
-        {'label': '[>=] Greater than or Equal to', 'value':'ge'},
-        {'label': '[<=] Less than or Equal to', 'value':'le'},
-        {'label': '[==] Equal to', 'value':'eq'},
-        {'label': '[!=] Not equal to', 'value':'ne'},
-    ]
-
-    aggregate_options = [
-        {'label': 'Sum', 'value':'sum'},
-        {'label': 'Average', 'value':'avg'},
-        {'label': 'Minimum', 'value':'min'},
-        {'label': 'Maximum', 'value':'max'},
-    ]
-
-    slidingwindow_options = [
-        {'label': 'Sum', 'value':'sum'},
-        {'label': 'Average', 'value':'avg'},
-        {'label': 'Minimum', 'value':'min'},
-        {'label': 'Maximum', 'value':'max'},
-    ]
-
-    dateformat_options = [
-        {'label': 'DD-MM-YYYY', 'value':'YYYY-MM-DD'},
-        {'label': 'MM-DD-YYYY', 'value':'YYYY-MM-DD'},
-        {'label': 'YYYY-MM-DD', 'value':'YYYY-MM-DD'},
-    ]
-
     return [
         dbc.InputGroup([
             dbc.InputGroupText('Feature Name', style={'width':'33.3%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px'}),
@@ -324,27 +276,26 @@ def generate_transform_node_inputs(id):
         ], id=id('conditions'), style={'display': 'none'}),
     ]
 
-def get_action_source_data(node_id, merge_type='arrayMergeByIndex'):
+def get_action_source_data(node_id, inputs, merge_type='arrayMergeByIndex', idRef=None):
     node = get_document('node', node_id)
-    inputs = node['inputs']
+    inputs = [inputs] if type(inputs) == str else inputs
 
     # Single Source
     if len(inputs) == 1:
         node = get_document('node', inputs[0])
         df = get_dataset_data(inputs[0])
 
-    # Multiple Sources (Merge) # TODO add merge node & data
+    # Multiple Sources (Merge)
     else:
         node = merge_metadata(inputs, 'objectMerge')
-        df = merge_dataset_data(inputs, merge_type)
-        
+        df = merge_dataset_data(inputs, merge_type, idRef)
 
     return node, df
 
 
-def generate_datatable_data(node, data):
-    df = json_normalize(data)
-
+def generate_datatable_data(node, df, show_datatype_dropdown=False, renamable=False):
+    dropdown_data = []
+    
     # Add First Row for Datatype Dropdown
     df.loc[-1] = [f for f in node['features'].values()]
     df.index += 1
@@ -356,14 +307,13 @@ def generate_datatable_data(node, data):
     df.iloc[0,0] = ''
 
     # Get Datatable Columns & Dropdown Data
-    columns = [{"name": i, "id": i, "selectable": True, 'presentation': 'dropdown'} for i in df.columns]
+    columns = [{"name": i, "id": i, "selectable": True, 'presentation': 'dropdown', 'renamable': renamable} for i in df.columns]
     for i in range(len(columns)):
         if columns[i]['name'] == index_col_name:
             columns[i]['selectable'] = False
-    dropdown_data = [ {c: {'options': [{'label': datatype, 'value': datatype} for datatype in DATATYPE_LIST], 'clearable': False} for c in df.columns if c != index_col_name }]
+    if show_datatype_dropdown:
+        dropdown_data = [ {c: {'options': [{'label': datatype, 'value': datatype} for datatype in DATATYPE_LIST], 'clearable': False} for c in df.columns if c != index_col_name }]
 
-    # out = html.Pre(json.dumps(node, indent=2), style={'height': height, 'font-size':'12px', 'text-align':'left', 'overflow-y':'auto', 'overflow-x':'scroll'})
-        
     return df, columns, dropdown_data
 
 
@@ -427,7 +377,7 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
                         col_selectable=False,
                         style_data_conditional=None,
                         sort_action='none',
-                        filter_active='none',
+                        filter_action='none',
                         dropdown={}, dropdown_data=[]):
     # Datatable
     selectable = True if col_selectable is not False else False
@@ -450,7 +400,7 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
         data=data,
         columns=columns,
         editable=cell_editable,
-        filter_action=filter_active,
+        filter_action=filter_action,
         sort_action=sort_action,
         # sort_mode="multi",
         column_selectable=col_selectable,
@@ -675,7 +625,7 @@ def generate_datacatalog_table(id, search_value):
     if search_value == '' or search_value is None:
         search_value = '*'
     query_by = 'name, description, details',
-    # filter_by = 'type:=[raw_userinput, raw_restapi, raw_datacatalog]'
+    # filter_by = 'type:=[raw_userinput, restapi, datacatalog]'
     search_parameters = {
         'q': search_value,
         'query_by'  : query_by,
@@ -830,7 +780,7 @@ def merge_dataset_data(dataset_id_list, merge_type='objectMerge', idRef=None):
 
     except Exception as e:
         print(e, idRef)
-        data = []
+        df = pd.DataFrame(columns=[])
     
     return df
 
