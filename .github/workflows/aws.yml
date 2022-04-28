@@ -48,17 +48,6 @@ jobs:
         run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
         id: extract_branch
 
-
-      - name: Set env to Development
-        if: endsWith(github.ref, '/development')
-        run: |
-          echo "::set-env environ = ${{ 'dev' }}"
-      - name: Set env to Main
-        if: endsWith(github.ref, '/main')
-        run: |
-          echo "::set-env environ = ${{ 'main' }}"
-
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
