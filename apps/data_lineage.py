@@ -1580,7 +1580,6 @@ def add_feature(_, _2, _3, sort_by, active_cell, data, selectedNodeData, functio
     df = json_normalize(data).set_index('no.')
     datatypes = df.iloc[0].to_dict()
 
-
     if function_type == 'arithmetic':
         df = pd.DataFrame(data)[1:].reset_index()
         f1 = df[f1a].astype('int64', errors='ignore')
@@ -1593,12 +1592,13 @@ def add_feature(_, _2, _3, sort_by, active_cell, data, selectedNodeData, functio
             elif func1 == 'exponent': feature = f1 ** f2
             elif func1 == 'modulus': feature = f1 % f2
             
-            feature.loc[-1] = 'numerical' # TODO 2
+            feature.loc[-1] = 'numerical'
             feature.index += 1
             feature = feature.sort_index()
             feature = {'data': list(feature), 'function': 'func1'}
         except:
             feature = 'error'
+            
 
     elif function_type == 'comparison':
         pass
