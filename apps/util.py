@@ -280,8 +280,13 @@ def get_action_source_data(node_id, inputs, merge_type='arrayMergeByIndex', idRe
     node = get_document('node', node_id)
     inputs = [inputs] if type(inputs) == str else inputs
 
+    # No Inputs
+    if len(inputs) == 0:
+        node = get_document('node', node_id)
+        df = pd.DataFrame()
+
     # Single Source
-    if len(inputs) == 1:
+    elif len(inputs) == 1:
         node = get_document('node', inputs[0])
         df = get_dataset_data(inputs[0])
 
@@ -293,11 +298,13 @@ def get_action_source_data(node_id, inputs, merge_type='arrayMergeByIndex', idRe
     return node, df
 
 
-def generate_datatable_data(node, df, show_datatype_dropdown=False, renamable=False):
+
+def generate_datatable_data(node, df, datatypes, show_datatype_dropdown=False, renamable=False):
     dropdown_data = []
     
     # Add First Row for Datatype Dropdown
-    df.loc[-1] = [f for f in node['features'].values()]
+    
+    df.loc[-1] = datatypes
     df.index += 1
 
     # Add Index Column

@@ -186,16 +186,11 @@ layout = html.Div([
                         html.Div([], id=id('multiple_node_header_container'), style={'display': 'none'}),
                         html.Div([
                             dbc.InputGroup([
-                                dbc.InputGroupText('Action', style={'width':'15%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'12px'}),
-                                dbc.Select(id=id('dropdown_action'), options=option_actions, value=None, style={'text-align':'center', 'width':'85%'}),
-                            ]),
-                            dbc.InputGroup([
-                                dbc.InputGroupText('Inputs', style={'width':'15%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'12px'}),
-                                html.Div(dcc.Dropdown(id=id('dropdown_action_inputs'), options=[], value=None, multi=False), style={'width':'85%', 'text-align':'center'}),
-                            ]),
-                            dbc.InputGroup([
-                                dbc.InputGroupText('Outputs', style={'width':'15%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'12px'}),
-                                html.Div(dcc.Dropdown(id=id('dropdown_action_outputs'), options=[], value=None, disabled=True, multi=True), style={'width':'85%', 'text-align':'center'}),
+                                dbc.Select(id=id('dropdown_action'), options=option_actions, value=None, style={'width':'100%', 'text-align':'center', 'font-size':'15px', 'font-weight':'bold'}),
+                                dbc.InputGroupText('Inputs', style={'width':'50%', 'font-weight':'bold', 'font-size':'13px', 'text-align':'center'}),
+                                dbc.InputGroupText('Outputs', style={'width':'50%', 'font-weight':'bold', 'font-size':'13px', 'text-align':'center'}),
+                                html.Div(dcc.Dropdown(id=id('dropdown_action_inputs'), options=[], value=None, multi=False), style={'width':'50%', 'text-align':'center'}),
+                                html.Div(dcc.Dropdown(id=id('dropdown_action_outputs'), options=[], value=None, disabled=True, multi=True), style={'width':'50%', 'text-align':'center'}),
                             ]),
                         ], id=id('action_header_container'), style={'display': 'none'}),
                     ], id=id('right_header_1'), style={'text-align':'center', 'font-size':'13px', 'font-weight':'bold', 'float':'left', 'width':'100%'}),
@@ -319,8 +314,9 @@ layout = html.Div([
                 dbc.ModalHeader(dbc.ModalTitle("Transform Node")),
                 dbc.ModalBody(generate_transform_node_inputs(id)),
                 dbc.ModalFooter(dbc.Button('Add Feature', color='warning', id=id('button_add_feature'), style={'width':'100%'})),
+                html.Div([], id=id('add_feature_msg'), style={'text-align':'center', 'color':'red'})
             ],
-            id=id('modal_transform_node'),
+            id=id('modal_add_feature'),
             is_open=False,
             backdrop=False,
             style={'margin-left':'60px !important'}
@@ -346,13 +342,15 @@ layout = html.Div([
     Input(id('button_reset_layout'), 'n_clicks'),
     Input(id('button_run_cytoscape'), 'n_clicks'),
 
-    Input(id('button_execute_action'), 'n_clicks'),
+    Input(id('transform_store'), 'data'),
 
-    State(id('transform_store'), 'data'),
     State(id('cytoscape'), 'selectedNodeData'),
     State(id('cytoscape'), 'elements'),
 )
-def cytoscape_triggers(node_name, action_name, action_inputs, _1, _2, _3, _4, _5, _6, _7, transform_store, selectedNodeData, elements):
+def cytoscape_triggers(node_name, action_name, action_inputs, _1, _2, _3, _4, _5, _6,
+                        transform_store,
+                        selectedNodeData, elements
+):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     num_selected = len(selectedNodeData)
     project_id = get_session('project_id')
@@ -367,8 +365,15 @@ def cytoscape_triggers(node_name, action_name, action_inputs, _1, _2, _3, _4, _5
             node['name'] = node_name
             upsert('node', node)
         elif triggered == id('dropdown_action') or triggered == id('dropdown_action_inputs'):
+            # pprint(callback_context.triggered)
+            # print('INSIDE: ', node['action'], node['inputs'], " |||| ", action_name, action_inputs)
             node['action'] = action_name
             node['inputs'] = action_inputs if type(action_inputs) is list else [action_inputs]
+            upsert('node', node)
+        
+        elif triggered == id('button_execute_action'): # TODO 3
+            node['changes'] = transform_store[node_id]
+            node['state'] = 'green'
             upsert('node', node)
 
     # Cytoscape Buttons
@@ -402,12 +407,6 @@ def cytoscape_triggers(node_name, action_name, action_inputs, _1, _2, _3, _4, _5
         }
 
     elif triggered == id('button_run_cytoscape'):
-        pass
-
-
-    elif triggered == id('button_execute_action'):
-        print("PASS")
-        pprint(transform_store)
         pass
 
 
@@ -1064,92 +1063,23 @@ def generate_merge_idRef(merge_type, style, selectedNodeData):
 def generate_right_content_1(active_tab, selected_action, selectedNodeData):
     if active_tab != 'tab1': return no_update
     num_selected = len(selectedNodeData)
+    right_content_1 = no_update
     
     if num_selected == 1:
         node_type = selectedNodeData[0]['type']
         if node_type == 'action':
             if selected_action == 'merge': right_content_1 = generate_datatable(id('datatable'), height='350px')
-            elif selected_action == 'transform': right_content_1 = generate_datatable(id('datatable'), cell_editable=True, height='420px', sort_action='native',filter_action='native', col_selectable='multi')
-            else: right_content_1 = []
+            elif selected_action == 'transform': right_content_1 = generate_datatable(id('datatable'), cell_editable=True, height='405px', sort_action='native',filter_action='native', col_selectable='multi')
         else:
             right_content_1 = generate_datatable(id('datatable'), height='470px')
     elif num_selected > 1 and all(node['type'] in ['raw', 'processed'] for node in selectedNodeData):
         right_content_1 = generate_datatable(id('datatable'), height='380px')
-    else:
-        right_content_1 = []
 
     return right_content_1
 
 
 
-# Right Content Datatable
-@app.callback(
-    Output(id('datatable'), 'data'),
-    Output(id('datatable'), 'columns'),
-    Output(id('datatable'), "dropdown_data"),
-    Output(id('datatable'), "style_data_conditional"),
-    Input(id('dropdown_action'), 'value'),
-    Input(id('dropdown_action_inputs'), 'value'),
-    Input(id('transform_store'), "data"),
-    
-    Input(id('merge_type'), 'value'),
-    Input(id('merge_idRef'), 'vale'),
 
-    Input(id('range_slider'), 'value'),
-    Input(id('search2'), 'value'),
-
-    State(id('cytoscape'), 'selectedNodeData'),
-    State(id('datatable'), "style_data_conditional"),
-)
-def datatable_triggers(selected_action, action_inputs, transform_store, 
-                        merge_type, merge_idRef,
-                        range_val, search_val,
-                        selectedNodeData, style_data_conditional):
-    num_selected = len(selectedNodeData)
-    if num_selected == 0: return no_update
-    show_datatype_dropdown = True if selected_action == 'transform' else False
-
-    if num_selected == 1:
-        node_id = selectedNodeData[0]['id']
-        node_type = selectedNodeData[0]['type']
-        if node_type == 'action':
-            node, df = get_action_source_data(node_id, action_inputs, merge_type, merge_idRef)
-
-            # Add/Style Session Changes
-            if selected_action == 'transform' and node_id in transform_store :
-                # New Features
-                if transform_store[node_id]['add_feature'] != {}:
-                    df2 = pd.DataFrame(transform_store[node_id]['add_feature'])
-                    df = pd.concat([df, df2], axis=1)
-                    style_data_conditional = [{"if": {"column_id": feature}, "color": "yellow"} for feature in df2.columns ]
-
-                # Remove Feature
-                style_data_conditional += [{"if": {"column_id": feature}, "backgroundColor": "red"} for feature in transform_store[node_id]['remove_feature'] ]
-
-                # Sort Feature
-                # Modify Datatype
-                # Rename Feature
-                # Filter
-                # Truncate
-                # Conditions
-
-        else:
-            node = get_document('node', node_id)
-            df = get_dataset_data(node_id)
-
-    elif num_selected > 1 and all(node['type'] in ['raw', 'processed'] for node in selectedNodeData):
-        inputs = [node['id'] for node in selectedNodeData]
-        node = merge_metadata(inputs, 'objectMerge')
-        df = merge_dataset_data(inputs, merge_type, merge_idRef)
-
-    
-    # Filter Range
-    # Search Value
-
-    # Process into Datatable format
-    df, columns, dropdown_data = generate_datatable_data(node, df, show_datatype_dropdown=show_datatype_dropdown, renamable=True)
-
-    return df.to_dict('records'), columns, dropdown_data, style_data_conditional
 
 
     
@@ -1157,7 +1087,7 @@ def datatable_triggers(selected_action, action_inputs, transform_store,
 
 
 @app.callback(
-    Output(id('modal_transform_node'), 'is_open'),
+    Output(id('modal_add_feature'), 'is_open'),
     Input(id('button_add_feature_modal'), 'n_clicks'),
     prevent_initial_call=True
 )
@@ -1391,6 +1321,7 @@ for option_type in ['header', 'param', 'body']:
 def generate_feature_dropdown(n_clicks, features, data):
     if n_clicks is None: return no_update
     options = [{'label': f['name'], 'value': f['name']} for f in features]
+    options = [o for o in options if o['label'] != 'no.']
     options_slidingwindow_size = [{'label': i, 'value': i} for i in range(2, len(data)-1)]
     options_shift_size = [{'label': i, 'value': i} for i in range(2, len(data)-1)]
     options_custom = options + [{'label': 'Custom Input', 'value': '_custom'}]
@@ -1468,77 +1399,110 @@ def auto_select_column(active_cell, selected_columns):
 
 
 
-# # Transform Node Triggers # TODO Combine with add_feature?
-# @app.callback(
-#     Output(id('transform_store'), 'data'),
-#     Input(id('new_feature_store'), 'data'),
-#     Input(id('new_feature_function_store'), 'data'),
-#     Input(id('button_remove_feature'), 'n_clicks'),
-#     Input(id('datatable'), 'sort_by'),
-#     Input(id('button_clear'), 'n_clicks'),
-#     State(id('datatable'), 'active_cell'),
-#     State(id('cytoscape'), 'selectedNodeData'),
-#     State(id('feature_name'), 'value'),
-#     State(id('transform_store'), 'data'),
-#     prevent_initial_call=True,
-# )
-# def transform_node_triggers(new_feature, new_feature_function, _, sort_by, _2, active_cell, selectedNodeData, new_feature_name, transform_store):
-#     num_selected = len(selectedNodeData)
-#     if num_selected != 1: return no_update
-#     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-#     node_id = selectedNodeData[0]['id']
-
-#     # Initialize transform_store format
-#     if node_id not in transform_store: transform_store[node_id] = {}
-#     if 'add_feature' not in transform_store[node_id]: transform_store[node_id]['add_feature'] = {}
-#     if 'add_feature_function' not in transform_store[node_id]: transform_store[node_id]['add_feature_function'] = {}
-#     if 'remove_feature' not in transform_store[node_id]: transform_store[node_id]['remove_feature'] = []
-#     if 'sort_feature' not in transform_store[node_id]: transform_store[node_id]['sort_feature'] = ''
-        
-#     # Update new Features
-#     if triggered == id('new_feature_store'):
-#         if new_feature_name not in transform_store[node_id]['add_feature']: 
-#             transform_store[node_id]['add_feature'][new_feature_name] = new_feature['data']
-#             transform_store[node_id]['add_feature_function'][new_feature_name] = new_feature['function']
-#         else:
-#             print('Feature Name Exist!')
-#             return no_update
+# Right Content Datatable
+@app.callback(
+    Output(id('datatable'), 'data'),
+    Output(id('datatable'), 'columns'),
+    Output(id('datatable'), "dropdown_data"),
+    Output(id('datatable'), "style_data_conditional"),
+    Input(id('dropdown_action'), 'value'),
+    Input(id('dropdown_action_inputs'), 'value'),
+    Input(id('transform_store'), "data"),
     
-#     # Update Removed Columns
-#     elif triggered == id('button_remove_feature') and active_cell is not None:
-#         selected_feature = active_cell['column_id']
-#         if selected_feature in transform_store[node_id]['add_feature']: del transform_store[node_id]['add_feature'][selected_feature]
-#         elif selected_feature not in transform_store[node_id]['remove_feature']: transform_store[node_id]['remove_feature'].append(selected_feature)
-#         else: transform_store[node_id]['remove_feature'].remove(selected_feature)
+    Input(id('merge_type'), 'value'),
+    Input(id('merge_idRef'), 'vale'),
 
-#     # Update Sort Features
-#     elif triggered == id('datatable') and sort_by is not None:
-#         sort_by = sort_by[0]
-#         sort_feature = {'feature': sort_by['column_id'], 'direction': sort_by['direction']}
-#         transform_store[node_id]['sort_feature'] = sort_feature
+    Input(id('range_slider'), 'value'),
+    Input(id('search2'), 'value'),
+
+    State(id('cytoscape'), 'selectedNodeData'),
+    State(id('datatable'), "style_data_conditional"),
+)
+def datatable_triggers(selected_action, action_inputs, transform_store, 
+                        merge_type, merge_idRef,
+                        range_val, search_val,
+                        selectedNodeData, style_data_conditional):
+    num_selected = len(selectedNodeData)
+    if num_selected == 0: return no_update
+    show_datatype_dropdown = False
+    renamable = False
+
+    if num_selected == 1:
+        node_id = selectedNodeData[0]['id']
+        node_type = selectedNodeData[0]['type']
+
+        if node_type == 'action':
+            node, df = get_action_source_data(node_id, action_inputs, merge_type, merge_idRef)
+            datatypes = [f for f in node['features'].values()]
+
+            # Add/Style Session Changes
+            if selected_action == 'transform': 
+                renamable = True
+                show_datatype_dropdown = True
+
+                if node_id in transform_store :
+                    # New Features
+                    if transform_store[node_id]['add_feature'] != {}:
+                        datatypes = transform_store[node_id]['datatypes']
+                        for f in transform_store[node_id]['add_feature']:
+                            datatypes[f['name']] = f['datatype']
+                        new_features = {f['name'] : f['data'] for f in transform_store[node_id]['add_feature']}
+                        df2 = pd.DataFrame(new_features)
+                        df = pd.concat([df, df2], axis=1)
+                        style_data_conditional = [{"if": {"column_id": feature}, "color": "yellow"} for feature in df2.columns ]
+
+                    # Remove Feature
+                    style_data_conditional += [{"if": {"column_id": feature}, "backgroundColor": "red"} for feature in transform_store[node_id]['remove_feature'] ]
+
+                    # Sort Feature
+                    # Modify Datatype
+                    # Rename Feature
+                    # Filter
+                    # Truncate
+                    # Conditions
+
+        else:
+            node = get_document('node', node_id)
+            df = get_dataset_data(node_id)
+            datatypes = [f for f in node['features'].values()]
+
+    elif num_selected > 1 and all(node['type'] in ['raw', 'processed'] for node in selectedNodeData):
+        inputs = [node['id'] for node in selectedNodeData]
+        node = merge_metadata(inputs, 'objectMerge')
+        df = merge_dataset_data(inputs, merge_type, merge_idRef)
+        datatypes = [f for f in node['features'].values()]
     
-#     elif triggered == id('button_clear'):
-#         transform_store = {}
+    # Filter Range
+    # Search Value
 
-#     else:
-#         return no_update
+    # Process into Datatable format
+    if df.empty:
+        print("Empty")
+        return no_update
+    else:
+        df, columns, dropdown_data = generate_datatable_data(node, df, datatypes, show_datatype_dropdown=show_datatype_dropdown, renamable=renamable)
 
-#     return transform_store
+    return df.to_dict('records'), columns, dropdown_data, style_data_conditional
 
 
-
-# Add Feature
+# Transform Node
 @app.callback(
     Output(id('transform_store'), 'data'),
+    Output(id('add_feature_msg'), 'children'),
+    # Output(id('modal_add_feature'), 'is_open'),
     Input(id('button_add_feature'), 'n_clicks'),
     Input(id('button_remove_feature'), 'n_clicks'),
+    Input(id('button_last_saved_changes'), 'n_clicks'),
     Input(id('button_clear'), 'n_clicks'),
-    Input(id('datatable'), 'sort_by'),
-    Input(id('datatable'), 'active_cell'),
+    Input(id('button_execute_action'), 'n_clicks'),
+    
+    State(id('datatable'), 'sort_by'),
     State(id('datatable'), 'data'),
+    State(id('datatable'), 'active_cell'),
     State(id('cytoscape'), 'selectedNodeData'),
     State(id('dropdown_function_type'), 'value'),
     State(id('transform_store'), 'data'),
+    State(id('feature_name'), 'value'),
 
     State(id('dropdown_arithmeticfunction'), 'value'),
     State(id('dropdown_arithmeticfeature1'), 'value'),
@@ -1564,56 +1528,154 @@ def auto_select_column(active_cell, selected_columns):
     State(id('dropdown_shift_feature'), 'value'),
     prevent_initial_call=True,
 )
-def add_feature(_, _2, _3, sort_by, active_cell, data, selectedNodeData, function_type, transform_store,
-                    func1, f1a, f1b,
-                    func2, f2a, f2b,
-                    func3, f3a,
-                    func4, f4a, f4b,
-                    f5a, f5b,
-                    f6a,
-                    f7a, f7b
-            ):
+def transform_node_triggers(_, _2, _3, _4, _5, sort_by, data, active_cell, selectedNodeData, function_type, transform_store, feature_name,
+                func1, f1a, f1b,
+                func2, f2a, f2b,
+                func3, f3a,
+                func4, f4a, f4b,
+                f5a, f5b,
+                f6a,
+                f7a, f7b
+):
     if len(selectedNodeData) != 1: return no_update
+    # if data == []: return no_update
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-    print('TRIGGG', callback_context.triggered)
+    if len(callback_context.triggered) != 1: return no_update
+    add_feature_msg, add_feature_modal_is_open = '', False
+    node_id = selectedNodeData[0]['id']
+    node = get_document('node', node_id)
+    df = json_normalize(data)
 
-    df = json_normalize(data).set_index('no.')
-    datatypes = df.iloc[0].to_dict()
+    print('111')
+    pprint(transform_store)
 
-    if function_type == 'arithmetic':
-        df = pd.DataFrame(data)[1:].reset_index()
-        f1 = df[f1a].astype('int64', errors='ignore')
-        f2 = df[f1b].astype('int64', errors='ignore')
-        try:
-            if func1 == 'add': feature = f1 + f2
-            elif func1 == 'subtract': feature = f1 - f2
-            elif func1 == 'divide': feature = f1 / f2
-            elif func1 == 'multiply': feature = f1 * f2
-            elif func1 == 'exponent': feature = f1 ** f2
-            elif func1 == 'modulus': feature = f1 % f2
-            
-            feature.loc[-1] = 'numerical'
-            feature.index += 1
-            feature = feature.sort_index()
-            feature = {'data': list(feature), 'function': 'func1'}
-        except:
-            feature = 'error'
-            
+    # Instantiate transform_store format
+    if node_id not in transform_store: transform_store[node_id] = {}
+    transform_store[node_id] = node['changes']
+    if 'add_feature' not in transform_store[node_id]: transform_store[node_id]['add_feature'] = []
+    if 'remove_feature' not in transform_store[node_id]: transform_store[node_id]['remove_feature'] = []
+    if 'sort_feature' not in transform_store[node_id]: transform_store[node_id]['sort_feature'] = ''
+    if 'datatype' not in transform_store[node_id]: transform_store[node_id]['datatype'] = {}
+    if 'rename' not in transform_store[node_id]: transform_store[node_id]['rename'] = {}
+    if 'filter' not in transform_store[node_id]: transform_store[node_id]['filter'] = {}
+    if 'truncate' not in transform_store[node_id]: transform_store[node_id]['truncate'] = []
+    if 'conditions' not in transform_store[node_id]: transform_store[node_id]['conditions'] = []
 
-    elif function_type == 'comparison':
-        pass
-    elif function_type == 'aggregate':
-        pass
-    elif function_type == 'slidingwindow':
-        pass
-    elif function_type == 'formatdate':
-        pass
-    elif function_type == 'cumulative':
-        pass
-    elif function_type == 'shift':
-        pass
+    print('000', transform_store[node_id]['remove_feature'])
+
+    # Sort
+    if sort_by is not None:
+        transform_store[node_id]['sort_feature'] = {'feature': sort_by[0]['column_id'], 'direction': sort_by[0]['direction']}
     
-    return no_update
+    # Modify Datatype
+    if 'no.' in df.columns:
+        transform_store[node_id]['datatypes'] = df.set_index('no.').iloc[0].to_dict()
+
+    # Rename Feature
+    transform_store[node_id]['rename'] = list(df.columns)
+    # Filter
+    # Truncate
+    # Conditions
+    
+    # Add Feature
+    if triggered == id('button_add_feature'):
+        try:
+            df = pd.DataFrame(data)[1:].reset_index()
+            if feature_name in df.columns:
+                transform_store = no_update
+                add_feature_msg = 'Feature Name Exist!'
+            elif function_type == 'arithmetic':
+                    f1 = df[f1a].str.strip().astype(float).astype(transform_store[node_id]['datatypes'][f1a])
+                    f2 = df[f1b].str.strip().astype(float).astype(transform_store[node_id]['datatypes'][f1b])
+
+                    if func1 == 'add': feature = f1 + f2
+                    elif func1 == 'subtract': feature = f1 - f2
+                    elif func1 == 'divide': feature = f1 / f2
+                    elif func1 == 'multiply': feature = f1 * f2
+                    elif func1 == 'exponent': feature = f1 ** f2
+                    elif func1 == 'modulus': feature = f1 % f2
+
+                    transform_datatype = 'Int64'
+                    transform_func = func1
+                    depdendent_features = [f1, f2]
+                
+            elif function_type == 'comparison':
+                pass
+            elif function_type == 'aggregate':
+                pass
+            elif function_type == 'slidingwindow':
+                pass
+            elif function_type == 'formatdate':
+                pass
+            elif function_type == 'cumulative':
+                pass
+            elif function_type == 'shift':
+                pass
+
+        except Exception as e:
+            transform_store = no_update
+            add_feature_msg = str(e)
+        
+        if transform_store is not no_update:
+            transform_store[node_id]['add_feature'].append({
+                'name': feature_name,
+                'data': list(feature),
+                'datatype': transform_datatype,
+                'function': transform_func,
+                'depdendent_features': depdendent_features
+            })
+    
+    # Remove Feature
+    elif triggered == id('button_remove_feature') and active_cell is not None:
+        selected_feature = active_cell['column_id']
+        print('111', transform_store[node_id]['remove_feature'])
+        new_features_name_list = [f['name'] for f in transform_store[node_id]['add_feature']]
+        
+        # if selected_feature in new_features_name_list:
+        #     transform_store[node_id]['add_feature'] = [f for f in transform_store[node_id]['add_feature'] if f['name'] != selected_feature]
+        if selected_feature not in transform_store[node_id]['remove_feature']:
+            print('222', transform_store[node_id]['remove_feature'])
+            transform_store[node_id]['remove_feature'].append(selected_feature)
+            print('333', transform_store[node_id]['remove_feature'])
+        else:
+            transform_store[node_id]['remove_feature'].remove(selected_feature)
+
+        # print('222')
+        # pprint(transform_store)
+
+    # # Clear Session
+    # elif triggered == id('button_clear'):
+    #     transform_store = {}
+
+    # # Clear Session
+    # elif triggered == id('button_last_saved_changes'):
+    #     transform_store[node_id] = node['changes']
+
+    # # Execute Action
+    # elif triggered == id('button_execute_action'):
+    #     try:
+    #         output_node_id = node['outputs'][0]
+    #         output_node = get_document('node', output_node_id)
+
+    #         node['changes'] = transform_store[node_id]
+    #         node['state'] = 'green'
+    #         for f in transform_store[node_id]['remove_feature']:
+    #             del output_node['features'][f]
+
+    #         upsert('node', node)
+    #         upsert('node', output_node)
+    #         save_data_source(df, output_node_id)
+
+    #     except Exception as e:
+    #         print("Exception: ", e)
+    #         node['state'] = 'red'
+    #         upsert('node', node)
+        
+
+    else:
+        transform_store = no_update
+    
+    return transform_store, add_feature_msg
 
 
 

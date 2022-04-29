@@ -99,9 +99,9 @@ def search_documents(collection_id, per_page=250, search_parameters=None):
         result = None
     return result
 
-def get_dataset_data(dataset_id):
+def get_dataset_data(dataset_id, features=None):
     dataset = get_document('node', dataset_id)
-    features = list(dataset['features'].keys())
+    features = list(dataset['features'].keys()) if features is None else features
     data = search_documents(dataset_id)
     if data != None:
         return json_normalize(data)[features]
@@ -134,7 +134,8 @@ def Project(id, type, dataset=[], edge=[], graph_dict={}, experiment=[], node_lo
         'experiment': experiment,
         'node_log': node_log,
     }
-def Node(id, name, description, type, upload_method='', inputs=[], outputs=[], state='', action='',
+def Node(id, name, description, type, upload_method='', inputs=[], outputs=[], state='', 
+            action='', changes={},
             documentation='', details={}, features={}, expectation={}, index=[], graphs=[]):
     return {
         'id': id,
@@ -146,6 +147,7 @@ def Node(id, name, description, type, upload_method='', inputs=[], outputs=[], s
         'outputs': outputs,
         'state': state,
         'action': action,
+        'changes': changes,
         'documentation': documentation,
         'details': details, 
         'features': features,
@@ -216,13 +218,13 @@ def update_node_log(project_id, node_id, description, timestamp=None):
     upsert('node_log', log)
 
 
-def save_data_source(df, node_id, upload_method, details):
+def save_data_source(df, node_id, upload_method='', details=''):
     node = get_document('node', node_id)
     node['upload_method'] = upload_method 
     node['details'] = details
     features = {str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)}
-    if type == 'restapi':
-        features['timestamp'] = 'datetime64'
+    # if type == 'restapi':
+    #     features['timestamp'] = 'datetime64'
     node['features'] = features
     node['expectation'] = {col:None for col in df.columns}
 
@@ -322,7 +324,7 @@ def cytoscape_action(source_id_list):
     project['node_list'].append({'id': action_id, 'position': {'x': x, 'y': y}})
     project['node_list'].append({'id': new_node_id, 'position': {'x': x, 'y': y+100}})
 
-    action = Node(id=action_id, name='', description='', type='action', inputs=source_id_list, outputs=[new_node_id], state='yellow')
+    action = Node(id=action_id, name='', description='', type='action', action='transform', inputs=source_id_list, outputs=[new_node_id], state='yellow')
     new_node = Node(id=new_node_id, name='New', description='', type='processed')
     
     # Upload Changes
