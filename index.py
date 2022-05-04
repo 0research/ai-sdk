@@ -234,34 +234,14 @@ def load_project_id(value):
 
 
 
-# from flask import jsonify
-# @app.server.route("/healthcheck")
-# def ping():
-#     return jsonify({
-#             'status': 'ok',
-#         })
-
-#     env = os.environ
-#     env_var_list = ['TYPESENSE_API_KEY']
-#     env_check = str({ev: 'TYPESENSE_API_KEY' in env for ev in env_var_list})
-    
-#     with app.app_context():
-#         return jsonify({
-#             'status': 'ok',
-#             env: 'env_check'
-#         })
-
-
-
-
-
-
 if __name__ == '__main__':
     health = HealthCheck()
     envdump = EnvironmentDump()
     app.server.add_url_rule("/healthcheck", "healthcheck", view_func=lambda: health.run())
     app.server.add_url_rule("/environment", "environment", view_func=lambda: envdump.run())
-    app.run_server("0.0.0.0", 8050, debug=True)
+
+    port = os.environ.get("PORT", 8050)
+    app.run_server("0.0.0.0", port, debug=True)
 
     
 
