@@ -240,7 +240,7 @@ if __name__ == '__main__':
     app.server.add_url_rule("/healthcheck", "healthcheck", view_func=lambda: health.run())
     app.server.add_url_rule("/environment", "environment", view_func=lambda: envdump.run())
 
-    port = os.environ.get("PORT", 8050)
+    port = os.environ.get("PORT", 8055)
     app.run_server("0.0.0.0", port, debug=True)
 
     
