@@ -241,7 +241,7 @@ if __name__ == '__main__':
     app.server.add_url_rule("/environment", "environment", view_func=lambda: envdump.run())
 
     port = os.environ.get("PORT", 8050)
-    app.run_server("0.0.0.0", port, debug=False)
+    app.run_server("0.0.0.0", port, debug=True)
 
     
 
