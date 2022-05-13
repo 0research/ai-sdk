@@ -127,10 +127,9 @@ layout = html.Div([
     html.Div([
         dcc.Store(id=id('cytoscape_position_store'), storage_type='session', data=[]),
         dcc.Store(id=id('cytoscape_position_store_2'), storage_type='session', data=[]),
-        dcc.Store(id=id('new_feature_store'), storage_type='session', data={}),
-        dcc.Store(id=id('new_feature_function_store'), storage_type='session', data={}),
         dcc.Store(id=id('transform_store'), storage_type='session', data={}),
-
+        # dcc.Store(id=id('new_feature_store'), storage_type='session', data={}),
+        
         dcc.Interval(id=id('interval_cytoscape'), interval=500, n_intervals=0),
         
         dbc.Row([
@@ -139,7 +138,7 @@ layout = html.Div([
                 html.Div(id=id('last_saved'), style={'display':'inline-block', 'margin':'1px'}),
                 html.Div([
                     dbc.ButtonGroup([
-                        dbc.Button('New Data', id=id('button_new_data_source'), color='info', className='cytoscape_buttons'),
+                        dbc.Button('Add Source', id=id('button_add_data_source'), color='info', className='cytoscape_buttons'),
                         dbc.Button('Action', id=id('button_new_action'), color='warning', className='cytoscape_buttons'),
                         dbc.Button('Remove', id=id('button_remove'), color='danger', className='cytoscape_buttons'),
                         dbc.Button('Group', id=id('button_group'), color='success', className='cytoscape_buttons', disabled=True),
@@ -175,6 +174,8 @@ layout = html.Div([
                         dbc.Tab(label="Graph", tab_id="tab4", disabled=True),
                         dbc.Tab(label="Summary", tab_id="tab6", disabled=False),
                     ], id=id("tabs_node")), style={'float':'left', 'text-align':'left', 'display':'inline-block'}),
+
+                    html.Div([dbc.Button('Execute Action', id=id('button_execute_action'), color='warning')], style={'float':'right'}),
                 ], style={'display':'inline-block', 'width':'100%'}),
                   
                 dbc.Card([
@@ -186,7 +187,7 @@ layout = html.Div([
                         html.Div([], id=id('multiple_node_header_container'), style={'display': 'none'}),
                         html.Div([
                             dbc.InputGroup([
-                                dbc.Select(id=id('dropdown_action'), options=option_actions, value=None, style={'width':'100%', 'text-align':'center', 'font-size':'15px', 'font-weight':'bold'}),
+                                dbc.Select(id=id('dropdown_action'), options=option_actions, value=None, style={'width':'80%', 'text-align':'center', 'font-size':'15px', 'font-weight':'bold'}),
                                 dbc.InputGroupText('Inputs', style={'width':'50%', 'font-weight':'bold', 'font-size':'13px', 'text-align':'center'}),
                                 dbc.InputGroupText('Outputs', style={'width':'50%', 'font-weight':'bold', 'font-size':'13px', 'text-align':'center'}),
                                 html.Div(dcc.Dropdown(id=id('dropdown_action_inputs'), options=[], value=None, multi=False), style={'width':'50%', 'text-align':'center'}),
@@ -212,14 +213,12 @@ layout = html.Div([
                                 dbc.Button(html.I(className='fa fa-fast-backward'), id=id('button_last_saved_changes'), color='primary', outline=True),
                                 dbc.Button(html.I(className='fas fa-eraser'), id=id('button_clear'), color='info', outline=True),
                                 dbc.Button(html.I(className='fa fa-table'), color='secondary', outline=True, id=id('button_display_mode'), n_clicks=0),
-                                dbc.Button(html.I(className='fas fa-arrow-circle-right'), id=id('button_execute_action'), color='warning', outline=True),
                                 dbc.Button(html.I(className='fas fa-arrow-right'), id=id('button_run_restapi'), color='warning', outline=True),
                                 dbc.Tooltip('Add Feature', target=id('button_add_feature_modal')),
                                 dbc.Tooltip('Remove Feature', target=id('button_remove_feature')),
                                 dbc.Tooltip('Revert to Last Saved Changes', target=id('button_last_saved_changes')),
                                 dbc.Tooltip('Clear all Changes', target=id('button_clear')),
                                 dbc.Tooltip('View in Tabular Format', target=id('button_display_mode')),
-                                dbc.Tooltip('Execute Action', target=id('button_execute_action')),
                                 dbc.Tooltip('Run API', target=id('button_run_restapi')),
                             ], width=4, style={'text-align':'right', 'float':'right'}),
                         ]),
@@ -326,30 +325,129 @@ layout = html.Div([
 ])
 
 
+# Generate Right Header 1,2,3
+@app.callback(
+    Output(id('node_name'), 'value'),
+    Output(id('multiple_node_header_container'), 'children'),
+
+    Output(id('dropdown_action'), 'value'),
+    Output(id('dropdown_action_inputs'), 'options'),
+    Output(id('dropdown_action_inputs'), 'value'),
+    Output(id('dropdown_action_outputs'), 'options'),
+    Output(id('dropdown_action_outputs'), 'value'),
+
+    Output(id('right_header_1'), 'style'),
+    Output(id('right_header_2'), 'style'),
+    Output(id('right_header_3'), 'style'),
+    Output(id('single_node_header_container'), 'style'),
+    Output(id('multiple_node_header_container'), 'style'),
+    Output(id('action_header_container'), 'style'),
+    Output(id('search2'), 'style'),
+    Output(id('range_slider_container'), 'style'),
+    Output(id('merge_type'), 'style'),
+
+    Input(id('tabs_node'), 'active_tab'),
+    Input(id('dropdown_action'), 'value'),
+
+    State(id('cytoscape'), 'selectedNodeData'),
+    prevent_initial_call=True
+)
+def generate_right_header(active_tab, selected_action, selectedNodeData):
+    num_selected = len(selectedNodeData)
+    # if num_selected == 0: return no_update
+    node_name, options_selected_nodes  = no_update, no_update 
+    options_inputs, selected_inputs, options_outputs, selected_outputs = no_update, no_update, no_update, no_update
+    s1, s2, s3, s4, s5, s6, s7, s8, s9 = ({'display': 'none'}, {'display': 'none'}, {'display': 'none'},
+                                            {'display': 'none'}, {'display': 'none'}, {'display': 'none'},
+                                            {'display': 'none', 'text-align':'center'}, {'display': 'hidden'}, {'display': 'none', 'text-align':'center'}
+                                        )
+
+    if num_selected != 0:
+        s1['display'] = 'block'
+        s4['display'] = 'block'
+
+    if active_tab == 'tab1':
+        s2['display'] = 'block'
+        s7['display'] = 'block' # Search Bar
+
+        if num_selected == 1:
+            if selectedNodeData[0]['type'] == 'action':
+                s6['display'] = 'block'
+                s4['display'] = 'none'
+                project = get_document('project', get_session('project_id'))
+                node = get_document('node', selectedNodeData[0]['id'])
+                node_list = [get_document('node', node['id']) for node in project['node_list']]
+                dataset_list = [node for node in node_list if node['type'] != 'action']
+
+                selected_action = selected_action if selected_action is not None else node['action']
+                selected_inputs = node['inputs'] if selected_action == 'merge' else node['inputs'][0]
+                selected_outputs = node['outputs']
+
+                options_inputs = [{'label': d['name'], 'value':d['id']} for d in dataset_list if d['id'] not in node['outputs']]
+                options_outputs = [{'label': d['name'], 'value':d['id']} for d in dataset_list if d['id'] not in node['inputs']]
+                if selected_action == 'merge':
+                    s9['display'] = 'block' # Merge Type
+
+            else:
+                s4['display'] = 'block'
+                s8['display'] = 'block' # Range Slider Container
+                node_name = selectedNodeData[0]['name']
+
+        elif num_selected > 1 and all(node['type'] in ['raw', 'processed'] for node in selectedNodeData):
+            s5['display'] = 'block'
+            s4['display'] = 'none'
+
+            options = [{'label': str(i+1) +') '+ node['name'], 'value':node['id']} for i, node in enumerate(selectedNodeData)]
+            values = [node['id'] for node in selectedNodeData]
+            options_selected_nodes = [dcc.Dropdown(options=options, value=values, multi=True, disabled=True, style={'text-align':'center'})]
+    
+    if active_tab == 'tab3':
+        node_name = selectedNodeData[0]['name']
+
+    
+    # # Range Slider TODO 
+    # Output(id('range_slider'), 'min'),
+    # Output(id('range_slider'), 'max'),
+    # Output(id('range_slider'), 'value'),
+    # range_min = 1
+    # range_max = len(data)
+    # range_val = [range_min, range_max]
+    # data = data[range_val[0]-1:range_val[1]]
+           
+    return (node_name, options_selected_nodes, 
+            selected_action, options_inputs, selected_inputs, options_outputs, selected_outputs,
+            s1, s2, s3, s4, s5, s6, s7, s8, s9
+            )
+
+
+
+
 
 # All Cytoscape Related Events
 @app.callback(
     Output(id('cytoscape'), 'elements'),
     Output(id('cytoscape'), 'layout'),
     Input(id('node_name'), 'value'),
-    Input(id('dropdown_action'), 'value'),
-    Input(id('dropdown_action_inputs'), 'value'),
-    
-    Input(id('button_new_data_source'), 'n_clicks'),
+
+    Input(id('button_execute_action'), 'n_clicks'),
+    Input(id('button_add_data_source'), 'n_clicks'),
     Input(id('button_new_action'), 'n_clicks'),
     Input(id('button_remove'), 'n_clicks'),
     Input(id('button_group'), 'n_clicks'),
     Input(id('button_reset_layout'), 'n_clicks'),
     Input(id('button_run_cytoscape'), 'n_clicks'),
 
-    Input(id('transform_store'), 'data'),
+    State(id('transform_store'), 'data'),
 
+    State(id('dropdown_action'), 'value'),
+    State(id('dropdown_action_inputs'), 'value'),
     State(id('cytoscape'), 'selectedNodeData'),
     State(id('cytoscape'), 'elements'),
+    State(id('datatable'), 'data'),
 )
-def cytoscape_triggers(node_name, action_name, action_inputs, _1, _2, _3, _4, _5, _6,
+def cytoscape_triggers(node_name, _1, _2, _3, _4, _5, _6, _7,
                         transform_store,
-                        selectedNodeData, elements
+                        action_name, action_inputs, selectedNodeData, elements, data
 ):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     num_selected = len(selectedNodeData)
@@ -364,20 +462,42 @@ def cytoscape_triggers(node_name, action_name, action_inputs, _1, _2, _3, _4, _5
         if triggered == id('node_name'):
             node['name'] = node_name
             upsert('node', node)
-        elif triggered == id('dropdown_action') or triggered == id('dropdown_action_inputs'):
-            # pprint(callback_context.triggered)
-            # print('INSIDE: ', node['action'], node['inputs'], " |||| ", action_name, action_inputs)
+
+        # Execute Action
+        elif triggered == id('button_execute_action'):
             node['action'] = action_name
             node['inputs'] = action_inputs if type(action_inputs) is list else [action_inputs]
-            upsert('node', node)
-        
-        elif triggered == id('button_execute_action'): # TODO 3
-            node['changes'] = transform_store[node_id]
-            node['state'] = 'green'
-            upsert('node', node)
+            node_out = get_document('node', node['outputs'][0])
+            df = json_normalize(data)
+            df = df.iloc[1: , :]
+            df = df.drop('no.', 1)
+
+            try:
+                if action_name == 'merge':
+                    node['changes'] = {'merge_type':'none', 'idRef': 'none'}
+
+                elif action_name == 'transform':
+                    node['changes'] = transform_store[node_id]
+                    for f in transform_store[node_id]['remove_feature']:
+                        del node_out['features'][f]
+                
+                elif action_name == 'aggregate':
+                    pass
+                elif action_name == 'impute':
+                    pass
+
+                node['state'] = 'green'
+                upsert('node', node)
+                upsert('node', node_out)
+                save_data_source(df, node_out['id'])
+
+            except Exception as e:
+                print("Exception: ", e)
+                node['state'] = 'red'
+                upsert('node', node)
 
     # Cytoscape Buttons
-    if triggered == id('button_new_data_source'):
+    if triggered == id('button_add_data_source'):
         node_id = new_data_source()
         add_dataset(project_id, node_id)
 
@@ -408,7 +528,6 @@ def cytoscape_triggers(node_name, action_name, action_inputs, _1, _2, _3, _4, _5
 
     elif triggered == id('button_run_cytoscape'):
         pass
-
 
     elements = generate_cytoscape_elements(project_id)
 
@@ -468,6 +587,22 @@ def save_cytoscape_position(position1, position2):
     return f"Last Saved: {dt_string}", position1
 
 
+
+# # Modify Action
+# @app.callback(
+#     Output(id('button_execute_action'), 'disabled'),
+#     Input(id('dropdown_action'), 'value'),
+#     Input(id('button_execute_action'), 'n_clicks'),
+#     State(id('cytoscape'), 'selectedNodeData'),
+#     prevent_initial_call=True
+# )
+# def modify_action(action_name, _, selectedNodeData):
+#     if len(selectedNodeData) != 1: return no_update
+#     node = get_document('node', selectedNodeData[0]['id'])
+#     print("111", node['action'], action_name)
+#     return True if node['action'] == action_name else False
+    
+    
 
 @app.callback(
     Output(id('tabs_node'), 'active_tab'),
@@ -925,104 +1060,13 @@ def generate_datatable_aggregate(n_clicks_list, id_list, groupby_features, selec
     # df_agg = df.groupby(groupby_features).agg({feature: ['sum', 'mean']}) # TODO
     columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
 
-    pprint(feature_func_dict)
-    print(df_agg)
+    # pprint(feature_func_dict)
+    # print(df_agg)
 
     return df_agg.to_dict('records'), columns
 
 
-    
-# Generate Right Header 1,2,3
-@app.callback(
-    Output(id('node_name'), 'value'),
-    Output(id('multiple_node_header_container'), 'children'),
 
-    Output(id('dropdown_action'), 'value'),
-    Output(id('dropdown_action_inputs'), 'options'),
-    Output(id('dropdown_action_inputs'), 'value'),
-    Output(id('dropdown_action_outputs'), 'options'),
-    Output(id('dropdown_action_outputs'), 'value'),
-
-    Output(id('right_header_1'), 'style'),
-    Output(id('right_header_2'), 'style'),
-    Output(id('right_header_3'), 'style'),
-    Output(id('single_node_header_container'), 'style'),
-    Output(id('multiple_node_header_container'), 'style'),
-    Output(id('action_header_container'), 'style'),
-    Output(id('search2'), 'style'),
-    Output(id('range_slider_container'), 'style'),
-    Output(id('merge_type'), 'style'),
-
-    Input(id('tabs_node'), 'active_tab'),
-    Input(id('dropdown_action'), 'value'),
-    State(id('cytoscape'), 'selectedNodeData'),
-)
-def generate_right_header(active_tab, selected_action, selectedNodeData):
-    num_selected = len(selectedNodeData)
-    # if num_selected == 0: return no_update
-    node_name, options_selected_nodes  = no_update, no_update 
-    options_inputs, selected_inputs, options_outputs, selected_outputs = no_update, no_update, no_update, no_update
-    s1, s2, s3, s4, s5, s6, s7, s8, s9 = ({'display': 'none'}, {'display': 'none'}, {'display': 'none'},
-                                            {'display': 'none'}, {'display': 'none'}, {'display': 'none'},
-                                            {'display': 'none', 'text-align':'center'}, {'display': 'hidden'}, {'display': 'none', 'text-align':'center'}
-                                        )
-
-    if num_selected != 0:
-        s1['display'] = 'block'
-        s4['display'] = 'block'
-
-    if active_tab == 'tab1':
-        s2['display'] = 'block'
-        s7['display'] = 'block' # Search Bar
-
-        if num_selected == 1:
-            if selectedNodeData[0]['type'] == 'action':
-                s6['display'] = 'block'
-                s4['display'] = 'none'
-                project = get_document('project', get_session('project_id'))
-                node = get_document('node', selectedNodeData[0]['id'])
-                node_list = [get_document('node', node['id']) for node in project['node_list']]
-                dataset_list = [node for node in node_list if node['type'] != 'action']
-
-                selected_action = selected_action if selected_action is not None else node['action']
-                selected_inputs = node['inputs'] if selected_action == 'merge' else node['inputs'][0]
-                selected_outputs = node['outputs']
-
-                options_inputs = [{'label': d['name'], 'value':d['id']} for d in dataset_list if d['id'] not in node['outputs']]
-                options_outputs = [{'label': d['name'], 'value':d['id']} for d in dataset_list if d['id'] not in node['inputs']]
-                if selected_action == 'merge':
-                    s9['display'] = 'block' # Merge Type
-
-            else:
-                s4['display'] = 'block'
-                s8['display'] = 'block' # Range Slider Container
-                node_name = selectedNodeData[0]['name']
-
-        elif num_selected > 1 and all(node['type'] in ['raw', 'processed'] for node in selectedNodeData):
-            s5['display'] = 'block'
-            s4['display'] = 'none'
-
-            options = [{'label': str(i+1) +') '+ node['name'], 'value':node['id']} for i, node in enumerate(selectedNodeData)]
-            values = [node['id'] for node in selectedNodeData]
-            options_selected_nodes = [dcc.Dropdown(options=options, value=values, multi=True, disabled=True, style={'text-align':'center'})]
-    
-    if active_tab == 'tab3':
-        node_name = selectedNodeData[0]['name']
-
-    
-    # # Range Slider TODO 
-    # Output(id('range_slider'), 'min'),
-    # Output(id('range_slider'), 'max'),
-    # Output(id('range_slider'), 'value'),
-    # range_min = 1
-    # range_max = len(data)
-    # range_val = [range_min, range_max]
-    # data = data[range_val[0]-1:range_val[1]]
-           
-    return (node_name, options_selected_nodes, 
-            selected_action, options_inputs, selected_inputs, options_outputs, selected_outputs,
-            s1, s2, s3, s4, s5, s6, s7, s8, s9
-            )
 
 
 
@@ -1070,6 +1114,9 @@ def generate_right_content_1(active_tab, selected_action, selectedNodeData):
         if node_type == 'action':
             if selected_action == 'merge': right_content_1 = generate_datatable(id('datatable'), height='350px')
             elif selected_action == 'transform': right_content_1 = generate_datatable(id('datatable'), cell_editable=True, height='405px', sort_action='native',filter_action='native', col_selectable='multi')
+            elif selected_action == 'aggregate': right_content_1 = [] # TODO aggregate
+            elif selected_action == 'impute': right_content_1 = []
+            else: right_content_1 = []
         else:
             right_content_1 = generate_datatable(id('datatable'), height='470px')
     elif num_selected > 1 and all(node['type'] in ['raw', 'processed'] for node in selectedNodeData):
@@ -1295,7 +1342,7 @@ for option_type in ['header', 'param', 'body']:
 
 
 
-# Generate List of feature dropdown # TODO
+# Generate List of feature dropdown
 @app.callback(
     Output(id('dropdown_arithmeticfeature1'), 'options'),
     Output(id('dropdown_arithmeticfeature2'), 'options'),
@@ -1405,7 +1452,8 @@ def auto_select_column(active_cell, selected_columns):
     Output(id('datatable'), 'columns'),
     Output(id('datatable'), "dropdown_data"),
     Output(id('datatable'), "style_data_conditional"),
-    Input(id('dropdown_action'), 'value'),
+
+    Input(id('right_content_1'), 'children'),
     Input(id('dropdown_action_inputs'), 'value'),
     Input(id('transform_store'), "data"),
     
@@ -1415,15 +1463,21 @@ def auto_select_column(active_cell, selected_columns):
     Input(id('range_slider'), 'value'),
     Input(id('search2'), 'value'),
 
+    State(id('dropdown_action'), 'value'),
     State(id('cytoscape'), 'selectedNodeData'),
     State(id('datatable'), "style_data_conditional"),
 )
-def datatable_triggers(selected_action, action_inputs, transform_store, 
+def datatable_triggers(_, action_inputs, transform_store, 
                         merge_type, merge_idRef,
                         range_val, search_val,
-                        selectedNodeData, style_data_conditional):
+
+                        selected_action, selectedNodeData, style_data_conditional
+):
     num_selected = len(selectedNodeData)
+    triggered = callback_context.triggered[0]['prop_id']
     if num_selected == 0: return no_update
+    if triggered == '.': return no_update
+
     show_datatype_dropdown = False
     renamable = False
 
@@ -1471,14 +1525,17 @@ def datatable_triggers(selected_action, action_inputs, transform_store,
         node = merge_metadata(inputs, 'objectMerge')
         df = merge_dataset_data(inputs, merge_type, merge_idRef)
         datatypes = [f for f in node['features'].values()]
+
+    else:
+        return no_update
     
     # Filter Range
     # Search Value
 
     # Process into Datatable format
     if df.empty:
-        print("Empty")
-        return no_update
+        print('Empty')
+        return [], [], None, None
     else:
         df, columns, dropdown_data = generate_datatable_data(node, df, datatypes, show_datatype_dropdown=show_datatype_dropdown, renamable=renamable)
 
@@ -1528,7 +1585,8 @@ def datatable_triggers(selected_action, action_inputs, transform_store,
     State(id('dropdown_shift_feature'), 'value'),
     prevent_initial_call=True,
 )
-def transform_node_triggers(_, _2, _3, _4, _5, sort_by, data, active_cell, selectedNodeData, function_type, transform_store, feature_name,
+def transform_node_triggers(_, _2, _3, _4, _5, 
+                sort_by, data, active_cell, selectedNodeData, function_type, transform_store, feature_name,
                 func1, f1a, f1b,
                 func2, f2a, f2b,
                 func3, f3a,
@@ -1545,9 +1603,6 @@ def transform_node_triggers(_, _2, _3, _4, _5, sort_by, data, active_cell, selec
     node_id = selectedNodeData[0]['id']
     node = get_document('node', node_id)
     df = json_normalize(data)
-
-    print('111')
-    pprint(transform_store)
 
     # Instantiate transform_store format
     if node_id not in transform_store: transform_store[node_id] = {}
@@ -1597,7 +1652,7 @@ def transform_node_triggers(_, _2, _3, _4, _5, sort_by, data, active_cell, selec
 
                     transform_datatype = 'Int64'
                     transform_func = func1
-                    depdendent_features = [f1, f2]
+                    # dependent_features = [f1, f2]
                 
             elif function_type == 'comparison':
                 pass
@@ -1622,7 +1677,7 @@ def transform_node_triggers(_, _2, _3, _4, _5, sort_by, data, active_cell, selec
                 'data': list(feature),
                 'datatype': transform_datatype,
                 'function': transform_func,
-                'depdendent_features': depdendent_features
+                # 'dependent_features': dependent_features
             })
     
     # Remove Feature
@@ -1643,34 +1698,13 @@ def transform_node_triggers(_, _2, _3, _4, _5, sort_by, data, active_cell, selec
         # print('222')
         # pprint(transform_store)
 
-    # # Clear Session
-    # elif triggered == id('button_clear'):
-    #     transform_store = {}
+    # Clear Session
+    elif triggered == id('button_clear'):
+        transform_store = {}
 
-    # # Clear Session
-    # elif triggered == id('button_last_saved_changes'):
-    #     transform_store[node_id] = node['changes']
-
-    # # Execute Action
-    # elif triggered == id('button_execute_action'):
-    #     try:
-    #         output_node_id = node['outputs'][0]
-    #         output_node = get_document('node', output_node_id)
-
-    #         node['changes'] = transform_store[node_id]
-    #         node['state'] = 'green'
-    #         for f in transform_store[node_id]['remove_feature']:
-    #             del output_node['features'][f]
-
-    #         upsert('node', node)
-    #         upsert('node', output_node)
-    #         save_data_source(df, output_node_id)
-
-    #     except Exception as e:
-    #         print("Exception: ", e)
-    #         node['state'] = 'red'
-    #         upsert('node', node)
-        
+    # Clear Session
+    elif triggered == id('button_last_saved_changes'):
+        transform_store[node_id] = node['changes']
 
     else:
         transform_store = no_update

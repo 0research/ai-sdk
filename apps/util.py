@@ -302,17 +302,18 @@ def get_action_source_data(node_id, inputs, merge_type='arrayMergeByIndex', idRe
 def generate_datatable_data(node, df, datatypes, show_datatype_dropdown=False, renamable=False):
     dropdown_data = []
     
+    # print(df)
     # Add First Row for Datatype Dropdown
-    
     df.loc[-1] = datatypes
     df.index += 1
 
+    
     # Add Index Column
     df = df.sort_index()
     df.reset_index(inplace=True)
     df.rename(columns = {'index': index_col_name}, inplace=True)
     df.iloc[0,0] = ''
-
+    
     # Get Datatable Columns & Dropdown Data
     columns = [{"name": i, "id": i, "selectable": True, 'presentation': 'dropdown', 'renamable': renamable} for i in df.columns]
     for i in range(len(columns)):
@@ -321,6 +322,7 @@ def generate_datatable_data(node, df, datatypes, show_datatype_dropdown=False, r
     if show_datatype_dropdown:
         dropdown_data = [ {c: {'options': [{'label': datatype, 'value': datatype} for datatype in DATATYPE_LIST], 'clearable': False} for c in df.columns if c != index_col_name }]
 
+    # print(df)
     return df, columns, dropdown_data
 
 

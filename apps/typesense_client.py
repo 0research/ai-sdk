@@ -11,6 +11,8 @@ import json
 from apps.util import *
 from datetime import datetime
 
+
+
 def typesense_client(host, port, protocol, api_key, timeout=2):
     return typesense.Client({
         'nodes': [{
@@ -222,20 +224,15 @@ def save_data_source(df, node_id, upload_method='', details=''):
     node = get_document('node', node_id)
     node['upload_method'] = upload_method 
     node['details'] = details
-    features = {str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)}
-    # if type == 'restapi':
-    #     features['timestamp'] = 'datetime64'
-    node['features'] = features
+    node['features'] = {str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)}
     node['expectation'] = {col:None for col in df.columns}
 
-    # Upload to Typesense
     upsert('node', node)
-    update_node_log(get_session('project_id'), node_id, 'Uploaded Data Source {}'.format(details))
+    # update_node_log(get_session('project_id'), node_id, 'Uploaded Data Source {}'.format(details))
     
     collection_name_list = [row['name'] for row in client.collections.retrieve()]
     if node_id in collection_name_list:
         client.collections[node_id].delete()
-        # print("Dropped Collection: ", node_id)
     client.collections.create(generate_schema_auto(node_id))
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
     r = client.collections[node_id].documents.import_(jsonl, {'action': 'create'})

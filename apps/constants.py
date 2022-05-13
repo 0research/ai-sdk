@@ -45,6 +45,7 @@ options_merge = [
 option_actions = [
     {'label':'Merge', 'value':'merge'},
     {'label':'Transform', 'value':'transform'},
+    {'label':'Aggregate', 'value':'aggregate'},
     {'label':'Impute', 'value':'impute'},
 ]
 
