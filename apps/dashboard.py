@@ -21,7 +21,7 @@ import pandas as pd
 from itertools import zip_longest
 from datetime import datetime
 from pandas import json_normalize
-from apps.typesense_client import *
+
 
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True

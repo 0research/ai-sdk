@@ -7,8 +7,8 @@ from apps.util import *
 from app import app
 from app import server 
 from app import dbc
-from apps.typesense_client import *
-from apps import (login, new_project, transform_node, search, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
+
+from apps import (login, new_project, search, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage, test)
 import ast
 from apps.constants import *
@@ -88,16 +88,13 @@ navbar = dbc.Navbar([
 
 # Sidebar
 sidebar_0 = [
-    dbc.NavLink("Login", href="/apps/login", active="exact", className="fas fa-upload"),
+    dbc.NavLink("Login", href="/apps/login", active="exact", className="fas fa-upload", disabled=True),
     dbc.NavLink("New Project", href="/apps/new_project", active="exact", className="fas fa-upload"),
-    dbc.NavLink("Dashboard", href="/apps/dashboard", active="exact", className="fas fa-chart-pie"),
-    dbc.NavLink("Storyboard", href="/apps/storyboard", active="exact", className="fas fa-chart-pie", disabled=True),
 ]
 sidebar_1 = [
+    dbc.NavLink("Dashboard", href="/apps/dashboard", active="exact", className="fas fa-chart-pie"),
     dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
-    dbc.NavLink("Plot Graph", href="/apps/plot_graph", active="exact", className="fas fa-upload", disabled=True),
-    dbc.NavLink("Impute Data", href="/apps/impute_data", active="exact", className="fas fa-upload", disabled=True),
-    dbc.NavLink("Transform Node", href="/apps/transform_node", active="exact", className="fas fa-upload", disabled=True),
+    dbc.NavLink("Storyboard", href="/apps/storyboard", active="exact", className="fas fa-chart-pie", disabled=True),
 ]
 sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className'], disabled=nav['disabled']) for nav in SIDEBAR_2_LIST]
 sidebar_3 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_3_LIST]
@@ -159,7 +156,6 @@ def display_page(pathname):
     if pathname.startswith('/apps/plot_graph'): return plot_graph.layout
     if pathname.startswith('/apps/search'): return search.layout
     if pathname.startswith('/apps/impute_data'): return impute_data.layout
-    if pathname.startswith('/apps/transform_node'): return transform_node.layout
     
     if pathname.startswith('/apps/merge_strategy'): return merge_strategy.layout
     if pathname.startswith('/apps/temporal_evolution'): return temporal_evolution.layout
@@ -213,7 +209,7 @@ def load_dataset_dropdown(project_id):
     
     return no_update
 
-# Load Project ID and Node ID
+# Load Project ID and Dataset ID
 @app.callback(Output('dropdown_current_project', 'value'),
                 Input('url', 'pathname'))
 def load_project_id(pathname):
@@ -233,8 +229,8 @@ def load_project_id(value):
 
 
 
-
-if __name__ == '__main__':
+# if __name__ == '__main__':
+def main():
     health = HealthCheck()
     envdump = EnvironmentDump()
     app.server.add_url_rule("/healthcheck", "healthcheck", view_func=lambda: health.run())
@@ -244,4 +240,4 @@ if __name__ == '__main__':
     app.run_server("0.0.0.0", port, debug=True)
 
     
-
+main()

@@ -20,7 +20,7 @@ from itertools import zip_longest
 from datetime import datetime
 from pandas import json_normalize
 from pathlib import Path
-from apps.typesense_client import *
+
 import time
 import ast
 from apps.constants import *
@@ -223,7 +223,7 @@ def display(active_tab, dataset_id):
     if dataset_id is None: return no_update
     out = []
     
-    dataset = get_document('node', dataset_id)
+    dataset = get_document('dataset', dataset_id)
     name = html.Div(dataset['name'], id=id(dataset['id']), contentEditable='true', className="badge border border-info text-wrap")
 
     if active_tab == 'tab1':
@@ -231,7 +231,7 @@ def display(active_tab, dataset_id):
         out = [dbc.Input(id=id('search_json'), placeholder='Search', style={'text-align':'center'})] + [display_dataset_data(dataset_data_store)]
 
     elif active_tab == 'tab2':
-        dataset = get_document('node', dataset['id'])
+        dataset = get_document('dataset', dataset['id'])
         out = out + [display_metadata(dataset, id)]
 
     return name, out

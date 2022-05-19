@@ -22,7 +22,7 @@ from pandas import json_normalize
 from itertools import zip_longest
 from datetime import datetime
 import dash_cytoscape as cyto
-from apps.typesense_client import *
+
 import ast
 from apps.constants import *
 import copy

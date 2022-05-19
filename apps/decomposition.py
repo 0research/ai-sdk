@@ -9,7 +9,7 @@ from jsondiff import diff
 from dash import no_update
 from apps.util import *
 from app import dbc
-from apps.typesense_client import *
+
 
 
 layout = html.Div([

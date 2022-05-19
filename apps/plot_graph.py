@@ -21,7 +21,7 @@ from itertools import zip_longest
 from datetime import datetime
 from pandas import json_normalize
 from pathlib import Path
-from apps.typesense_client import *
+
 import time
 import ast
 from pathlib import Path

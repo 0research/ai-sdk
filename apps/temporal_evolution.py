@@ -8,7 +8,7 @@ from pprint import pprint
 from jsondiff import diff
 from dash import no_update
 from apps.util import *
-from apps.typesense_client import *
+
 
 id = id_factory('temporal_evolution')
 

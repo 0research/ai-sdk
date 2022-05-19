@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import base64
 from io import BytesIO
-from apps.typesense_client import *
+
 # from missingpy import MissForest, KNNImputer
 
 

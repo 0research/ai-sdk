@@ -19,7 +19,7 @@ import base64
 import pandas as pd
 from itertools import zip_longest
 from datetime import datetime
-from apps.typesense_client import *
+
 from pandas import json_normalize
 
 
