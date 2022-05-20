@@ -51,7 +51,7 @@ def generate_dropdown(component_id, options, value=None, multi=False, placeholde
         style=style,
     )
 def display_metadata(dataset, id, disabled=True, height='750px'):
-    features = dataset['features']
+    features = {f['name']:f['datatype'] for f in dataset['features']}
     options_datatype = [{'label': d, 'value': d} for d in DATATYPE_LIST]
     return (html.Div([
             # html.Div([
@@ -259,31 +259,36 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
     ),
 
     return datatable
-def generate_datatable_data(df, datatypes, show_datatype_dropdown=False, renamable=False):
+def generate_datatable_data(df, features, show_datatype_dropdown=False, renamable=False):
     dropdown_data = []
     
     # Add First Row for Datatype Dropdown
-    df.loc[-1] = datatypes
+    df.loc[-1] = {f['id']: f['datatype'] for f in features}
     df.index += 1
+    df.sort_index(inplace=True)
 
-    # Add Index Column
-    df = df.sort_index()
+    # Get Datatable Columns
+    columns = [{'id':'no.', 'name':'no.', 'selectable':False}]
+    columns += [{"id": f['id'], "name": f['name'], "selectable": True, 'presentation': 'dropdown', 'renamable': renamable} for f in features]
+
+    # Get Dropdown Data
+    if show_datatype_dropdown:
+        dropdown_data = [{'no.': {'options': []}}]
+        dropdown_data += [ {f['id']: {'options': [{'label': datatype, 'value': datatype} for datatype in DATATYPE_LIST], 'clearable': False} for f in features}]
+    
+    # Add Index Column to df
     df.reset_index(inplace=True)
     df.rename(columns = {'index': index_col_name}, inplace=True)
     df.iloc[0,0] = ''
     
-    # Get Datatable Columns & Dropdown Data
-    columns = [{"name": i, "id": i, "selectable": True, 'presentation': 'dropdown', 'renamable': renamable} for i in df.columns]
-    for i in range(len(columns)):
-        if columns[i]['name'] == index_col_name:
-            columns[i]['selectable'] = False
-    if show_datatype_dropdown:
-        dropdown_data = [ {c: {'options': [{'label': datatype, 'value': datatype} for datatype in DATATYPE_LIST], 'clearable': False} for c in df.columns if c != index_col_name }]
+    pprint(df)
+    pprint(columns)
+    pprint(dropdown_data)
 
     return df, columns, dropdown_data
 # --------------------------------------------------------------------------------
 
-# Data Source 
+# Dataset 
 def process_fileupload(upload_id, filename):
     root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
     file = (root_folder / filename).as_posix()
@@ -303,7 +308,7 @@ def process_fileupload(upload_id, filename):
         
     elif filename.endswith('.csv'):
         df = pd.read_csv(file, sep=',')
-    
+
     return df, details
 def process_restapi(method, url, header, param, body):
     # Remove empty keys
@@ -610,19 +615,19 @@ def graph_inputs_callback():
     dataset = get_document('dataset', dataset_id)
     df = get_dataset_data(dataset_id)
     features = dataset['features']
-    options = [{'label': f, 'value': f} for f in features.keys()]
+    options = [{'label': f['name'], 'value': f['id']} for f in features]
 
-    features_nonnumerical = [f for f, dtype in features.items() if dtype in DATATYPE_NONNUMERICAL]
-    features_numerical = [f for f, dtype in features.items() if dtype in DATATYPE_NUMERICAL]
+    features_nonnumerical = [f for f in features if f['datatype'] in DATATYPE_NONNUMERICAL]
+    features_numerical = [f for f in features if f['datatype'] in DATATYPE_NUMERICAL]
 
-    options_nonnumerical =[{'label': f, 'value': f} for f in features_nonnumerical]
-    options_numerical = [{'label': f, 'value': f} for f in features_numerical]
+    options_nonnumerical =[{'label': f['name'], 'value': f['id']} for f in features_nonnumerical]
+    options_numerical = [{'label': f['name'], 'value': f['id']} for f in features_numerical]
 
-    default = None if len(list(features.keys())) == 0 else list(features.keys())[0]
-    default_nonnumerical = None if len(features_nonnumerical) == 0 else features_nonnumerical[0]
-    default_numerical = None if len(features_numerical) == 0 else features_numerical[0]
+    default = features[0]['id'] if len(features) != 0 else None
+    default_nonnumerical = features_nonnumerical[0] if len(features_nonnumerical) != 0 else None
+    default_numerical = features_numerical[0] if len(features_numerical) != 0 else None
 
-    columns = [{"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns]
+    columns = [{"id": f['id'], "name": f['name'], "deletable": False, "selectable": True} for f in features]
 
     # Display Clean Graph if no Graph ID exist else Display Selected Graph Values
     graph_id = get_session('graph_id')
@@ -829,7 +834,7 @@ def search_documents(collection_id, per_page=250, search_parameters=None):
     return result
 def get_dataset_data(dataset_id, features=None):
     dataset = get_document('dataset', dataset_id)
-    features = list(dataset['features'].keys()) if features is None else features
+    features = [f['id'] for f in dataset['features']] if features is None else features
     data = search_documents(dataset_id)
     if data != None:
         return json_normalize(data)[features]
@@ -844,9 +849,19 @@ def save_dataset(df, dataset_id, upload_method='', details=''):
     dataset = get_document('dataset', dataset_id)
     dataset['upload_method'] = upload_method 
     dataset['details'] = details
-    dataset['features'] = {str(col):str(datatype) for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)}
+    dataset['features'] = [{
+        'id': str(uuid.uuid1()),
+        'name': str(col), 
+        'datatype': str(datatype),
+        'expectation': {},
+    } for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)]
     dataset['expectation'] = {col:None for col in df.columns}
 
+    # Rename feature name to Unique ID
+    mapper = {f['name']:f['id'] for f in dataset['features']}
+    df.rename(columns=mapper, inplace=True)
+
+    # Upload
     upsert('dataset', dataset)
     
     collection_name_list = [row['name'] for row in client.collections.retrieve()]
@@ -854,6 +869,7 @@ def save_dataset(df, dataset_id, upload_method='', details=''):
         client.collections[dataset_id].delete()
     client.collections.create(generate_schema_auto(dataset_id))
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+    
     r = client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 # Session
 def store_session(key, value):
@@ -1126,11 +1142,14 @@ def generate_transform_inputs(id):
                 # dbc.Select(id=id('dropdown_conditionfunction'), options=comparison_options, value=comparison_options[0]['value'], style={'height':'40px', 'text-align':'center'}, persistence=True),
                 # dbc.Select(id=id('dropdown_conditionfeature2'), options=[], value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
             ]),
-        ], id=id('conditions'), style={'display': 'none'}),
+        ], id=id('condition'), style={'display': 'none'}),
     ]
-def get_action_source(dataset_id, inputs, merge_type='arrayMergeByIndex', idRef=None):
+def get_action_source(dataset_id, inputs=None, merge_type='arrayMergeByIndex', idRef=None):
     action = get_document('action', dataset_id)
-    inputs = [inputs] if type(inputs) == str else inputs
+    if inputs == None:
+        inputs = action['inputs']
+    else:
+        inputs = [inputs] if type(inputs) == str else inputs
 
     # No Inputs
     if len(inputs) == 0:

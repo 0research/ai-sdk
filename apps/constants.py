@@ -75,12 +75,12 @@ index_col_name = 'no.'
 # List of Transform Functions
 function_options = [
     {'label': 'Arithmetic', 'value':'arithmetic'},
-    {'label': 'Comparison', 'value':'comparison'},
-    {'label': 'Aggregate', 'value':'aggregate'},
-    {'label': 'Sliding Window', 'value':'slidingwindow'},
-    {'label': 'Format Date', 'value':'formatdate'},
-    {'label': 'Cumulative', 'value':'cumulative'},
-    {'label': 'Shift', 'value':'shift'},
+    {'label': 'Comparison', 'value':'comparison', 'disabled':True},
+    {'label': 'Aggregate', 'value':'aggregate', 'disabled':True},
+    {'label': 'Sliding Window', 'value':'slidingwindow', 'disabled':True},
+    {'label': 'Format Date', 'value':'formatdate', 'disabled':True},
+    {'label': 'Cumulative', 'value':'cumulative', 'disabled':True},
+    {'label': 'Shift', 'value':'shift', 'disabled':True},
 ]
 
 arithmetic_options = [
