@@ -159,8 +159,6 @@ def get_data(path):
     return data
 # --------------------------------------------------------------------------------
 
-
-
 # Unique ID
 def id_factory(page: str):
     def func(_id: str):
@@ -220,7 +218,9 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
         columns=columns,
         editable=cell_editable,
         filter_action=filter_action,
+        filter_query='',
         sort_action=sort_action,
+        sort_by=[],
         # sort_mode="multi",
         column_selectable=col_selectable,
         row_selectable=row_selectable,
@@ -271,19 +271,14 @@ def generate_datatable_data(df, features, show_datatype_dropdown=False, renamabl
     columns = [{'id':'no.', 'name':'no.', 'selectable':False}]
     columns += [{"id": f['id'], "name": f['name'], "selectable": True, 'presentation': 'dropdown', 'renamable': renamable} for f in features]
 
-    # Get Dropdown Data
-    if show_datatype_dropdown:
-        dropdown_data = [{'no.': {'options': []}}]
-        dropdown_data += [ {f['id']: {'options': [{'label': datatype, 'value': datatype} for datatype in DATATYPE_LIST], 'clearable': False} for f in features}]
-    
     # Add Index Column to df
     df.reset_index(inplace=True)
     df.rename(columns = {'index': index_col_name}, inplace=True)
     df.iloc[0,0] = ''
-    
-    pprint(df)
-    pprint(columns)
-    pprint(dropdown_data)
+
+    # Get Dropdown Data
+    if show_datatype_dropdown:
+        dropdown_data = [ {f['id']: {'options': [{'label': datatype, 'value': datatype} for datatype in DATATYPE_LIST], 'clearable': False} for f in features}]
 
     return df, columns, dropdown_data
 # --------------------------------------------------------------------------------
