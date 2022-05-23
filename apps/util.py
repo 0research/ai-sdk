@@ -786,7 +786,7 @@ def initialize_typesense():
         client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', 'ON8Qi0o4Fh8oDWQHVVPeRQx9Unh6VoR3') # Typesense Cloud
         # client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
 
-    collection_list = ['project', 'dataset_list', 'action_list', 'group_list', 'graph_dict', 'logs', 'session1'] # Currently all users will use same session. Replace when generate user/session ID
+    collection_list = ['project', 'dataset', 'action', 'group', 'graph', 'logs', 'session1'] # Currently all users will use same session. Replace when generate user/session ID
     for name in collection_list:
         try:
             client.collections.create(generate_schema_auto(name))
