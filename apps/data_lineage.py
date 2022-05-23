@@ -494,7 +494,8 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
 
                 elif action_name == 'transform':
                     action['details'] = transform_store[node_id]
-                    dataset_o['features'] = {k:v for k, v in dataset_o['features'].items() if k not in transform_store[node_id]['remove_feature']}
+                    remove_list = [f for f in transform_store[node_id] if f['remove'] == False]
+                    dataset_o['features'] = [f for f in dataset_o['features'] if f['id'] not in ['remove']]
 
                 elif action_name == 'aggregate':
                     pass
@@ -1547,6 +1548,7 @@ def datatable_triggers(_, action_inputs, transform_store,
                     store = transform_store[node_id]
                     for feature_id, feature in store.items():
                         for transform_key in feature:
+                            
                             if transform_key == 'new' and feature['new'] == True:
                                 df2 = pd.DataFrame(feature['data'], columns=[feature_id])
                                 df = pd.concat([df, df2], axis=1)
@@ -1575,8 +1577,6 @@ def datatable_triggers(_, action_inputs, transform_store,
                     #     pass
                     # if transform_key == 'truncate':
                     #     pass
-            print(df)
-            print(df.columns)
 
         else:
             dataset = get_document('dataset', node_id)
