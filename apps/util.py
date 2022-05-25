@@ -615,6 +615,9 @@ def graph_inputs_callback():
     features_nonnumerical = [f for f in features if f['datatype'] in DATATYPE_NONNUMERICAL]
     features_numerical = [f for f in features if f['datatype'] in DATATYPE_NUMERICAL]
 
+    pprint(features_nonnumerical)
+    pprint(features_numerical)
+
     options_nonnumerical =[{'label': f['name'], 'value': f['id']} for f in features_nonnumerical]
     options_numerical = [{'label': f['name'], 'value': f['id']} for f in features_numerical]
 
@@ -850,7 +853,6 @@ def save_dataset(df, dataset_id, upload_method='', details=''):
         'datatype': str(datatype),
         'expectation': {},
     } for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)]
-    dataset['expectation'] = {col:None for col in df.columns}
 
     # Rename feature name to Unique ID
     mapper = {f['name']:f['id'] for f in dataset['features']}
@@ -858,14 +860,13 @@ def save_dataset(df, dataset_id, upload_method='', details=''):
 
     # Upload
     upsert('dataset', dataset)
-    
     collection_name_list = [row['name'] for row in client.collections.retrieve()]
     if dataset_id in collection_name_list:
         client.collections[dataset_id].delete()
     client.collections.create(generate_schema_auto(dataset_id))
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-    
     r = client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
+
 # Session
 def store_session(key, value):
     session_id = 'session1' # Currently all users will use same session. Replace when generate user/session ID
