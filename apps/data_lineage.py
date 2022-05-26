@@ -145,13 +145,13 @@ layout = html.Div([
                 html.Div(id=id('last_saved'), style={'display':'inline-block', 'margin':'1px'}),
                 html.Div([
                     dbc.ButtonGroup([
-                        dbc.Button('Add Source', id=id('button_add_dataset'), color='info', className='cytoscape_buttons'),
-                        dbc.Button('Action', id=id('button_new_action'), color='warning', className='cytoscape_buttons'),
-                        dbc.Button('Remove', id=id('button_remove'), color='danger', className='cytoscape_buttons'),
-                        dbc.Button('Group', id=id('button_group'), color='success', className='cytoscape_buttons'),
-                        dbc.Button('Reset', id=id('button_reset_layout'), color='dark', className='cytoscape_buttons'),
-                        # dbc.Button('Hide/Show', id=id('button_hide_show'), className='cytoscape_buttons'),
-                        dbc.Button('Run', id=id('button_run_cytoscape'), color='primary', className='cytoscape_buttons', disabled=True),     
+                        dbc.Button('Add Source',    id=id('button_add_dataset'),    color='info',   className='me-1', style={'width':'90px'}),
+                        dbc.Button('Action',        id=id('button_new_action'),     color='warning', className='me-1', style={'width':'90px'}),
+                        dbc.Button('Remove',        id=id('button_remove'),         color='danger', className='me-1', style={'width':'90px'}),
+                        dbc.Button('Group',         id=id('button_group'),          color='success', className='me-1', style={'width':'90px'}),
+                        dbc.Button('Reset',         id=id('button_reset_layout'),   color='dark',   className='me-1', style={'width':'90px'}),
+                        # dbc.Button('Hide/Show',   id=id('button_hide_show'),      color='light', className='me-1', style={'width':'90px'}),
+                        dbc.Button('Run', id=id('button_run_cytoscape'), color='primary', className='me-1', disabled=True, style={'width':'90px'}),     
                     ]),
                 ], style={'float':'right', 'display':'inline-block'}),
 
@@ -183,10 +183,12 @@ layout = html.Div([
                     ], id=id("tabs_node")), style={'float':'left', 'text-align':'left', 'display':'inline-block'}),
 
                     html.Div([
-                        dbc.Button("Revert", id=id('button_last_saved_changes'), color='primary'),
-                        dbc.Button('Execute', id=id('button_execute_action'), color='warning'),
-
-                        dbc.Tooltip('Revert to Last Saved Changes', target=id('button_last_saved_changes')),
+                        dbc.Button("Store", id=id('button_store_changes'), color='success', className='me-1', style={'width':'90px'}),
+                        dbc.Button("Revert", id=id('button_revert_changes'), color='primary', className='me-1', style={'width':'90px'}),
+                        dbc.Button('Execute', id=id('button_execute_action'), color='warning', className='me-1', style={'width':'90px'}),
+                        dbc.Tooltip('Store Changes', target=id('button_store_changes')),
+                        dbc.Tooltip('Revert to Last Saved', target=id('button_revert_changes')),
+                        dbc.Tooltip('Execute Action', target=id('button_execute_action')),
                     ], style={'float':'right'}),
                 ], style={'display':'inline-block', 'width':'100%'}),
                   
@@ -220,14 +222,13 @@ layout = html.Div([
                                 ),
                             ], id=id('range_slider_container'), style={'display':'hidden'}, width=3),
                             dbc.Col([
-                                dbc.Button(html.I(className='fas fa-plus-circle'), id=id('button_add_feature_modal'), color='light', outline=True),
-                                dbc.Button(html.I(className='fas fa-trash'), id=id('button_remove_feature'), color='danger', outline=True),
-                                dbc.Button(html.I(className='fas fa-eraser'), id=id('button_clear'), color='info', outline=True),
-                                dbc.Button(html.I(className='fa fa-table'), color='secondary', outline=True, id=id('button_display_mode'), n_clicks=0),
-                                dbc.Button(html.I(className='fas fa-arrow-right'), id=id('button_run_restapi'), color='warning', outline=True),
+                                dbc.Button(html.I(className='fas fa-plus-circle'),  id=id('button_add_feature_modal'),  className='me-1',   color='light',  outline=True, style={'display':'none'}),
+                                dbc.Button(html.I(className='fas fa-trash'),        id=id('button_remove_feature'),     className='me-1',   color='danger', outline=True, style={'display':'none'}),
+                                dbc.Button(html.I(className='fas fa-eraser'),       id=id('button_clear'),              className='me-1',   color='info',   outline=True, style={'display':'none'}),
+                                dbc.Button(html.I(className='fa fa-table'),         id=id('button_display_mode'),       className='me-1',   color='secondary', outline=True, n_clicks=0, style={'display':'none'}),
+                                dbc.Button(html.I(className='fas fa-arrow-right'),  id=id('button_run_restapi'),        className='me-1',   color='warning',   outline=True, style={'display':'none'}),
                                 dbc.Tooltip('Add Feature', target=id('button_add_feature_modal')),
                                 dbc.Tooltip('Remove Feature', target=id('button_remove_feature')),
-                                
                                 dbc.Tooltip('Clear all Changes', target=id('button_clear')),
                                 dbc.Tooltip('View in Tabular Format', target=id('button_display_mode')),
                                 dbc.Tooltip('Run API', target=id('button_run_restapi')),
@@ -265,7 +266,7 @@ layout = html.Div([
                                 dbc.InputGroupText('Group By ', style={'width':'20%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px'}),
                                 html.Div(dcc.Dropdown(id=id('dropdown_groupby_feature'), multi=True, options=[], value=None, persistence=True, style={'color':'black', 'text-align':'center'}), style={'width':'80%'}),
                             ]),
-                            dbc.Table([], id=id('table_aggregate_function'), bordered=True, dark=True, hover=True, striped=True, style={'overflow-y': 'auto', 'max-height':'350px'}),
+                            dbc.Table([], id=id('table_aggregate_function'), bordered=True, dark=True, hover=True, striped=True, style={'overflow-y': 'auto', 'max-height':'300px'}),
                             dbc.Col(generate_datatable(id('datatable_aggregate'), height='300px')),
                         ], style={'display':'none'}, id=id('aggregate_container'))
                     ], id=id('right_content_1'), style={'display':'none'}),
@@ -526,18 +527,15 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
                 elif action_name == 'aggregate':
                     action['details'] = aggregate_store[node_id]
                     df = pd.DataFrame(data_agg)
+                    df = df.drop(index_col_name, 1)
+                    row_0 = df.iloc[0].to_dict()
                     columns_agg = [c for c in columns_agg if c['id'] != index_col_name]
-                    # df = df.drop(index_col_name, 1)
                     dataset_o['features'] = [{
                         'id': c['id'],
                         'name': c['name'],
-                        'datatype': str(datatype),
+                        'datatype': row_0[c['id']],
                         'expectation': [],
-                    } for c, datatype in zip(columns_agg, df.convert_dtypes().dtypes)]
-
-                    print('\n\nstart')
-                    pprint(columns_agg)
-                    print('end\n\n')
+                    } for c in columns_agg]
 
                 elif action_name == 'impute':
                     pass
@@ -725,28 +723,37 @@ def populate_dataset_config(active_tab, selectedNodeData):
 
 # Display Node Buttons
 @app.callback(
-    Output(id('button_last_saved_changes'), 'style'),
+    Output(id('button_store_changes'), 'style'),
+    Output(id('button_revert_changes'), 'style'),
     Output(id('button_execute_action'), 'style'),
 
     Output(id('button_add_feature_modal'), 'style'),
     Output(id('button_remove_feature'), 'style'),
-    Output(id('button_clear'), 'style'),
-
+    Output(id('button_clear'), 'style'),\
     Output(id('button_display_mode'), 'style'),
-    
     Output(id('button_run_restapi'), 'style'),
+
     Input(id('tabs_node'), 'active_tab'),
     Input(id('dropdown_action'), 'value'),
     State(id('cytoscape'), 'selectedNodeData'),
+
+    State(id('button_store_changes'), 'style'),
+    State(id('button_revert_changes'), 'style'),
+    State(id('button_execute_action'), 'style'),
+
+    State(id('button_add_feature_modal'), 'style'),
+    State(id('button_remove_feature'), 'style'),
+    State(id('button_clear'), 'style'),\
+    State(id('button_display_mode'), 'style'),
+    State(id('button_run_restapi'), 'style'),
 )
-def display_node_buttons(active_tab, action_name, selectedNodeData):
+def display_node_buttons(active_tab, action_name, selectedNodeData, s1, s2, s3, s4, s5, s6, s7, s8):
     if active_tab != 'tab1': return no_update
     num_selected = len(selectedNodeData)
     if num_selected == 0: return no_update
 
-    s1, s2, s3, s4, s5, s6, s7 = ({'display': 'none'}, {'display': 'none'}, {'display': 'none'}, {'display': 'none'}, 
-                                    {'display': 'none'}, {'display': 'none'}, {'display': 'none'}
-                                )
+    for s in [s1, s2, s3, s4, s5, s6, s7, s8]:
+        s['display'] = 'none'
 
     if num_selected == 1:
         node_type = selectedNodeData[0]['type']
@@ -756,23 +763,24 @@ def display_node_buttons(active_tab, action_name, selectedNodeData):
             action_name = action_name if action_name is not None else action['name']
             s1['display'] = 'inline-block'
             s2['display'] = 'inline-block'
+            s3['display'] = 'inline-block'
 
             if action_name == 'transform':
-                s3['display'], s4['display'], s5['display'] = 'inline-block', 'inline-block', 'inline-block'
+                s4['display'], s5['display'], s6['display'] = 'inline-block', 'inline-block', 'inline-block'
             elif action_name == 'merge':
                 pass
 
         elif node_type == 'dataset':
-            s6['display'] = 'inline-block'
+            s7['display'] = 'inline-block'
             if selectedNodeData[0]['upload_details'] != {}:
                 if selectedNodeData[0]['upload_details']['method'] == 'restapi':
-                    s7['display'] = 'inline-block'
+                    s8['display'] = 'inline-block'
 
     else:
         if all(node['type'] == 'dataset' for node in selectedNodeData):
-            s6['display'] = 'inline-block'
+            s7['display'] = 'inline-block'
 
-    return s1, s2, s3, s4, s5, s6, s7
+    return s1, s2, s3, s4, s5, s6, s7, s8
 
 
 # Enable/Disable Tabs
@@ -1112,14 +1120,14 @@ def agg_function_style(n_clicks):
     Output(id('datatable_aggregate'), 'columns'),
     Output(id('aggregate_store'), 'data'),
     Input('url', 'pathname'),
+    Input(id('dropdown_groupby_feature'), 'value'),
     Input({'type': id('button_agg_function'), 'index': ALL}, 'n_clicks'),
     State({'type': id('button_agg_function'), 'index': ALL}, 'id'),
-    State(id('dropdown_groupby_feature'), 'value'),
     State(id('cytoscape'), 'selectedNodeData'),
     State(id('aggregate_store'), 'data'),
     prevent_initial_call=True,
 )
-def generate_datatable_aggregate(_, n_clicks_list, id_list, groupby_features, selectedNodeData, aggregate_store):
+def generate_datatable_aggregate(_, groupby_features, n_clicks_list, id_list, selectedNodeData, aggregate_store):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
 
     if triggered == '':
@@ -1135,40 +1143,39 @@ def generate_datatable_aggregate(_, n_clicks_list, id_list, groupby_features, se
         if all(n_click == 0 for n_click in n_clicks_list): return no_update
 
         selected_list = [n_clicks % 2 == 1 for n_clicks in n_clicks_list]
-        feature_func_dict = {}
+        agg_feature_function_dict = {}
         for i in range(len(selected_list)):
             if selected_list[i] == True:
                 feature, agg_func = id_list[i]['index'].rsplit('_', 1)
-                if feature in feature_func_dict: feature_func_dict[feature].append(agg_func)
-                else: feature_func_dict[feature] = [agg_func]
+                if feature in agg_feature_function_dict: agg_feature_function_dict[feature].append(agg_func)
+                else: agg_feature_function_dict[feature] = [agg_func]
 
         action_id = selectedNodeData[0]['id']
         if action_id not in aggregate_store: aggregate_store[action_id] = {}
-        aggregate_store[action_id] = {'groupby_features': groupby_features, 'aggregate_dict': ['max']}
+        aggregate_store[action_id] = {'groupby_features': groupby_features, 'aggregate_dict': agg_feature_function_dict}
 
-        # Group by
+        # If no function/groupby features selected
+        if agg_feature_function_dict == {} or groupby_features == []:
+            return [], [], aggregate_store
+
+        # Group by, Aggregate
         action_id = selectedNodeData[0]['id']
         dataset, df = get_action_source(action_id)
-        df = df[1:].reset_index()
-
-        # pprint(feature_func_dict)
-        # print(groupby_features)
-        # print(df)
-
-        df_agg = df.groupby(groupby_features[0]).sum()
-        # df_agg = df.groupby(groupby_features[0]).aggregate(['max']) # TODO
+        df_agg = df.groupby(groupby_features, as_index=False).agg(agg_feature_function_dict)
 
         # Columns
-        df_agg.insert(0, df_agg.index.name, df_agg.index)
-        # df_agg.insert(0, index_col_name, range(1, len(df_agg)+1))
+        columns = [{'id':index_col_name, 'name': [index_col_name, ''], 'selectable': False}]
+        feature_id_name_dict = {f['id']: f['name'] for f in dataset['features']}
+        feature_id_list = []
+        for header1, header2 in df_agg.columns:
+            feature_id = str(uuid.uuid1())
+            feature_id_list.append(feature_id)
+            columns += [{"id": feature_id, 'name': [feature_id_name_dict[header1], header2], 'selectable': False}]
 
-        features_dict = {}
-        for feature_id in df_agg.columns:
-            for f in dataset['features']:
-                if feature_id == f['id']:
-                    features_dict[feature_id] = f['name']
-        # columns = [{'id':'no.', 'name':'no.', 'selectable':False}]
-        columns = [{"id": c, 'name': c, 'selectable': False} for c in df_agg.columns]
+        df_agg.droplevel(level=1, axis=1)
+        df_agg.columns = feature_id_list
+        features = [{'id': f_id, 'name':'', 'datatype': str(d)} for f_id, d in zip(feature_id_list, df_agg.convert_dtypes().dtypes)]
+        df_agg, _, _ = generate_datatable_data(df_agg, features)
 
         return df_agg.to_dict('records'), columns, aggregate_store
 
@@ -1685,7 +1692,8 @@ def datatable_triggers(_, action_inputs, transform_store,
     # Output(id('modal_add_feature'), 'is_open'),
     Input('url', 'pathname'),
     Input(id('right_content_1'), 'style'),
-    Input(id('button_last_saved_changes'), 'n_clicks'),
+    Input(id('button_store_changes'), 'n_clicks'),
+    Input(id('button_revert_changes'), 'n_clicks'),
     Input(id('button_execute_action'), 'n_clicks'),
     Input(id('button_add_feature'), 'n_clicks'),
     Input(id('button_remove_feature'), 'n_clicks'),
@@ -1726,7 +1734,7 @@ def datatable_triggers(_, action_inputs, transform_store,
     State(id('dropdown_shift_size'), 'value'),
     State(id('dropdown_shift_feature'), 'value'),
 )
-def transform_triggers(_, _1, _2, _3, _4, _5, _6,
+def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7,
                 sort_by, filter_query,
                 selected_action, selectedNodeData, data, columns, active_cell, function_type, transform_store, feature_name,
                 func1, f1a, f1b,
@@ -1740,8 +1748,8 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6,
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     add_feature_msg = ''
 
-    # print('\ntriggered: ')
-    # pprint(callback_context.triggered)
+    print('\ntriggered: ')
+    pprint(callback_context.triggered)
 
     # On Page Load instantiate transform_store 
     if triggered == '':
@@ -1874,12 +1882,9 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6,
             transform_store[action_id]['others'] = {}
 
         # Revert to Last Saved Data
-        elif triggered == id('button_last_saved_changes'):
+        elif triggered == id('button_revert_changes'):
             transform_store[action_id] = action['details']
 
-        else:
-            transform_store = no_update
-        
     return transform_store, add_feature_msg
 
 

@@ -63,7 +63,7 @@ options_graph = [
 
 
 # Names of all Groupby Aggregate functions
-aggregate_button_name_list = [ 'min', 'max', 'mean', 'sum', 'count']
+aggregate_button_name_list = [ 'min', 'max', 'sum', 'count']
 
 
 
