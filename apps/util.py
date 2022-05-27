@@ -508,10 +508,13 @@ def generate_upload(component_id, display_text=None, max_size=1000000):
 def merge_metadata(dataset_id_list, merge_type='objectMerge'):
     dataset = get_document('dataset', dataset_id_list[0])
     dataset['details'] = ''
+    features = dataset['features']
     for dataset_id in dataset_id_list[1:]:
         new_dataset = get_document('dataset', dataset_id)
         new_dataset['details'] = ''
+        features += new_dataset['features']
         dataset = json_merge(dataset, new_dataset, merge_type)
+    dataset['features'] = features
     return dataset
 def merge_dataset_data(dataset_id_list, merge_type='objectMerge', idRef=None):
     try:
@@ -557,28 +560,28 @@ def generate_graph_inputs(id):
         # Line Plot
         html.Div([
             dbc.InputGroup([
-                dbc.InputGroupText("X Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.InputGroupText("X Axis", style={'width':'15%'}),
                 dbc.Select(id=id('line_x'), options=[], value=None, style={'width':'80%', 'text-align': 'center'}),
-                dbc.InputGroupText("Y Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-                html.Div(dcc.Dropdown(id=id('line_y'), multi=True, options=[], value=None), style={'width':'80%'}),
+                dbc.InputGroupText("Y Axis", style={'width':'15%'}),
+                html.Div(dcc.Dropdown(id=id('line_y'), multi=True, options=[], value=None), style={'width':'85%', 'text-align': 'center'}),
             ]),
         ], style={'display': 'none'}, id=id('line_input_container')),
 
         # Bar Plot
         html.Div([
             dbc.InputGroup([
-                dbc.InputGroupText("X Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-                dbc.Select(id=id('bar_x'), options=[], value=None, style={'width':'80%', 'text-align': 'center'}),
-                dbc.InputGroupText("Y Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-                html.Div(dcc.Dropdown(id=id('bar_y'), multi=True, options=[], value=None), style={'width':'80%'}),
-                dbc.InputGroupText("Mode", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.InputGroupText("X Axis", style={'width':'15%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.Select(id=id('bar_x'), options=[], value=None, style={'width':'85%', 'text-align': 'center'}),
+                dbc.InputGroupText("Y Axis", style={'width':'15%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                html.Div(dcc.Dropdown(id=id('bar_y'), multi=True, options=[], value=None), style={'width':'85%', 'text-align': 'center'}),
+                dbc.InputGroupText("Mode", style={'width':'15%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
                 html.Div(
                     dbc.RadioItems(
                         options=[{"label": "Stack", "value": 'stack'}, {"label": "Group", "value": 'group'}, ],
                         value='stack',
                         id=id('bar_barmode'),
                         inline=True,
-                    ),
+                    )
                 )
             ]),
         ], style={'display': 'none'}, id=id('bar_input_container')),
@@ -586,9 +589,9 @@ def generate_graph_inputs(id):
         # Pie Plot
         html.Div([
             dbc.InputGroup([
-                dbc.InputGroupText("Names", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.InputGroupText("Names", style={'width':'15%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
                 dbc.Select(id=id('pie_names'), options=[], value=None, style={'width':'80%', 'text-align': 'center'}),
-                dbc.InputGroupText("Values", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.InputGroupText("Values", style={'width':'15%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
                 dbc.Select(id=id('pie_values'), options=[], value=None, style={'width':'80%', 'text-align': 'center'}),
             ]),
         ], style={'display': 'none'}, id=id('pie_input_container')),
@@ -596,17 +599,16 @@ def generate_graph_inputs(id):
         # Scatter Plot
         html.Div([
             dbc.InputGroup([
-                dbc.InputGroupText("X Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.InputGroupText("X Axis", style={'width':'15%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
                 dbc.Select(id=id('scatter_x'), options=[], value=None, style={'width':'80%', 'text-align': 'center'}),
-                dbc.InputGroupText("Y Axis", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.InputGroupText("Y Axis", style={'width':'15%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
                 dbc.Select(id=id('scatter_y'), options=[], value=None, style={'width':'80%', 'text-align': 'center'}),
-                dbc.InputGroupText("Color", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+                dbc.InputGroupText("Color", style={'width':'15%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
                 dbc.Select(id=id('scatter_color'), options=[], value=None, style={'width':'80%', 'text-align': 'center'}),
             ]),
         ], style={'display': 'none'}, id=id('scatter_input_container')),
     )
-def graph_inputs_callback():
-    dataset_id = get_session('dataset_id')
+def graph_inputs_options_callback(dataset_id, graph_id=''):
     dataset = get_document('dataset', dataset_id)
     df = get_dataset_data(dataset_id)
     features = dataset['features']
@@ -615,20 +617,16 @@ def graph_inputs_callback():
     features_nonnumerical = [f for f in features if f['datatype'] in DATATYPE_NONNUMERICAL]
     features_numerical = [f for f in features if f['datatype'] in DATATYPE_NUMERICAL]
 
-    pprint(features_nonnumerical)
-    pprint(features_numerical)
-
     options_nonnumerical =[{'label': f['name'], 'value': f['id']} for f in features_nonnumerical]
     options_numerical = [{'label': f['name'], 'value': f['id']} for f in features_numerical]
 
     default = features[0]['id'] if len(features) != 0 else None
-    default_nonnumerical = features_nonnumerical[0] if len(features_nonnumerical) != 0 else None
-    default_numerical = features_numerical[0] if len(features_numerical) != 0 else None
+    default_nonnumerical = features_nonnumerical[0]['id'] if len(features_nonnumerical) != 0 else None
+    default_numerical = features_numerical[0]['id'] if len(features_numerical) != 0 else None
 
     columns = [{"id": f['id'], "name": f['name'], "deletable": False, "selectable": True} for f in features]
 
     # Display Clean Graph if no Graph ID exist else Display Selected Graph Values
-    graph_id = get_session('graph_id')
     if graph_id == '':
         return (
             # Graph Type Dropdown
@@ -686,49 +684,28 @@ def graph_input_visibility_callback(graph_type):
     if graph_type == 'pie': style3 = {'display': 'block'}
     if graph_type == 'scatter': style4 = {'display': 'block'}
     return style1, style2, style3, style4
-def get_line_figure(dataset_id, x, y):
-    df = get_dataset_data(dataset_id)
+def get_line_figure(df, x, y):
     fig = px.line(df, x=x, y=y)
     return fig
-def get_bar_figure(dataset_id, x, y, barmode):
-    df = get_dataset_data(dataset_id)
+def get_bar_figure(df, x, y, barmode):
     fig = px.bar(df, x=y, y=x, barmode=barmode)
     return fig
-def get_pie_figure(dataset_id, names, values):
-    df = get_dataset_data(dataset_id)
+def get_pie_figure(df, names, values):
     fig = px.pie(df, names=names, values=values)
     return fig
-def get_scatter_figure(dataset_id, x, y, color):
-    df = get_dataset_data(dataset_id)
+def get_scatter_figure(df, x, y, color):
     fig = px.scatter(df, x=x, y=y, color=color)
     return fig
-def display_graph_inputs_callback(dataset_id, 
-                                style1, style2, style3, style4, 
-                                line_x, line_y,
-                                bar_x, bar_y, bar_barmode,
-                                pie_names, pie_values,
-                                scatter_x, scatter_y, scatter_color):
-    if style1['display'] != 'none':
-        return get_line_figure(dataset_id, line_x, line_y)
-    elif style2['display'] != 'none':
-        return get_bar_figure(dataset_id, bar_x, bar_y, bar_barmode)
-    elif style3['display'] != 'none':
-        return get_pie_figure(dataset_id, pie_names, pie_values)
-    elif style4['display'] != 'none':
-        return get_scatter_figure(dataset_id, scatter_x, scatter_y, scatter_color)
-def upsert_graph(project_id, dataset_id, graph_id, log_description, graph):
+def upsert_graph(project_id, dataset_id, graph):
     project = get_document('project', project_id)
-    if 'graph' not in project:
-        project['graph_dict'] = {}
 
     if dataset_id in project['graph_dict']:
-        if graph_id not in project['graph_dict'][dataset_id]:
-            project['graph_dict'][dataset_id].append(graph_id)
+        if graph['id'] not in project['graph_dict'][dataset_id]:
+            project['graph_dict'][dataset_id].append(graph['id'])
     else:
-        project['graph_dict'][dataset_id] = [graph_id]
+        project['graph_dict'][dataset_id] = [graph['id']]
 
     upsert('project', project)
-    update_logs(project_id, dataset_id, log_description + graph_id)
     upsert('graph', graph)
 
 # --------------------------------------------------------------------------------
@@ -1162,6 +1139,13 @@ def get_action_source(dataset_id, inputs=None, merge_type='arrayMergeByIndex', i
         dataset = merge_metadata(inputs, 'objectMerge')
         df = merge_dataset_data(inputs, merge_type, idRef)
 
+        print("AAAAAAAAAAAAAAAA")
+        print(inputs)
+        print(merge_type)
+        print(idRef)
+        pprint(dataset)
+        print(df)
+    
     return dataset, df
 def generate_options(label_list, input_list):
     return [

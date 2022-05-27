@@ -54,8 +54,6 @@ layout = html.Div([
                 dbc.InputGroup([
                     dbc.InputGroupText("Name", style={'width':'100px', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
                     dbc.Input(id=id('graph_name'), placeholder='Enter Graph Name', style={'text-align':'center'}),
-                ]),
-                dbc.InputGroup([
                     dbc.InputGroupText("Description", style={'width':'100px', 'font-weight':'bold', 'font-size':'12px', 'padding-left':'12px'}),
                     dbc.Textarea(id=id('graph_description'), placeholder='Enter Graph Description', style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
                 ]),
@@ -158,7 +156,7 @@ def generate_graph_inputs_visibility(graph_type, pathname):
     Input(id('scatter_y'), 'value'),
     Input(id('scatter_color'), 'value'),
 )
-def display_graph_inputs(style1, style2, style3, style4, 
+def display_graph(style1, style2, style3, style4, 
                         line_x, line_y,
                         bar_x, bar_y, bar_barmode,
                         pie_names, pie_values,

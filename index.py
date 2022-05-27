@@ -83,7 +83,7 @@ navbar = dbc.Navbar([
     dbc.Tooltip("Opensource Repo",target="tooltip-github"),
     dbc.Tooltip("Self Hosted Docker",target="tooltip-docker"),
     dbc.Tooltip("Use in Github Action",target="tooltip-githubaction"),
-], color="dark", dark=True,)
+], color="dark", dark=True)
     
 
 # Sidebar

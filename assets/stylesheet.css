@@ -22,7 +22,7 @@
 
 
 /* dbc.Checklist */
-.form-check {
+/* .form-check {
 	position: relative;
 	padding-left: 1em;
 }
@@ -34,7 +34,7 @@
 .form-check-input {
 	position: absolute;
     right: 2;
-}
+} */
 
 
 /* Top Nav */
@@ -60,3 +60,24 @@
 	text-align: center;
 }
 
+
+
+/* Data Lineage Left Modal */
+#data_lineage-modal_left {
+	position: fixed;
+	margin-left: 140px;
+	margin-top: 5vh;
+	height: 92vh;
+	width: 46%;
+	max-width: none;
+	max-height: 1000px;
+}
+
+.modal-backdrop {
+	display: none !important;
+}
+
+.modal-open .modal {
+    width: 0px;
+    margin: 0 auto;
+}

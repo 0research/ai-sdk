@@ -136,7 +136,7 @@ layout = html.Div([
         dcc.Store(id=id('cytoscape_position_store_2'), storage_type='session', data=[]),
         dcc.Store(id=id('transform_store'), storage_type='session', data={}),
         dcc.Store(id=id('aggregate_store'), storage_type='session', data={}),
-        
+        dcc.Store(id=id('graph_id_store'), storage_type='session', data=''),
         dcc.Interval(id=id('interval_cytoscape'), interval=500, n_intervals=0),
         
         dbc.Row([
@@ -167,7 +167,7 @@ layout = html.Div([
                                     'padding': 10,
                                     'zoom': 1,
                                 },
-                                style={'height': '800px','width': '100%'},
+                                style={'height': '89vh','width': '100%'},
                                 stylesheet=cytoscape_stylesheet)
             ], width=6),
 
@@ -178,11 +178,12 @@ layout = html.Div([
                         dbc.Tab(label="Data", tab_id="tab1", disabled=True),
                         dbc.Tab(label="Metadata", tab_id="tab2", disabled=True),
                         dbc.Tab(label="Config", tab_id="tab3", disabled=True),
-                        dbc.Tab(label="Graph", tab_id="tab4", disabled=True),
-                        dbc.Tab(label="Logs", tab_id="tab5", disabled=True),
+                        dbc.Tab(label="Graph", tab_id="tab4", disabled=False),
+                        dbc.Tab(label="Logs", tab_id="tab5", disabled=False),
                     ], id=id("tabs_node")), style={'float':'left', 'text-align':'left', 'display':'inline-block'}),
 
                     html.Div([
+                        dbc.Button('Plot Graph', id=id('button_open_graph_modal'), color='info', className='me-1', style={'width':'90px'}),
                         dbc.Button("Store", id=id('button_store_changes'), color='success', className='me-1', style={'width':'90px'}),
                         dbc.Button("Revert", id=id('button_revert_changes'), color='primary', className='me-1', style={'width':'90px'}),
                         dbc.Button('Execute', id=id('button_execute_action'), color='warning', className='me-1', style={'width':'90px'}),
@@ -266,8 +267,8 @@ layout = html.Div([
                                 dbc.InputGroupText('Group By ', style={'width':'20%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px'}),
                                 html.Div(dcc.Dropdown(id=id('dropdown_groupby_feature'), multi=True, options=[], value=None, persistence=True, style={'color':'black', 'text-align':'center'}), style={'width':'80%'}),
                             ]),
-                            dbc.Table([], id=id('table_aggregate_function'), bordered=True, dark=True, hover=True, striped=True, style={'overflow-y': 'auto', 'max-height':'300px'}),
-                            dbc.Col(generate_datatable(id('datatable_aggregate'), height='300px')),
+                            dbc.Table([], id=id('table_aggregate_function'), bordered=True, dark=True, hover=True, striped=True, style={'overflow-y': 'auto', 'max-height':'18vh'}),
+                            dbc.Col(generate_datatable(id('datatable_aggregate'), height='25vh')),
                         ], style={'display':'none'}, id=id('aggregate_container'))
                     ], id=id('right_content_1'), style={'display':'none'}),
 
@@ -291,15 +292,13 @@ layout = html.Div([
                         html.Div(generate_manuafilelupload_details(id), style={'display':'none'}, id=id('config_options_fileupload')),
                         html.Div(generate_pastetext(id), style={'display':'none'}, id=id('config_options_pastetext')),
                         html.Div(generate_restapi_details(id), style={'display':'none'}, id=id('config_options_restapi')),
-                        html.Div(generate_datacatalog_options(id), style={'display':'none', 'overflow-y': 'auto', 'max-height':'500px'}, id=id('config_options_datacatalog')),
+                        html.Div(generate_datacatalog_options(id), style={'display':'none', 'overflow-y': 'auto', 'max-height':'40vh'}, id=id('config_options_datacatalog')),
 
                         dbc.CardFooter([dbc.Row(dbc.Col(dbc.Button(children='Save', id=id('button_save'), color='warning', style={'width':'100%', 'font-size':'22px'}), width={'size': 8, 'offset': 2}))])
                     ], id=id('right_content_3'), style={'display': 'none'}),
 
                     # Right Content Tab 4 (Graph)
-                    dbc.Row([
-                        dbc.Col(dbc.Button(children='Plot Graph', id=id('button_add_graph'), color='warning', style={'width':'100%', 'font-size':'22px'}), width={"size": 8, "offset": 2}),
-                    ], id=id('right_content_4'), style={'display':'none'}),
+                    dbc.Row([], id=id('right_content_4'), style={'display':'none'}),
 
                     # Right Content Tab 5 (Logs)
                     html.Div([
@@ -309,7 +308,7 @@ layout = html.Div([
                         ], style={'display': 'none'}),
                     ], style={'padding':'1px', 'overflow-y':'auto'}),
 
-                ], className='bg-dark', inverse=True, style={'min-height':'850px', 'max-height':'850px', 'overflow-y':'auto'}),    
+                ], className='bg-dark', inverse=True, style={'min-height':'89vh', 'max-height':'89vh', 'overflow-y':'auto'}),    
             ], width=6), 
         ]),
 
@@ -328,6 +327,9 @@ layout = html.Div([
             backdrop=False,
             style={'margin-left':'60px !important'}
         ),
+
+        # Modal Select Function
+        dbc.Modal([], id=id('modal_left'), is_open=False, centered=False, backdrop=False),
 
     ], style={'width':'100%'}),
 ])
@@ -509,6 +511,8 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
             try:
                 if action_name == 'merge':
                     action['details'] = {'merge_type':'none', 'idRef': 'none'}
+                    dataset = merge_metadata(action['inputs'], 'objectMerge')
+                    dataset_o['features'] = dataset['features']
 
                 elif action_name == 'transform':
                     action['details'] = transform_store[node_id]
@@ -527,8 +531,9 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
                 elif action_name == 'aggregate':
                     action['details'] = aggregate_store[node_id]
                     df = pd.DataFrame(data_agg)
-                    df = df.drop(index_col_name, 1)
+                    df = df.drop(columns=index_col_name, axis=1)
                     row_0 = df.iloc[0].to_dict()
+                    df = df.iloc[1: , :]
                     columns_agg = [c for c in columns_agg if c['id'] != index_col_name]
                     dataset_o['features'] = [{
                         'id': c['id'],
@@ -723,6 +728,7 @@ def populate_dataset_config(active_tab, selectedNodeData):
 
 # Display Node Buttons
 @app.callback(
+    Output(id('button_open_graph_modal'), 'style'),
     Output(id('button_store_changes'), 'style'),
     Output(id('button_revert_changes'), 'style'),
     Output(id('button_execute_action'), 'style'),
@@ -737,6 +743,7 @@ def populate_dataset_config(active_tab, selectedNodeData):
     Input(id('dropdown_action'), 'value'),
     State(id('cytoscape'), 'selectedNodeData'),
 
+    State(id('button_open_graph_modal'), 'style'),
     State(id('button_store_changes'), 'style'),
     State(id('button_revert_changes'), 'style'),
     State(id('button_execute_action'), 'style'),
@@ -747,40 +754,39 @@ def populate_dataset_config(active_tab, selectedNodeData):
     State(id('button_display_mode'), 'style'),
     State(id('button_run_restapi'), 'style'),
 )
-def display_node_buttons(active_tab, action_name, selectedNodeData, s1, s2, s3, s4, s5, s6, s7, s8):
-    if active_tab != 'tab1': return no_update
-    num_selected = len(selectedNodeData)
-    if num_selected == 0: return no_update
-
-    for s in [s1, s2, s3, s4, s5, s6, s7, s8]:
+def display_node_buttons(active_tab, action_name, selectedNodeData, s1, s2, s3, s4, s5, s6, s7, s8, s9):
+    # if active_tab != 'tab1': return no_update
+    
+    for s in [s1, s2, s3, s4, s5, s6, s7, s8, s9]:
         s['display'] = 'none'
 
-    if num_selected == 1:
+    if len(selectedNodeData) == 1:
         node_type = selectedNodeData[0]['type']
        
         if node_type == 'action':
             action = get_document('action', selectedNodeData[0]['id'])
             action_name = action_name if action_name is not None else action['name']
-            s1['display'] = 'inline-block'
             s2['display'] = 'inline-block'
             s3['display'] = 'inline-block'
+            s4['display'] = 'inline-block'
 
             if action_name == 'transform':
-                s4['display'], s5['display'], s6['display'] = 'inline-block', 'inline-block', 'inline-block'
+                s5['display'], s6['display'], s7['display'] = 'inline-block', 'inline-block', 'inline-block'
             elif action_name == 'merge':
                 pass
 
         elif node_type == 'dataset':
-            s7['display'] = 'inline-block'
+            s1['display'] = 'inline-block'
+            s8['display'] = 'inline-block'
             if selectedNodeData[0]['upload_details'] != {}:
                 if selectedNodeData[0]['upload_details']['method'] == 'restapi':
-                    s8['display'] = 'inline-block'
+                    s9['display'] = 'inline-block'
 
     else:
         if all(node['type'] == 'dataset' for node in selectedNodeData):
-            s7['display'] = 'inline-block'
+            s8['display'] = 'inline-block'
 
-    return s1, s2, s3, s4, s5, s6, s7, s8
+    return s1, s2, s3, s4, s5, s6, s7, s8, s9
 
 
 # Enable/Disable Tabs
@@ -793,9 +799,10 @@ def display_node_buttons(active_tab, action_name, selectedNodeData, s1, s2, s3, 
 def enable_disable_tab(selectedNodeData, active_tab, tabs):
     if selectedNodeData is None: return no_update
     num_selected = len(selectedNodeData)
-    disabled1, disabled2, disabled3, disabled4, disabled5 = True, True, True, True, True
-
-    if num_selected == 1:
+    disabled1, disabled2, disabled3, disabled4, disabled5 = True, True, True, False, False
+    if num_selected == 0:
+        disabled4, disabled5 = False, False
+    elif num_selected == 1:
         if selectedNodeData[0]['type'] == 'action':
             disabled1 = False
             disabled5 = False
@@ -988,43 +995,7 @@ def generate_right_content_display(active_tab, style0, style1, style2, style3, s
 # def generate_right_content(selectedNodeData):
 #     pass
 
-# Generate Right Content (tab4)
-@app.callback(
-    Output(id('right_content_4'), 'children'),
-    Input(id('tabs_node'), 'active_tab'),
-    State(id('cytoscape'), 'selectedNodeData'),
-    State(id('right_content_4'), 'children'),
-)
-def generate_right_content(active_tab, selectedNodeData, right_content_4):
-    num_selected = len(selectedNodeData)
-    project_id = get_session('project_id')
-    project = get_document('project', project_id)
-    right_content_4 = [right_content_4[0]]
 
-    if num_selected == 0: node_id_list = project['graph_dict'].keys()
-    else: node_id_list = [node['id'] for node in selectedNodeData]
-
-    for node_id in node_id_list:
-        if node_id in project['graph_dict']:
-            for graph_id in project['graph_dict'][node_id]:
-                graph = get_document('graph', graph_id)
-                if graph['type'] == 'line': fig = get_line_figure(node_id, graph['x'], graph['y'])
-                elif graph['type'] == 'bar': fig = get_bar_figure(node_id, graph['x'], graph['y'], graph['barmode'])
-                elif graph['type'] == 'pie': fig = get_pie_figure(node_id, graph['names'], graph['values'])
-                elif graph['type'] == 'scatter': fig = get_scatter_figure(node_id, graph['x'], graph['y'], graph['color'])
-
-                right_content_4 += [
-                    dbc.Col([
-                        dbc.Card([
-                            dbc.Button(dbc.CardHeader(graph['name']), id={'type': id('button_graph_id'), 'index': graph_id}, value=graph_id, href='/apps/plot_graph'),
-                            dbc.CardBody([
-                                dcc.Graph(figure=fig, style={'height':'240px'}),
-                            ]),
-                        ], color='primary', inverse=True, style={})
-                    ], style={'width':'98%', 'display':'inline-block', 'text-align':'center', 'margin':'3px 3px 3px 3px', 'height':'310px'})
-                ]
-        
-    return right_content_4
 
 
 
@@ -1053,7 +1024,7 @@ def generate_right_content(active_tab, selectedNodeData, right_content_4):
 
 #     df = pd.DataFrame(log_list, columns=['Date', 'Time', 'Log Type', 'Details'])
 #     columns = [{"name": i, "id": i} for i in df.columns]
-#     datatable = datatable = generate_datatable(id('datatable_logs'), df.to_dict('records'), columns, height='170px', sort_action='native', filter_action='native')
+#     datatable = datatable = generate_datatable(id('datatable_logs'), df.to_dict('records'), columns, height='18vh', sort_action='native', filter_action='native')
 
 #     return datatable
 
@@ -1096,7 +1067,8 @@ def generate_agg_table(groupby_features, selectedNodeData):
     table_body = [html.Tbody([html.Tr([
         html.Td(features[j]['name'], style={'padding':'1px', 'text-align':'center'}),
         html.Td([dbc.Button(
-            name, id={'type': id('button_agg_function'), 'index': features[j]['id']+'_'+aggregate_button_name_list[i]}, n_clicks=0, color='light', size='md', outline=True, style={'width':'80px'}
+            name, id={'type': id('button_agg_function'), 'index': features[j]['id']+'_'+aggregate_button_name_list[i]},
+            n_clicks=0, color='light', size='sm', outline=True, style={'width':'80px', 'height': '25px'}
         ) for i, name in enumerate(aggregate_button_name_list)], style={'padding':'1px', 'text-align':'center'}),
     ]) for j in range(len(features))])]
 
@@ -1231,22 +1203,22 @@ def generate_right_content_1(active_tab, selected_action, selectedNodeData):
         if node_type == 'action':
             if selected_action == 'merge':
                 s1['display'] = 'block'
-                datatable_container = generate_datatable(id('datatable'), height='550px')
+                datatable_container = generate_datatable(id('datatable'), height='65vh')
             elif selected_action == 'transform':
                 s1['display'] = 'block'
-                datatable_container = generate_datatable(id('datatable'), cell_editable=True, height='600px', sort_action='native', filter_action='native', col_selectable='multi')
+                datatable_container = generate_datatable(id('datatable'), cell_editable=True, height='65vh', sort_action='native', filter_action='native', col_selectable='multi')
             elif selected_action == 'aggregate':
                 s1['display'] = 'block'
                 s2['display'] = 'block'
-                datatable_container = generate_datatable(id('datatable'), height='200px', col_selectable='multi')
+                datatable_container = generate_datatable(id('datatable'), height='20vh', col_selectable='multi')
             elif selected_action == 'impute': datatable_container = []
             else: datatable_container = []
         elif node_type == 'dataset':
             s1['display'] = 'block'
-            datatable_container = generate_datatable(id('datatable'), height='650px')
+            datatable_container = generate_datatable(id('datatable'), height='75vh')
     elif num_selected > 1 and all(node['type'] == 'dataset' for node in selectedNodeData):
         s1['display'] = 'block'
-        datatable_container = generate_datatable(id('datatable'), height='380px')
+        datatable_container = generate_datatable(id('datatable'), height='70vh')
 
     return datatable_container, s1, s2
 
@@ -1307,32 +1279,6 @@ def toggle_button_display_mode(n_clicks):
     if n_clicks is None: return no_update
     if n_clicks % 2 == 0: return True
     else: return False
-
-
-# Button Chart
-@app.callback(
-    Output('url', 'pathname'),
-    Input(id('button_add_graph'), 'n_clicks'),
-    State(id('cytoscape'), 'selectedNodeData')
-)
-def button_chart(n_clicks, selectedNodeData):
-    if n_clicks is None: return no_update
-    if selectedNodeData is None: return no_update
-    if len(selectedNodeData) != 1: return no_update
-    store_session('dataset_id', selectedNodeData[0]['id'])
-    store_session('graph_id', '')
-
-    return '/apps/plot_graph'
-
-# Button Chart for specific ID
-@app.callback(
-    Output({'type': id('button_graph_id'), 'index': MATCH}, 'n_clicks'),
-    Input({'type': id('button_graph_id'), 'index': MATCH}, 'n_clicks'),
-    State({'type': id('button_graph_id'), 'index': MATCH}, 'value')
-)
-def load_graph(n_clicks, graph_id):
-    store_session('graph_id', graph_id)
-    return no_update 
 
 
 # Add/Remove Headers, Params, Body
@@ -1748,8 +1694,8 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7,
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     add_feature_msg = ''
 
-    print('\ntriggered: ')
-    pprint(callback_context.triggered)
+    # print('\ntriggered: ')
+    # pprint(callback_context.triggered)
 
     # On Page Load instantiate transform_store 
     if triggered == '':
@@ -2026,3 +1972,257 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7,
 #     return feature.squeeze()
 
 
+
+
+''' Plot Graph '''
+
+# Generate Right Content (tab4)
+@app.callback(
+    Output(id('right_content_4'), 'children'),
+    Input(id('tabs_node'), 'active_tab'),
+    State(id('cytoscape'), 'selectedNodeData'),
+)
+def generate_right_content(active_tab, selectedNodeData):
+    if active_tab != 'tab4': return no_update
+    num_selected = len(selectedNodeData)
+    project_id = get_session('project_id')
+    project = get_document('project', project_id)
+    right_content_4 = []
+
+    if num_selected == 0: dataset_id_list = project['graph_dict'].keys()
+    else: dataset_id_list = [dataset['id'] for dataset in selectedNodeData]
+
+    for dataset_id in dataset_id_list:
+        if dataset_id in project['graph_dict']:
+            for graph_id in project['graph_dict'][dataset_id]:
+                graph = get_document('graph', graph_id)
+                df = get_dataset_data(dataset_id)
+                if graph['type'] == 'line': fig = get_line_figure(df, graph['x'], graph['y'])
+                elif graph['type'] == 'bar': fig = get_bar_figure(df, graph['x'], graph['y'], graph['barmode'])
+                elif graph['type'] == 'pie': fig = get_pie_figure(df, graph['names'], graph['values'])
+                elif graph['type'] == 'scatter': fig = get_scatter_figure(df, graph['x'], graph['y'], graph['color'])
+
+                right_content_4 += [
+                    dbc.Col([
+                        dbc.Card([
+                            dbc.Button(dbc.CardHeader(graph['name']), id={'type': id('button_graph_id'), 'index': graph_id}, value=graph_id),
+                            dbc.CardBody([
+                                dcc.Graph(figure=fig, style={'height':'20vh'}),
+                            ]),
+                        ], color='primary', inverse=True, style={})
+                    ], style={'width':'98%', 'display':'inline-block', 'text-align':'center', 'margin':'3px 3px 3px 3px', 'height':'25vh'})
+                ]
+        
+    return right_content_4
+
+
+# @app.callback(
+#     Output(id('graph_id_store'), 'data'),
+#     Input(id('button_open_graph_modal_existing'), 'n_clicks'),
+#     Input(id('button_open_graph_modal_existing'), 'value')
+# )
+# def open_existing_graph(n_clicks):
+#     if n_clicks is None: return no_update
+#     return 
+
+@app.callback(
+    Output(id('graph_id_store'), 'data'),
+    Input({'type': id('button_graph_id'), 'index': ALL}, 'n_clicks'),
+    State({'type': id('button_graph_id'), 'index': ALL}, 'value'),
+    prevent_initial_call=True
+)
+def load_graph(a, b):
+    triggered = json.loads(callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0])
+    graph_id = triggered['index']
+    return graph_id 
+    
+
+# Button Plot 
+@app.callback(
+    Output(id('modal_left'), 'is_open'),
+    Output(id('modal_left'), 'children'),
+    Output(id('tabs_node'), 'active_tab'),
+    Input(id('button_open_graph_modal'), 'n_clicks'),
+    Input(id('graph_id_store'), 'data'),
+    State(id('cytoscape'), 'selectedNodeData'),
+    State(id('modal_left'), 'is_open'),
+)
+def button_chart(n_clicks, graph_id, selectedNodeData, is_open):
+    if n_clicks is None: return no_update
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+    is_open = not is_open
+    if triggered == id('button_open_graph_model'):
+        store_session('graph_id', '')
+    else:
+        store_session('graph_id', graph_id)
+    modal = [
+        dbc.ModalHeader('Graph', style={'height':'5vh'}),
+        dbc.ModalBody([
+            dcc.Graph(id=id('graph'), style={'height': '34vh'}),
+            html.Div(generate_datatable(id('datatable_graph'), height='20vh'), style={'margin-top':'35px'}),
+            html.Div([
+                html.Div(generate_graph_inputs(id), id=id('graph_inputs'), style={'margin':'10px'}),
+                html.Div([
+                    dbc.InputGroup([
+                        dbc.InputGroupText("Name", style={'width':'15%', 'font-weight':'bold'}),
+                        dbc.Input(id=id('graph_name'), placeholder='Enter Graph Name', style={'text-align':'center'}),
+                    ]),
+                    dbc.InputGroup([
+                        dbc.InputGroupText("Description", style={'width':'15%', 'font-weight':'bold'}),
+                        dbc.Textarea(id=id('graph_description'), placeholder='Enter Graph Description', style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                    ]),
+                ], style={'margin':'10px'}),
+            ], style={'height':'22vh'}),
+        ], style={'height':'84vh'}),
+        dbc.ModalFooter([
+            dbc.Button('Save Graph', id=id('button_save_graph'), color='primary', style={'width':'100%', 'padding':'0px', 'margin':'1px'})
+        ], style={'height':'5vh', 'padding':'2px'}),
+    ]
+    return is_open, modal, 'tab4'
+
+
+# Generate Graph Inputs from Graph Session
+@app.callback(
+    Output(id('dropdown_graph_type'), 'value'),
+    Output(id('line_x'), 'options'),
+    Output(id('line_y'), 'options'),
+    Output(id('line_x'), 'value'),
+    Output(id('line_y'), 'value'),
+
+    Output(id('bar_x'), 'options'),
+    Output(id('bar_y'), 'options'),
+    Output(id('bar_x'), 'value'),
+    Output(id('bar_y'), 'value'),
+    Output(id('bar_barmode'), 'value'),
+
+    Output(id('pie_names'), 'options'),
+    Output(id('pie_values'), 'options'),
+    Output(id('pie_names'), 'value'),
+    Output(id('pie_values'), 'value'),
+
+    Output(id('scatter_x'), 'options'),
+    Output(id('scatter_y'), 'options'),
+    Output(id('scatter_color'), 'options'),
+    Output(id('scatter_x'), 'value'),
+    Output(id('scatter_y'), 'value'),
+    Output(id('scatter_color'), 'value'),
+
+    Output(id('datatable_graph'), 'data'),
+    Output(id('datatable_graph'), 'columns'),
+
+    Output(id('graph_name'), 'value'),
+    Output(id('graph_description'), 'value'),
+
+    Input(id('modal_left'), 'is_open'),
+    State(id('cytoscape'), 'selectedNodeData')
+)
+def generate_graph_inputs_options(is_open, selectedNodeData):
+    if is_open is False: return no_update
+    return graph_inputs_options_callback(selectedNodeData[0]['id'], get_session('graph_id'))
+
+# Make Selected Graph type Inputs visible
+@app.callback(
+    Output(id('line_input_container'), 'style'),
+    Output(id('bar_input_container'), 'style'),
+    Output(id('pie_input_container'), 'style'),
+    Output(id('scatter_input_container'), 'style'),
+    Input(id('dropdown_graph_type'), 'value'),
+    Input('url', 'pathname')
+)
+def generate_graph_inputs_visibility(graph_type, pathname):
+    return graph_input_visibility_callback(graph_type)
+
+# Graph Callbacks
+@app.callback(
+    Output(id('graph'), 'figure'),
+    Input(id('line_input_container'), 'style'),
+    Input(id('bar_input_container'), 'style'),
+    Input(id('pie_input_container'), 'style'),
+    Input(id('scatter_input_container'), 'style'),
+
+    Input(id('line_x'), 'value'),
+    Input(id('line_y'), 'value'),
+    
+    Input(id('bar_x'), 'value'),
+    Input(id('bar_y'), 'value'),
+    Input(id('bar_barmode'), 'value'),
+    
+    Input(id('pie_names'), 'value'),
+    Input(id('pie_values'), 'value'),
+    
+    Input(id('scatter_x'), 'value'),
+    Input(id('scatter_y'), 'value'),
+    Input(id('scatter_color'), 'value'),
+
+    State(id('datatable_graph'), 'data'),
+)
+def display_graph(style1, style2, style3, style4, 
+                        line_x, line_y,
+                        bar_x, bar_y, bar_barmode,
+                        pie_names, pie_values,
+                        scatter_x, scatter_y, scatter_color,
+                        data):
+    df = pd.DataFrame(data)
+    if style1['display'] != 'none':
+        return get_line_figure(df, line_x, line_y)
+    elif style2['display'] != 'none':
+        return get_bar_figure(df, bar_x, bar_y, bar_barmode)
+    elif style3['display'] != 'none':
+        return get_pie_figure(df, pie_names, pie_values)
+    elif style4['display'] != 'none':
+        return get_scatter_figure(df, scatter_x, scatter_y, scatter_color)
+
+# Save Graph
+@app.callback(
+    Output(id('modal_left'), 'is_open'),
+    Input(id('button_save_graph'), 'n_clicks'),
+    State(id('dropdown_graph_type'), 'value'),
+    State(id('graph_inputs'), 'children'),
+    State(id('graph_name'), 'value'),
+    State(id('graph_description'), 'value'),
+    State(id('cytoscape'), 'selectedNodeData'),
+)
+def save_graph(n_clicks, graph_type, graph_inputs, name, description, selectedNodeData):
+    if n_clicks is None: return no_update
+
+    if graph_type == 'line':
+        x = graph_inputs[1]['props']['children'][0]['props']['children'][1]['props']['value']
+        y = graph_inputs[1]['props']['children'][0]['props']['children'][3]['props']['children']['props']['value']
+        graph = {'type': 'line', 'x': x, 'y': y}
+
+    elif graph_type == 'bar':
+        x = graph_inputs[2]['props']['children'][0]['props']['children'][1]['props']['value']
+        y = graph_inputs[2]['props']['children'][0]['props']['children'][3]['props']['children']['props']['value']
+        barmode = graph_inputs[1]['props']['children'][0]['props']['children'][5]['props']['children']['props']['value']
+        graph = {'type': 'bar', 'x': x, 'y': y, 'barmode': barmode }
+
+    elif graph_type == 'pie':
+        names = graph_inputs[3]['props']['children'][0]['props']['children'][1]['props']['value']
+        values = graph_inputs[3]['props']['children'][0]['props']['children'][3]['props']['value']
+        graph = {'type': 'pie', 'names': names, 'values': values }
+
+    elif graph_type == 'scatter':
+        x = graph_inputs[4]['props']['children'][0]['props']['children'][1]['props']['value']
+        y = graph_inputs[4]['props']['children'][0]['props']['children'][3]['props']['value']
+        color = graph_inputs[3]['props']['children'][0]['props']['children'][5]['props']['value']
+        graph = {'type': 'scatter', 'x': x, 'y': y, 'color': color}
+    
+    if get_session('graph_id') == '':
+        graph_id = str(uuid.uuid1())
+        log_description = 'Create Graph: {}'.format(graph_id)
+    else:
+        graph_id = get_session('graph_id')
+        log_description = 'Update Graph: {}'.format(graph_id)
+
+    project_id = get_session('project_id')
+    dataset_id = selectedNodeData[0]['id']
+    graph['id'] = graph_id
+    graph['name'] = name
+    graph['description'] = description
+    
+    upsert_graph(project_id, dataset_id, graph)
+    # update_logs(project_id, dataset_id, log_description + graph_id)
+
+    is_open = False
+    return is_open
+""" -------------------------------------------------------------------------------- """
