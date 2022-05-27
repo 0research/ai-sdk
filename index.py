@@ -229,14 +229,17 @@ def load_project_id(value):
 
 
 
-# if __name__ == '__main__':
-def main():
+if __name__ == '__main__':
+# def main():
     health = HealthCheck()
     envdump = EnvironmentDump()
     app.server.add_url_rule("/healthcheck", "healthcheck", view_func=lambda: health.run())
     app.server.add_url_rule("/environment", "environment", view_func=lambda: envdump.run())
+
+    client = initialize_typesense()
+
     port = os.environ.get("PORT", 8050)
-    app.run_server("0.0.0.0", port, debug=True)
+    app.run_server("0.0.0.0", 8050, debug=True)
 
     
-main()
+# main()

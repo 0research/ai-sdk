@@ -184,10 +184,10 @@ layout = html.Div([
 
                     html.Div([
                         dbc.Button('Plot Graph', id=id('button_open_graph_modal'), color='info', className='me-1', style={'width':'90px'}),
-                        dbc.Button("Store", id=id('button_store_changes'), color='success', className='me-1', style={'width':'90px'}),
+                        dbc.Button("Save", id=id('button_save_changes'), color='success', className='me-1', style={'width':'90px'}),
                         dbc.Button("Revert", id=id('button_revert_changes'), color='primary', className='me-1', style={'width':'90px'}),
                         dbc.Button('Execute', id=id('button_execute_action'), color='warning', className='me-1', style={'width':'90px'}),
-                        dbc.Tooltip('Store Changes', target=id('button_store_changes')),
+                        dbc.Tooltip('Store Changes', target=id('button_save_changes')),
                         dbc.Tooltip('Revert to Last Saved', target=id('button_revert_changes')),
                         dbc.Tooltip('Execute Action', target=id('button_execute_action')),
                     ], style={'float':'right'}),
@@ -729,7 +729,7 @@ def populate_dataset_config(active_tab, selectedNodeData):
 # Display Node Buttons
 @app.callback(
     Output(id('button_open_graph_modal'), 'style'),
-    Output(id('button_store_changes'), 'style'),
+    Output(id('button_save_changes'), 'style'),
     Output(id('button_revert_changes'), 'style'),
     Output(id('button_execute_action'), 'style'),
 
@@ -744,7 +744,7 @@ def populate_dataset_config(active_tab, selectedNodeData):
     State(id('cytoscape'), 'selectedNodeData'),
 
     State(id('button_open_graph_modal'), 'style'),
-    State(id('button_store_changes'), 'style'),
+    State(id('button_save_changes'), 'style'),
     State(id('button_revert_changes'), 'style'),
     State(id('button_execute_action'), 'style'),
 
@@ -1638,7 +1638,7 @@ def datatable_triggers(_, action_inputs, transform_store,
     # Output(id('modal_add_feature'), 'is_open'),
     Input('url', 'pathname'),
     Input(id('right_content_1'), 'style'),
-    Input(id('button_store_changes'), 'n_clicks'),
+    Input(id('button_save_changes'), 'n_clicks'),
     Input(id('button_revert_changes'), 'n_clicks'),
     Input(id('button_execute_action'), 'n_clicks'),
     Input(id('button_add_feature'), 'n_clicks'),
@@ -2050,11 +2050,13 @@ def load_graph(a, b):
 def button_chart(n_clicks, graph_id, selectedNodeData, is_open):
     if n_clicks is None: return no_update
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-    is_open = not is_open
+    
     if triggered == id('button_open_graph_model'):
         store_session('graph_id', '')
+        is_open = not is_open
     else:
         store_session('graph_id', graph_id)
+        is_open = True
     modal = [
         dbc.ModalHeader('Graph', style={'height':'5vh'}),
         dbc.ModalBody([
