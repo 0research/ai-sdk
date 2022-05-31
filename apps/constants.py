@@ -1,5 +1,4 @@
 
-
 # Uploader
 UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"
 

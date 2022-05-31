@@ -230,7 +230,6 @@ def load_project_id(value):
 
 
 if __name__ == '__main__':
-# def main():
     health = HealthCheck()
     envdump = EnvironmentDump()
     app.server.add_url_rule("/healthcheck", "healthcheck", view_func=lambda: health.run())
@@ -240,6 +239,3 @@ if __name__ == '__main__':
 
     port = os.environ.get("PORT", 8050)
     app.run_server("0.0.0.0", 8050, debug=True)
-
-    
-# main()

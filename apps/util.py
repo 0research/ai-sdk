@@ -29,6 +29,8 @@ import json
 from datetime import datetime
 
 
+
+
 # TODO Check if these functions are necessary else remove  
 def generate_tabs(tabs_id, tab_labels, tab_values, tab_disabled):
     return dcc.Tabs(
@@ -865,7 +867,7 @@ def generate_cytoscape_elements(project_id):
     for d in project['dataset_list']:
         position = {'x': d['position']['x'], 'y': d['position']['y']}
         dataset = get_document('dataset', d['id'])
-        cDataset_list.append(cDataset(dataset['id'], dataset['name'], dataset['upload_details'], position, ''))
+        cDataset_list.append(cDataset(dataset['id'], dataset['name'], dataset['upload_details'], position, '', dataset['is_source']))
 
     for a in project['action_list']:
         position = {'x': a['position']['x'], 'y': a['position']['y']}
@@ -896,7 +898,7 @@ def add_dataset(project_id):
                 y += 20
         break
     project['dataset_list'].append({'id': dataset_id, 'position': {'x': x, 'y': y}})
-    dataset = Dataset(id=dataset_id, name='New', description='')
+    dataset = Dataset(id=dataset_id, name='New', description='', is_source=True)
     
     # Upload to Typesense
     upsert('project', project)
@@ -935,43 +937,66 @@ def add_edge(project_id, source_id, destination_id):
         upsert('project', project)
 def remove(project_id, selectedNodeData):
     project = get_document('project', project_id)
-    edge_list = project['edge_list'].copy()
-    # TODO
+    
     for node in selectedNodeData:
-        dataset_id = node['id']
+        if node['type'] == 'dataset':
+            # dataset = get_document('dataset', node['id'])
+            if node['is_source'] == 'True':
+                project['edge_list'] = [e for e in project['edge_list'] if node['id'] not in e]
+                project['dataset_list'] = [a for a in project['dataset_list'] if node['id'] != a['id']]
+            else:
+                print('Unable to delete Output Node')
 
-        # Debugging
-        if node['type'] == 'processed':
-            for edge in edge_list:
-                if dataset_id in edge:
-                    return
-            project['node_list'] = [node for node in project['node_list'] if node['id'] != dataset_id]
+        elif node['type'] == 'action':
+            action = get_document('action', node['id'])
+            project['edge_list'] = [e for e in project['edge_list'] if node['id'] not in e]
+            project['action_list'] = [a for a in project['action_list'] if node['id'] != a['id']]
+            project['dataset_list'] = [d for d in project['dataset_list'] if d['id'] not in action['outputs']]
 
-        # Remove Action or '' (for debugging)
-        elif node['type'] == 'action' or node['type'] == '':
-            destination_dataset_id_list = [edge.split('_')[1] for edge in edge_list if edge.startswith(dataset_id)]
+            # for e in project['edge_list']:
+            #     if node['id'] in e:
+            #         project['edge_list'].remove(e)
+            #     if e.split('_')[1]
 
-            project['node_list'] = [node for node in project['node_list'] if node['id'] != dataset_id]
-            for edge in edge_list:
-                if dataset_id in edge:
-                    project['edge_list'].remove(edge)
-                if dataset_id == edge.split('_')[0]:
-                    project['node_list'] = [node for node in project['node_list'] if node['id'] != edge.split('_')[1]]
-                if any(edge.startswith(destination_dataset_id) for destination_dataset_id in destination_dataset_id_list):
-                    return
+        elif node['type'] == 'group':
+            # group = get_document('group', node['id'])
+            # del project['group_list'][node['id']]
+            pass
+
+        # dataset_id = node['id']
+        # edge_list = project['edge_list'].copy()
+        # # Debugging
+        # if node['type'] == 'processed':
+        #     for edge in edge_list:
+        #         if dataset_id in edge:
+        #             return
+        #     project['node_list'] = [node for node in project['node_list'] if node['id'] != dataset_id]
+
+        # # Remove Action or '' (for debugging)
+        # elif node['type'] == 'action' or node['type'] == '':
+        #     destination_dataset_id_list = [edge.split('_')[1] for edge in edge_list if edge.startswith(dataset_id)]
+
+        #     project['node_list'] = [node for node in project['node_list'] if node['id'] != dataset_id]
+        #     for edge in edge_list:
+        #         if dataset_id in edge:
+        #             project['edge_list'].remove(edge)
+        #         if dataset_id == edge.split('_')[0]:
+        #             project['node_list'] = [node for node in project['node_list'] if node['id'] != edge.split('_')[1]]
+        #         if any(edge.startswith(destination_dataset_id) for destination_dataset_id in destination_dataset_id_list):
+        #             return
    
-        # Remove Raw Dataset
-        elif node['type'] == 'raw':
-            dataset = get_document('dataset', dataset_id)
-            if dataset['type'] == 'raw':
-                if any(edge.startswith(dataset_id) for edge in edge_list):
-                    pass
-                else:
-                    project['node_list'] = [d for d in project['node_list'] if d['id'] != dataset_id]
-                    for edge in [edge for edge in edge_list if edge.startswith(dataset_id)]:
-                        project['edge_list'].remove(edge)
-        else:
-            print('[Error] Unable to delete Node: ', dataset_id)
+        # # Remove Raw Dataset
+        # elif node['type'] == 'raw':
+        #     dataset = get_document('dataset', dataset_id)
+        #     if dataset['type'] == 'raw':
+        #         if any(edge.startswith(dataset_id) for edge in edge_list):
+        #             pass
+        #         else:
+        #             project['node_list'] = [d for d in project['node_list'] if d['id'] != dataset_id]
+        #             for edge in [edge for edge in edge_list if edge.startswith(dataset_id)]:
+        #                 project['edge_list'].remove(edge)
+        # else:
+        #     print('[Error] Unable to delete Node: ', dataset_id)
     
     upsert('project', project)
 """ -------------------------------------------------------------------------------- """
@@ -991,16 +1016,16 @@ def Project(id, type, dataset_list=[], action_list=[], group_list=[], edge_list=
         'graph_dict': graph_dict,
         'logs': logs,
     }
-def Dataset(id, name, description='', documentation='', features={}, upload_details={}):
-    return {'id':id, 'name':name, 'description':description, 'documentation':documentation, 'features':features, 'upload_details':upload_details}
+def Dataset(id, name, description='', documentation='', features={}, upload_details={}, is_source='False'):
+    return {'id':id, 'name':name, 'description':description, 'documentation':documentation, 'features':features, 'upload_details':upload_details, 'is_source': is_source}
 def Action(id, name, description='', state='amber', details={}, inputs=[], outputs=[]):
     return {'id':id, 'name':name, 'description':description, 'state':state, 'details':details, 'inputs':inputs, 'outputs':outputs}
 def Group(id, name, node_list):
     return {'id':id, 'name':name, 'node_list':node_list}
 # Cytoscape
-def cDataset(id, name='', upload_details={}, position={'x': 0, 'y': 0}, classes=''):
+def cDataset(id, name='', upload_details={}, position={'x': 0, 'y': 0}, classes='', is_source='False'):
     return {
-        'data': {'id': id, 'type': 'dataset', 'name': name, 'upload_details': upload_details},
+        'data': {'id': id, 'type': 'dataset', 'name': name, 'upload_details': upload_details, 'is_source': is_source},
         'position': position,
         'classes': classes,
     }
