@@ -768,7 +768,8 @@ def initialize_typesense():
         client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', 'ON8Qi0o4Fh8oDWQHVVPeRQx9Unh6VoR3') # Typesense Cloud
         # client = typesense_client('39pfe1mawh8i0lx7p-1.a1.typesense.net', '443', 'https', os.environ['TYPESENSE_API_KEY']) # Typesense Cloud
 
-    collection_list = ['project', 'dataset', 'action', 'group', 'graph', 'logs', 'session1'] # Currently all users will use same session. Replace when generate user/session ID
+    
+    collection_list = ['project', 'dataset', 'action', 'group', 'graph', 'logs', session_id]
     for name in collection_list:
         try:
             client.collections.create(generate_schema_auto(name))
@@ -848,7 +849,6 @@ def save_dataset(df, dataset_id, upload_method='', details=''):
 
 # Session
 def store_session(key, value):
-    session_id = 'session1' # Currently all users will use same session. Replace when generate user/session ID
     client.collections[session_id].documents.upsert({'id': key, 'value': str(value)})
 def get_session(key):
     try:
@@ -872,7 +872,7 @@ def generate_cytoscape_elements(project_id):
     for a in project['action_list']:
         position = {'x': a['position']['x'], 'y': a['position']['y']}
         action = get_document('action', a['id'])
-        cAction_list.append(cAction(action['id'], action['name'], action['state'], position, ''))
+        cAction_list.append(cAction(action['id'], action['name'], action['state'][-1], position, ''))
         cEdge_list += [cEdge(inp, action['id']) for inp in action['inputs']]
         cEdge_list += [cEdge(action['id'], output) for output in action['outputs']]
 
@@ -920,7 +920,7 @@ def add_action(source_id_list):
     dataset_id = str(uuid.uuid1())
     project['action_list'].append({'id': action_id, 'position': {'x': x, 'y': y}})
     project['dataset_list'].append({'id': dataset_id, 'position': {'x': x, 'y': y+100}})
-    action = Action(id=action_id, name=default_action, inputs=source_id_list, outputs=[dataset_id], state='amber')
+    action = Action(id=action_id, name=default_action, inputs=source_id_list, outputs=[dataset_id])
     dataset = Dataset(id=dataset_id, name='New', description='')
     
     # Upload Changes
@@ -1018,7 +1018,7 @@ def Project(id, type, dataset_list=[], action_list=[], group_list=[], edge_list=
     }
 def Dataset(id, name, description='', documentation='', features={}, upload_details={}, is_source='False'):
     return {'id':id, 'name':name, 'description':description, 'documentation':documentation, 'features':features, 'upload_details':upload_details, 'is_source': is_source}
-def Action(id, name, description='', state='amber', details={}, inputs=[], outputs=[]):
+def Action(id, name, description='', state=['amber', 'amber'], details={}, inputs=[], outputs=[]):
     return {'id':id, 'name':name, 'description':description, 'state':state, 'details':details, 'inputs':inputs, 'outputs':outputs}
 def Group(id, name, node_list):
     return {'id':id, 'name':name, 'node_list':node_list}

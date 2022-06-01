@@ -40,12 +40,7 @@ id = id_factory('login')
 
 
 layout = html.Div([
-    html.H2('Login'),
-    html.Div([
-        dbc.InputGroup([
-            dbc.InputGroupText("Email", style={'width':'15%', 'font-weight':'bold'}),
-            dbc.Input(id=id('email'), placeholder='Enter Email', style={'text-align':'center'}),
-        ]),
-        dbc.Button("Test")
-    ]),
+    html.H2('Admin'),
+    
 ])
+

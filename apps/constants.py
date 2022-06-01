@@ -1,3 +1,6 @@
+# Session
+session_id = 'session1'
+
 
 # Uploader
 UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"

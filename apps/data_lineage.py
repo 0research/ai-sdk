@@ -479,12 +479,14 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
     for a in project['action_list']:
         action = get_document('action', a['id'])
         if action['name'] == 'transform':
+            print('ACTION STATE: ', action['state'])
             if action['id'] in transform_store:
                 if action['details'] != transform_store[action['id']]:
-                    action['state'] = 'amber'
+                    action['state'].append('amber')
+                    if len(action['state']) > 2: action['state'].pop(0)
                 else:
-                    pass
-                    # TODO save last saved state (convert 'state' into a stack?)
+                    if len(action['state']) == 2:
+                        action['state'][1] = action['state'][0]
                 upsert('action', action)
 
     # Change Node Name, Action, Inputs  
@@ -545,7 +547,8 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
                 elif action_name == 'impute':
                     pass
 
-                action['state'] = 'green'
+                action['state'].append('green')
+                if len(action['state']) > 2: action['state'].pop(0)
                 upsert('action', action)
                 upsert('dataset', dataset_o)
                 collection_name_list = [row['name'] for row in client.collections.retrieve()]
@@ -557,7 +560,8 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
 
             except Exception as e:
                 print("Exception: ", e)
-                action['state'] = 'red'
+                action['state'].append('red')
+                if len(action['state']) > 2: action['state'].pop(0)
                 upsert('action', action)
 
     # Cytoscape Buttons
@@ -587,7 +591,7 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
         layout = {
             'name': 'breadthfirst',
             'fit': True,
-            'roots': [e['data']['id'] for e in elements if 'type' in e['data'] and e['data']['type'] == 'raw'],
+            'roots': [e['data']['id'] for e in elements if 'is_source' in e['data'] and e['data']['is_source'] == 'True'],
         }
 
     elif triggered == id('button_run_cytoscape'):
@@ -1203,7 +1207,7 @@ def generate_right_content_1(active_tab, selected_action, selectedNodeData):
         if node_type == 'action':
             if selected_action == 'merge':
                 s1['display'] = 'block'
-                datatable_container = generate_datatable(id('datatable'), height='65vh')
+                datatable_container = generate_datatable(id('datatable'), height='63vh')
             elif selected_action == 'transform':
                 s1['display'] = 'block'
                 datatable_container = generate_datatable(id('datatable'), cell_editable=True, height='65vh', sort_action='native', filter_action='native', col_selectable='multi')

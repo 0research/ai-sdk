@@ -8,7 +8,7 @@ from app import app
 from app import server 
 from app import dbc
 
-from apps import (login, new_project, search, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
+from apps import (login, admin_panel, new_project, search, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
                 decomposition, impute_data, remove_duplicate, data_lineage, test)
 import ast
 from apps.constants import *
@@ -89,6 +89,7 @@ navbar = dbc.Navbar([
 # Sidebar
 sidebar_0 = [
     dbc.NavLink("Login", href="/apps/login", active="exact", className="fas fa-upload", disabled=True),
+    dbc.NavLink("Admin Panel", href="/apps/admin_panel", active="exact", className="fas fa-upload"),
     dbc.NavLink("New Project", href="/apps/new_project", active="exact", className="fas fa-upload"),
 ]
 sidebar_1 = [
@@ -149,6 +150,7 @@ app.layout = serve_layout
 @app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
 def display_page(pathname):
     if pathname.startswith('/apps/login'): return login.layout
+    if pathname.startswith('/apps/admin_panel'): return admin_panel.layout
     if pathname.startswith('/apps/new_project'): return new_project.layout
     if pathname.startswith('/apps/dashboard'): return dashboard.layout
     if pathname.startswith('/apps/data_lineage'): return data_lineage.layout
