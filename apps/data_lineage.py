@@ -315,21 +315,53 @@ layout = html.Div([
         # Modal (view dataset)
         dbc.Modal(id=id('modal_dataset'), size='xl'),
 
-        # Modal Select Function
+        # # Modal Select Function
+        # dbc.Modal([
+        #         dbc.ModalHeader(dbc.ModalTitle("Transform Node")),
+        #         dbc.ModalBody(generate_transform_inputs(id)),
+        #         dbc.ModalFooter(dbc.Button('Add Feature', color='warning', id=id('button_add_feature'), style={'width':'100%'})),
+        #         html.Div([], id=id('add_feature_msg'), style={'text-align':'center', 'color':'red'})
+        #     ],
+        #     id=id('modal_add_feature'),
+        #     is_open=False,
+        #     backdrop=False,
+        #     style={'margin-left':'60px !important'}
+        # ),
+
+        # Left Modal (graph, add_feature)
         dbc.Modal([
+            html.Div([
+                dbc.ModalHeader('Graph', style={'height':'5vh'}),
+                dbc.ModalBody([
+                    dcc.Graph(id=id('graph'), style={'height': '34vh'}),
+                    html.Div(generate_datatable(id('datatable_graph'), height='20vh'), style={'margin-top':'35px'}),
+                    html.Div([
+                        html.Div(generate_graph_inputs(id), id=id('graph_inputs'), style={'margin':'10px'}),
+                        html.Div([
+                            dbc.InputGroup([
+                                dbc.InputGroupText("Name", style={'width':'15%', 'font-weight':'bold'}),
+                                dbc.Input(id=id('graph_name'), placeholder='Enter Graph Name', style={'text-align':'center'}),
+                            ]),
+                            dbc.InputGroup([
+                                dbc.InputGroupText("Description", style={'width':'15%', 'font-weight':'bold'}),
+                                dbc.Textarea(id=id('graph_description'), placeholder='Enter Graph Description', style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
+                            ]),
+                        ], style={'margin':'10px'}),
+                    ], style={'height':'22vh'}),
+                ], style={'height':'84vh'}),
+                dbc.ModalFooter([
+                    dbc.Button('Save Graph', id=id('button_save_graph'), color='primary', style={'width':'100%', 'padding':'0px', 'margin':'1px'})
+                ], style={'height':'5vh', 'padding':'2px'}),
+            ], id=id('modal_graph'), style={'display':'none'}),
+
+            html.Div([
                 dbc.ModalHeader(dbc.ModalTitle("Transform Node")),
                 dbc.ModalBody(generate_transform_inputs(id)),
                 dbc.ModalFooter(dbc.Button('Add Feature', color='warning', id=id('button_add_feature'), style={'width':'100%'})),
                 html.Div([], id=id('add_feature_msg'), style={'text-align':'center', 'color':'red'})
-            ],
-            id=id('modal_add_feature'),
-            is_open=False,
-            backdrop=False,
-            style={'margin-left':'60px !important'}
-        ),
+            ], id=id('modal_add_feature'), style={'display':'none'}),
 
-        # Modal Select Function
-        dbc.Modal([], id=id('modal_left'), is_open=False, centered=False, backdrop=False),
+        ], id=id('modal_left'), is_open=False, centered=False, backdrop=False),
 
     ], style={'width':'100%'}),
 ])
@@ -802,6 +834,7 @@ def display_node_buttons(active_tab, action_name, selectedNodeData, s1, s2, s3, 
 )
 def enable_disable_tab(selectedNodeData, active_tab, tabs):
     if selectedNodeData is None: return no_update
+    pprint(session_id)
     num_selected = len(selectedNodeData)
     disabled1, disabled2, disabled3, disabled4, disabled5 = True, True, True, False, False
     if num_selected == 0:
@@ -1235,13 +1268,13 @@ def generate_right_content_1(active_tab, selected_action, selectedNodeData):
     
 
 
-@app.callback(
-    Output(id('modal_add_feature'), 'is_open'),
-    Input(id('button_add_feature_modal'), 'n_clicks'),
-    prevent_initial_call=True
-)
-def select_function(n_clicks):
-    return True
+# @app.callback(
+#     Output(id('modal_add_feature'), 'is_open'),
+#     Input(id('button_add_feature_modal'), 'n_clicks'),
+#     prevent_initial_call=True
+# )
+# def select_function(n_clicks):
+#     return True
 
 
 
@@ -1576,30 +1609,31 @@ def datatable_triggers(_, action_inputs, transform_store,
                 if node_id in transform_store:
                     store = transform_store[node_id]
                     
-                    for feature in store['features']:
-                        if feature['new'] == True:
-                            df[feature['id']] = feature['data']
-                            style_data_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "#8B8000"}]
-                            features.append(feature)
-                        
-                        feature_saved = None
-                        for f in dataset['features']:
-                            if f['id'] == feature['id']:
-                                feature_saved = f
-                        if feature_saved is not None:
-                            if feature['remove'] == True:
-                                style_data_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "red"}]
-                                style_header_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "red"}]
-                            if feature['name'] != feature_saved['name']:
-                                for i in range(len(features)):
-                                    if features[i]['id'] == feature['id']:
-                                        features[i]['name'] = feature['name']
-                                style_header_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "#8B8000"}]
-                            if feature['datatype'] != feature_saved['datatype']:
-                                for i in range(len(features)):
-                                    if features[i]['id'] == feature['id']:
-                                        features[i]['datatype'] = feature['datatype']
-                                style_data_conditional += [{"if": {"column_id": feature['id'], 'row_index': 0}, "backgroundColor": "#8B8000"}]
+                    if 'features' in store:
+                        for feature in store['features']:
+                            if feature['new'] == True:
+                                df[feature['id']] = feature['data']
+                                style_data_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "#8B8000"}]
+                                features.append(feature)
+                            
+                            feature_saved = None
+                            for f in dataset['features']:
+                                if f['id'] == feature['id']:
+                                    feature_saved = f
+                            if feature_saved is not None:
+                                if feature['remove'] == True:
+                                    style_data_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "red"}]
+                                    style_header_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "red"}]
+                                if feature['name'] != feature_saved['name']:
+                                    for i in range(len(features)):
+                                        if features[i]['id'] == feature['id']:
+                                            features[i]['name'] = feature['name']
+                                    style_header_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "#8B8000"}]
+                                if feature['datatype'] != feature_saved['datatype']:
+                                    for i in range(len(features)):
+                                        if features[i]['id'] == feature['id']:
+                                            features[i]['datatype'] = feature['datatype']
+                                    style_data_conditional += [{"if": {"column_id": feature['id'], 'row_index': 0}, "backgroundColor": "#8B8000"}]
                     
                     # # TODO modify df to fit these values
                     # store['others']['filter']
@@ -1639,7 +1673,6 @@ def datatable_triggers(_, action_inputs, transform_store,
 @app.callback(
     Output(id('transform_store'), 'data'),
     Output(id('add_feature_msg'), 'children'),
-    # Output(id('modal_add_feature'), 'is_open'),
     Input('url', 'pathname'),
     Input(id('right_content_1'), 'style'),
     Input(id('button_save_changes'), 'n_clicks'),
@@ -2036,55 +2069,46 @@ def generate_right_content(active_tab, selectedNodeData):
     prevent_initial_call=True
 )
 def load_graph(a, b):
+    if len(callback_context.triggered) != 1: return no_update
     triggered = json.loads(callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0])
     graph_id = triggered['index']
     return graph_id 
     
 
-# Button Plot 
+# Left Modal
 @app.callback(
     Output(id('modal_left'), 'is_open'),
-    Output(id('modal_left'), 'children'),
+    Output(id('modal_graph'), 'style'),
+    Output(id('modal_add_feature'), 'style'),
     Output(id('tabs_node'), 'active_tab'),
     Input(id('button_open_graph_modal'), 'n_clicks'),
+    Input(id('button_add_feature_modal'), 'n_clicks'),
     Input(id('graph_id_store'), 'data'),
     State(id('cytoscape'), 'selectedNodeData'),
     State(id('modal_left'), 'is_open'),
+    prevent_initial_call=True
 )
-def button_chart(n_clicks, graph_id, selectedNodeData, is_open):
-    if n_clicks is None: return no_update
+def button_chart(n_clicks1, n_clicks2, graph_id, selectedNodeData, is_open):
+    if len(callback_context.triggered) != 1: return no_update
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+    active_tab = no_update
+    s1, s2 = {'display':'none'}, {'display':'none'}
+    is_open = not is_open
+
+    if triggered == id('button_open_graph_modal') or triggered == id('graph_id_store'):
+        if triggered == id('button_open_graph_modal'): store_session('graph_id', '')
+        else: store_session('graph_id', graph_id)
+        active_tab = 'tab4'
+        s1['display'] = 'block'
+
+    elif triggered == id('button_add_feature_modal'):
+        # is_open = not is_open
+        s2['display'] = 'block'
     
-    if triggered == id('button_open_graph_model'):
-        store_session('graph_id', '')
-        is_open = not is_open
     else:
-        store_session('graph_id', graph_id)
-        is_open = True
-    modal = [
-        dbc.ModalHeader('Graph', style={'height':'5vh'}),
-        dbc.ModalBody([
-            dcc.Graph(id=id('graph'), style={'height': '34vh'}),
-            html.Div(generate_datatable(id('datatable_graph'), height='20vh'), style={'margin-top':'35px'}),
-            html.Div([
-                html.Div(generate_graph_inputs(id), id=id('graph_inputs'), style={'margin':'10px'}),
-                html.Div([
-                    dbc.InputGroup([
-                        dbc.InputGroupText("Name", style={'width':'15%', 'font-weight':'bold'}),
-                        dbc.Input(id=id('graph_name'), placeholder='Enter Graph Name', style={'text-align':'center'}),
-                    ]),
-                    dbc.InputGroup([
-                        dbc.InputGroupText("Description", style={'width':'15%', 'font-weight':'bold'}),
-                        dbc.Textarea(id=id('graph_description'), placeholder='Enter Graph Description', style={'font-size': '12px', 'text-align':'center', 'height':'80px', 'padding': '30px 0'}),
-                    ]),
-                ], style={'margin':'10px'}),
-            ], style={'height':'22vh'}),
-        ], style={'height':'84vh'}),
-        dbc.ModalFooter([
-            dbc.Button('Save Graph', id=id('button_save_graph'), color='primary', style={'width':'100%', 'padding':'0px', 'margin':'1px'})
-        ], style={'height':'5vh', 'padding':'2px'}),
-    ]
-    return is_open, modal, 'tab4'
+        is_open = False
+
+    return is_open, s1, s2, active_tab
 
 
 # Generate Graph Inputs from Graph Session
@@ -2119,11 +2143,12 @@ def button_chart(n_clicks, graph_id, selectedNodeData, is_open):
     Output(id('graph_name'), 'value'),
     Output(id('graph_description'), 'value'),
 
-    Input(id('modal_left'), 'is_open'),
+    Input(id('modal_graph'), 'style'),
     State(id('cytoscape'), 'selectedNodeData')
 )
-def generate_graph_inputs_options(is_open, selectedNodeData):
-    if is_open is False: return no_update
+def generate_graph_inputs_options(style, selectedNodeData):
+    if style['display'] == 'none': return no_update
+    if len(selectedNodeData) != 1: return no_update
     return graph_inputs_options_callback(selectedNodeData[0]['id'], get_session('graph_id'))
 
 # Make Selected Graph type Inputs visible
@@ -2181,6 +2206,7 @@ def display_graph(style1, style2, style3, style4,
 # Save Graph
 @app.callback(
     Output(id('modal_left'), 'is_open'),
+    Output(id('tabs_node'), 'active_tab'),
     Input(id('button_save_graph'), 'n_clicks'),
     State(id('dropdown_graph_type'), 'value'),
     State(id('graph_inputs'), 'children'),
@@ -2230,5 +2256,5 @@ def save_graph(n_clicks, graph_type, graph_inputs, name, description, selectedNo
     # update_logs(project_id, dataset_id, log_description + graph_id)
 
     is_open = False
-    return is_open
+    return is_open, 'tab4'
 """ -------------------------------------------------------------------------------- """

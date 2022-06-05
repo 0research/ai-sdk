@@ -21,3 +21,8 @@ packaging
 sentry-sdk
 gunicorn
 py-healthcheck
+flask
+python-dotenv
+python-jose
+flask-cors
+six

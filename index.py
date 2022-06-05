@@ -147,37 +147,6 @@ def serve_layout():
 app.layout = serve_layout
 
 
-@app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
-def display_page(pathname):
-    if pathname.startswith('/apps/login'): return login.layout
-    if pathname.startswith('/apps/admin_panel'): return admin_panel.layout
-    if pathname.startswith('/apps/new_project'): return new_project.layout
-    if pathname.startswith('/apps/dashboard'): return dashboard.layout
-    if pathname.startswith('/apps/data_lineage'): return data_lineage.layout
-    if pathname.startswith('/apps/profile'): return profile.layout
-    if pathname.startswith('/apps/plot_graph'): return plot_graph.layout
-    if pathname.startswith('/apps/search'): return search.layout
-    if pathname.startswith('/apps/impute_data'): return impute_data.layout
-    
-    if pathname.startswith('/apps/merge_strategy'): return merge_strategy.layout
-    if pathname.startswith('/apps/temporal_evolution'): return temporal_evolution.layout
-    if pathname.startswith('/apps/decomposition'): return decomposition.layout
-    
-    if pathname.startswith('/apps/remove_duplicate'): return remove_duplicate.layout
-   
-
-    # if pathname == '/apps/page3': return page3.layout
-    # if pathname == '/apps/temporal_merge': return temporal_merge.layout
-    # if pathname == '/apps/page2': return page2.layout
-    # if pathname == '/apps/page6': return page6.layout
-    # if pathname == '/apps/page7': return page7.layout
-    # if pathname == '/apps/page8': return page8.layout
-    # if pathname == '/apps/page9': return page9.layout
-    if pathname == '/apps/test': return test.layout
-    # if pathname == '/apps/git_graph': return git_graph.layout
-    else: return data_lineage.layout
-
-
 
 # Highlight Active Navigation
 @app.callback(
@@ -231,6 +200,58 @@ def load_project_id(value):
 
 
 
+
+@app.callback(
+    Output('modal', 'children'),
+    Input('url', 'pathname')
+)
+def load_session(pathname):
+    global session_id
+    session_id= 'aaaaaSESSION'
+    return no_update
+
+
+
+
+# @app.server.route('/apps/login')
+# def do_func():
+#     import time
+#     time.sleep(3)
+#     print("INSIDE")
+#     return '/apps/dashboard'
+
+
+@app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
+def display_page(pathname):
+    if pathname.startswith('/apps/login'): return login.layout
+    if pathname.startswith('/apps/admin_panel'): return admin_panel.layout
+    if pathname.startswith('/apps/new_project'): return new_project.layout
+    if pathname.startswith('/apps/dashboard'): return dashboard.layout
+    if pathname.startswith('/apps/data_lineage'): return data_lineage.layout
+    if pathname.startswith('/apps/profile'): return profile.layout
+    if pathname.startswith('/apps/plot_graph'): return plot_graph.layout
+    if pathname.startswith('/apps/search'): return search.layout
+    if pathname.startswith('/apps/impute_data'): return impute_data.layout
+    
+    if pathname.startswith('/apps/merge_strategy'): return merge_strategy.layout
+    if pathname.startswith('/apps/temporal_evolution'): return temporal_evolution.layout
+    if pathname.startswith('/apps/decomposition'): return decomposition.layout
+    
+    if pathname.startswith('/apps/remove_duplicate'): return remove_duplicate.layout
+   
+
+    # if pathname == '/apps/page3': return page3.layout
+    # if pathname == '/apps/temporal_merge': return temporal_merge.layout
+    # if pathname == '/apps/page2': return page2.layout
+    # if pathname == '/apps/page6': return page6.layout
+    # if pathname == '/apps/page7': return page7.layout
+    # if pathname == '/apps/page8': return page8.layout
+    # if pathname == '/apps/page9': return page9.layout
+    if pathname == '/apps/test': return test.layout
+    # if pathname == '/apps/git_graph': return git_graph.layout
+    else: return data_lineage.layout
+
+
 if __name__ == '__main__':
     health = HealthCheck()
     envdump = EnvironmentDump()
@@ -238,6 +259,7 @@ if __name__ == '__main__':
     app.server.add_url_rule("/environment", "environment", view_func=lambda: envdump.run())
 
     client = initialize_typesense()
+
 
     port = os.environ.get("PORT", 8050)
     app.run_server("0.0.0.0", 8050, debug=True)
