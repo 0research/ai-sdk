@@ -62,8 +62,8 @@
 
 
 
-/* Data Lineage Left Modal */
-#data_lineage-modal_left {
+/* Data Flow Left Modal */
+#data_flow-modal_left {
 	position: fixed;
 	margin-left: 140px;
 	margin-top: 5vh;

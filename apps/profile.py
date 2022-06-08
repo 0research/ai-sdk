@@ -241,4 +241,4 @@ def button_confirm(n_clicks, details):
         action(get_session('project_id'), dataset_id, 'profile', '', details, changed_dataset, search_documents(dataset_id))
         # action(project_id, source_id, action, description, dataset, dataset_data_store)
 
-        return '/apps/data_lineage', 'Success'
+        return '/apps/data_flow', 'Success'

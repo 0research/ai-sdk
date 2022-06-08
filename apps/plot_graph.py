@@ -220,5 +220,5 @@ def save_graph(n_clicks, graph_type, graph_inputs, name, description):
     
     upsert_graph(get_session('project_id'), node_id, graph_id, log_description, graph)
 
-    return '/apps/data_lineage'
+    return '/apps/data_flow'
 

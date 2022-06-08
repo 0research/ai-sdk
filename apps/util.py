@@ -457,7 +457,7 @@ def generate_datacatalog_table(id, search_value):
                 html.Td(dbc.Input(value=dataset['id'], id={'type':id('col_dataset_id'), 'index': i}), style={'display':'none'}),
                 html.Td(i+1, style={'width':'5%'}),
                 html.Td([
-                    html.P(dataset['name'] + ' ({})'.format(dataset['type']), id={'type':id('col_name'), 'index': i}, style={'font-weight':'bold'}),
+                    html.P(dataset['name'], id={'type':id('col_name'), 'index': i}, style={'font-weight':'bold'}),
                     html.P(dataset['description'], id={'type':id('col_description'), 'index': i}),
                     html.P(dataset['documentation']),
                     html.P(dataset['id']),

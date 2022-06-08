@@ -8,13 +8,22 @@ from app import app
 from app import server 
 from app import dbc
 
-from apps import (login, admin_panel, new_project, search, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
-                decomposition, impute_data, remove_duplicate, data_lineage, test)
+from apps import (admin_panel, new_project, search, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
+                decomposition, impute_data, remove_duplicate, data_flow, test)
 import ast
 from apps.constants import *
 
 from apps import *
 from healthcheck import HealthCheck, EnvironmentDump
+
+import json
+from os import environ as env
+from urllib.parse import quote_plus, urlencode
+from authlib.integrations.flask_client import OAuth
+from dotenv import find_dotenv, load_dotenv
+from flask import Flask, redirect, render_template, session, url_for
+import urllib.parse
+
 
 id = id_factory('index')
 
@@ -72,7 +81,7 @@ navbar = dbc.Navbar([
         # ]), width={"size": 2, "order": "4", 'offset': 0}, style={'margin-right':'30px', 'height':'100%'}),
 
         # dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "4", 'offset':3}),
-        # dbc.Col(dbc.Button("Data Lineage", href='/apps/data_lineage', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "5", 'offset':0}),
+        # dbc.Col(dbc.Button("Data Flow", href='/apps/data_flow', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "5", 'offset':0}),
         dbc.Col(dbc.Input(type="search", id='search', debounce=True, placeholder="Search...", style={'text-align':'center'}), width={"size": 3, "order": "5", 'offset':0})
     ], className='g-0', style={'width':'100%'}, id='navbar_top'),
 
@@ -88,13 +97,12 @@ navbar = dbc.Navbar([
 
 # Sidebar
 sidebar_0 = [
-    dbc.NavLink("Login", href="/apps/login", active="exact", className="fas fa-upload", disabled=True),
-    dbc.NavLink("Admin Panel", href="/apps/admin_panel", active="exact", className="fas fa-upload"),
+    dbc.NavLink("Admin Panel", href="/apps/admin_panel", active="exact", className="fas fa-upload", disabled=True),
     dbc.NavLink("New Project", href="/apps/new_project", active="exact", className="fas fa-upload"),
 ]
 sidebar_1 = [
-    dbc.NavLink("Dashboard", href="/apps/dashboard", active="exact", className="fas fa-chart-pie"),
-    dbc.NavLink("Data Lineage", href="/apps/data_lineage", active="exact", className="fas fa-database"),
+    dbc.NavLink("Data Flow", href="/apps/data_flow", active="exact", className="fas fa-database"),
+    dbc.NavLink("Dashboard", href="/apps/dashboard", active="exact", className="fas fa-chart-pie", disabled=True),
     dbc.NavLink("Storyboard", href="/apps/storyboard", active="exact", className="fas fa-chart-pie", disabled=True),
 ]
 sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className'], disabled=nav['disabled']) for nav in SIDEBAR_2_LIST]
@@ -108,26 +116,15 @@ sidebar_4 = [
     dbc.NavLink("Split Dataset", href="/apps/split_dataset", active="exact", className='fas fa-recycle'),
     dbc.NavLink("Model Evaluation", href="/apps/model_evaluation", active="exact", className='fas fa-recycle'),
 ]
+divider = [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})]
 sidebar = html.Div([
     dbc.Nav(
-        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
-        sidebar_0 +
-        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
-        sidebar_1 +
-        [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})]
-        # sidebar_2 +
-        # [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
-        # sidebar_3 +
-        # [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] +
-        # sidebar_4 +
-        # [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})] 
-        
-        # dcc.Link(' Page 3 | ', href='/apps/page3'),
-        # dcc.Link('Page 6 | ', href='/apps/page6'),
-        # dcc.Link('Merge Strategy | ', href='/apps/page7'),
-        # dcc.Link('Temporal Merge | ', href='/apps/page8'),
-        # dcc.Link('Temporal Evolution | ', href='/apps/page9'),
-        # dcc.Link('Page 10 | ', href='/apps/page10'),
+        [dbc.Button("Login", href="/login", className="fas fa-upload", id='login')] + divider +
+        sidebar_0 + divider +
+        sidebar_1 + divider
+        # sidebar_2 + divider +
+        # sidebar_3 + divider +
+        # sidebar_4
     , vertical=True, pills=True, id='sidebar'),
 ], style=SIDEBAR_STYLE)
 
@@ -201,33 +198,81 @@ def load_project_id(value):
 
 
 
-@app.callback(
-    Output('modal', 'children'),
-    Input('url', 'pathname')
+
+
+
+
+    
+server.secret_key = AUTH0_SECRET_KEY
+oauth = OAuth(server)
+oauth.register(
+    "auth0",
+    client_id=AUTH0_CLIENT_ID,
+    client_secret=AUTH0_CLIENT_SECRET,
+    client_kwargs={
+        "scope": "openid profile email",
+    },
+    server_metadata_url=f'https://{AUTH0_DOMAIN}/.well-known/openid-configuration'
 )
-def load_session(pathname):
-    global session_id
-    session_id= 'aaaaaSESSION'
-    return no_update
+
+
+@server.route("/login")
+def login():
+    return oauth.auth0.authorize_redirect(
+        redirect_uri=url_for("callback", _external=True)
+    )
+
+@server.route("/callback", methods=["GET", "POST"])
+def callback():
+    token = oauth.auth0.authorize_access_token()
+    session["user"] = token
+    return redirect("/")
+
+@server.route("/logout")
+def logout():
+    session.clear()
+    return redirect(
+        "https://" + env.get("AUTH0_DOMAIN")
+        + "/v2/logout?"
+        + urlencode(
+            {
+                "returnTo": url_for("home", _external=True),
+                "client_id": env.get("AUTH0_CLIENT_ID"),
+            },
+            quote_via=quote_plus,
+        )
+    )
+
+@server.route("/")
+def home():
+    return render_template("home.html", session=session.get('user'), pretty=json.dumps(session.get('user'), indent=4))
 
 
 
+@app.callback(
+    Output('login', 'children'),
+    Output('login', 'href'),
+    Input('url', 'pathname'),
+    State('url', 'href'),
+)
+def toggle_login(pathname, href):
+    base = urllib.parse.urljoin(href, '/')
+    print('aaa ', base+'...')
+    if 'user' in session:
+        return 'Logout', base+'logout'
+    else:
+        return 'Login', base+'login'
 
-# @app.server.route('/apps/login')
-# def do_func():
-#     import time
-#     time.sleep(3)
-#     print("INSIDE")
-#     return '/apps/dashboard'
 
 
 @app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
 def display_page(pathname):
-    if pathname.startswith('/apps/login'): return login.layout
+    if 'user' not in session: return 'Please Login.'
+
     if pathname.startswith('/apps/admin_panel'): return admin_panel.layout
     if pathname.startswith('/apps/new_project'): return new_project.layout
     if pathname.startswith('/apps/dashboard'): return dashboard.layout
-    if pathname.startswith('/apps/data_lineage'): return data_lineage.layout
+    if pathname.startswith('/apps/data_flow'): return data_flow.layout
     if pathname.startswith('/apps/profile'): return profile.layout
     if pathname.startswith('/apps/plot_graph'): return plot_graph.layout
     if pathname.startswith('/apps/search'): return search.layout
@@ -239,7 +284,6 @@ def display_page(pathname):
     
     if pathname.startswith('/apps/remove_duplicate'): return remove_duplicate.layout
    
-
     # if pathname == '/apps/page3': return page3.layout
     # if pathname == '/apps/temporal_merge': return temporal_merge.layout
     # if pathname == '/apps/page2': return page2.layout
@@ -249,7 +293,7 @@ def display_page(pathname):
     # if pathname == '/apps/page9': return page9.layout
     if pathname == '/apps/test': return test.layout
     # if pathname == '/apps/git_graph': return git_graph.layout
-    else: return data_lineage.layout
+    else: return data_flow.layout
 
 
 if __name__ == '__main__':
@@ -259,7 +303,6 @@ if __name__ == '__main__':
     app.server.add_url_rule("/environment", "environment", view_func=lambda: envdump.run())
 
     client = initialize_typesense()
-
 
     port = os.environ.get("PORT", 8050)
     app.run_server("0.0.0.0", 8050, debug=True)

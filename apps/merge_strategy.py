@@ -81,7 +81,7 @@ layout = html.Div([
         ], className='text-center bg-light', style={'overflow-y':'auto', 'height':'700px'}),
 
         dbc.Row([
-            dbc.Col(dbc.Button(html.H6('Confirm'), className='btn-primary', id=id('button_confirm'), href='/apps/data_lineage', style={'width':'100%'}), width={'size':10, 'offset':1}),
+            dbc.Col(dbc.Button(html.H6('Confirm'), className='btn-primary', id=id('button_confirm'), href='/apps/data_flow', style={'width':'100%'}), width={'size':10, 'offset':1}),
         ], className='text-center bg-light', style={'padding':'3px', 'margin': '5px'}),
         
     ], style={'width':'100%', 'maxWidth':'100%'}),

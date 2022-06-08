@@ -252,7 +252,7 @@ def button_add_dataset(n_clicks_add_list, col_dataset_id_list):
         if n_clicks_add_list[index] is not None:
             dataset_id = col_dataset_id_list[index]
             add_dataset(get_session('project_id'), dataset_id)
-            return '/apps/data_lineage'    
+            return '/apps/data_flow'    
 
     except Exception as e:
         pass

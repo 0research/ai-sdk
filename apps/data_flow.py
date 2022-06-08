@@ -39,7 +39,7 @@ from dash_extensions import WebSocket
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 
-id = id_factory('data_lineage')
+id = id_factory('data_flow')
 du.configure_upload(app, UPLOAD_FOLDER_ROOT)
 
 # Creating styles

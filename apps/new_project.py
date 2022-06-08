@@ -105,7 +105,7 @@ def button_create_load_dataset(n_clicks, project_id, project_type):
 
     # If valid Project ID
     else:
-        pathname = '/apps/data_lineage'
+        pathname = '/apps/data_flow'
         project_list = search_documents('project')
         if project_id not in [d['id'] for d in project_list]: # Create Project if doesn't exist
             new_project(project_id, project_type)

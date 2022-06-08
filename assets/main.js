@@ -46,8 +46,8 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
 // 	// };
 	
 // 	/* Cytoscape Start */
-// 	var input_store = document.getElementById("data_lineage-cytoscape_position")
-// 	var cy2 = document.getElementById("data_lineage-cytoscape")
+// 	var input_store = document.getElementById("data_flow-cytoscape_position")
+// 	var cy2 = document.getElementById("data_flow-cytoscape")
 // 	console.log(cy2)
 // 	console.log(cy)
 // 	cy.on('position', function(event) {

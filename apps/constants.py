@@ -1,6 +1,24 @@
+from dotenv import find_dotenv, load_dotenv
+from os import environ as env
+import os
+
 # Session
 session_id = 'session1'
 
+
+# Auth0
+ENV_FILE = find_dotenv()
+if ENV_FILE:
+    load_dotenv(ENV_FILE)
+    AUTH0_SECRET_KEY = env.get("APP_SECRET_KEY")
+    AUTH0_CLIENT_ID = env.get("AUTH0_CLIENT_ID")
+    AUTH0_CLIENT_SECRET = env.get("AUTH0_CLIENT_SECRET")
+    AUTH0_DOMAIN = env.get("AUTH0_DOMAIN")
+else:
+    AUTH0_SECRET_KEY = os.environ['APP_SECRET_KEY']
+    AUTH0_CLIENT_ID = os.environ['AUTH0_CLIENT_ID']
+    AUTH0_CLIENT_SECRET = os.environ['AUTH0_CLIENT_SECRET']
+    AUTH0_DOMAIN = os.environ['AUTH0_DOMAIN']
 
 # Uploader
 UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"
