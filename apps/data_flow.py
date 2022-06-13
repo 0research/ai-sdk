@@ -31,6 +31,7 @@ from pathlib import Path
 from datetime import datetime
 from dash_extensions import EventListener, WebSocket
 from dash_extensions import WebSocket
+import traceback
 
 # import heartrate
 # heartrate.trace(browser=True)
@@ -148,10 +149,10 @@ layout = html.Div([
                         dbc.Button('Add Source',    id=id('button_add_dataset'),    color='info',   className='me-1', style={'width':'90px'}),
                         dbc.Button('Action',        id=id('button_new_action'),     color='warning', className='me-1', style={'width':'90px'}),
                         dbc.Button('Remove',        id=id('button_remove'),         color='danger', className='me-1', style={'width':'90px'}),
-                        dbc.Button('Group',         id=id('button_group'),          color='success', className='me-1', style={'width':'90px'}),
+                        dbc.Button('Group',         id=id('button_group'),          color='success', className='me-1', style={'width':'90px', 'display':'none'}),
                         dbc.Button('Reset',         id=id('button_reset_layout'),   color='dark',   className='me-1', style={'width':'90px'}),
                         # dbc.Button('Hide/Show',   id=id('button_hide_show'),      color='light', className='me-1', style={'width':'90px'}),
-                        dbc.Button('Run', id=id('button_run_cytoscape'), color='primary', className='me-1', disabled=True, style={'width':'90px'}),     
+                        dbc.Button('Run', id=id('button_run_cytoscape'), color='primary', className='me-1', disabled=True, style={'width':'90px', 'display':'none'}),     
                     ]),
                 ], style={'float':'right', 'display':'inline-block'}),
 
@@ -312,28 +313,12 @@ layout = html.Div([
             ], width=6), 
         ]),
 
-        # Modal (view dataset)
-        dbc.Modal(id=id('modal_dataset'), size='xl'),
-
-        # # Modal Select Function
-        # dbc.Modal([
-        #         dbc.ModalHeader(dbc.ModalTitle("Transform Node")),
-        #         dbc.ModalBody(generate_transform_inputs(id)),
-        #         dbc.ModalFooter(dbc.Button('Add Feature', color='warning', id=id('button_add_feature'), style={'width':'100%'})),
-        #         html.Div([], id=id('add_feature_msg'), style={'text-align':'center', 'color':'red'})
-        #     ],
-        #     id=id('modal_add_feature'),
-        #     is_open=False,
-        #     backdrop=False,
-        #     style={'margin-left':'60px !important'}
-        # ),
-
         # Left Modal (graph, add_feature)
         dbc.Modal([
             html.Div([
                 dbc.ModalHeader('Graph', style={'height':'5vh'}),
                 dbc.ModalBody([
-                    dcc.Graph(id=id('graph'), style={'height': '34vh'}),
+                    dcc.Graph(id=id('graph'), style={'height': '32vh'}),
                     html.Div(generate_datatable(id('datatable_graph'), height='20vh'), style={'margin-top':'35px'}),
                     html.Div([
                         html.Div(generate_graph_inputs(id), id=id('graph_inputs'), style={'margin':'10px'}),
@@ -355,10 +340,11 @@ layout = html.Div([
             ], id=id('modal_graph'), style={'display':'none'}),
 
             html.Div([
-                dbc.ModalHeader(dbc.ModalTitle("Transform Node")),
-                dbc.ModalBody(generate_transform_inputs(id)),
+                dbc.ModalHeader(dbc.ModalTitle("Transform Node"), style={'height':'5vh'}),
+                dbc.ModalBody(generate_transform_inputs(id), style={'height':'20vh'}),
                 dbc.ModalFooter(dbc.Button('Add Feature', color='warning', id=id('button_add_feature'), style={'width':'100%'})),
-                html.Div([], id=id('add_feature_msg'), style={'text-align':'center', 'color':'red'})
+                html.Div([], id=id('add_feature_msg'), style={'text-align':'center', 'color':'red'}),
+                html.Div([], style={'height':'50vh'}),
             ], id=id('modal_add_feature'), style={'display':'none'}),
 
         ], id=id('modal_left'), is_open=False, centered=False, backdrop=False),
@@ -470,6 +456,26 @@ def generate_right_header(active_tab, selected_action, selectedNodeData):
 
 
 
+@app.callback(
+    Output(id('button_new_action'), 'disabled'),
+    Output(id('button_new_action'), 'outline'),
+    Input(id('cytoscape'), 'selectedNodeData'),
+)
+def toggle_action_button(selectedNodeData):
+    if len(selectedNodeData) == 0: return True, True
+    if all(node['type'] == 'dataset' for node in selectedNodeData): return False, False
+    else: return True, True
+
+
+@app.callback(
+    Output(id('button_remove'), 'disabled'),
+    Output(id('button_remove'), 'outline'),
+    Input(id('cytoscape'), 'selectedNodeData'),
+)
+def toggle_remove_button(selectedNodeData):
+    if len(selectedNodeData) == 0: return True, True
+    if all(node['type'] == 'dataset' and node['is_source'] == 'True' for node in selectedNodeData) or selectedNodeData[0]['type'] == 'action': return False, False
+    else: return True, True
 
 
 # All Cytoscape Related Events
@@ -1673,6 +1679,7 @@ def datatable_triggers(_, action_inputs, transform_store,
 @app.callback(
     Output(id('transform_store'), 'data'),
     Output(id('add_feature_msg'), 'children'),
+    # Output(id('datatable'), 'selected_columns'),
     Input('url', 'pathname'),
     Input(id('right_content_1'), 'style'),
     Input(id('button_save_changes'), 'n_clicks'),
@@ -1681,6 +1688,7 @@ def datatable_triggers(_, action_inputs, transform_store,
     Input(id('button_add_feature'), 'n_clicks'),
     Input(id('button_remove_feature'), 'n_clicks'),
     Input(id('button_clear'), 'n_clicks'),
+    Input(id('datatable'), 'data_previous'),
 
     State(id('datatable'), 'sort_by'),
     State(id('datatable'), 'filter_query'),
@@ -1690,6 +1698,7 @@ def datatable_triggers(_, action_inputs, transform_store,
     State(id('datatable'), 'data'),
     State(id('datatable'), 'columns'),
     State(id('datatable'), 'active_cell'),
+    State(id('datatable'), 'selected_columns'),
     State(id('dropdown_function_type'), 'value'),
     State(id('transform_store'), 'data'),
     State(id('feature_name'), 'value'),
@@ -1717,9 +1726,9 @@ def datatable_triggers(_, action_inputs, transform_store,
     State(id('dropdown_shift_size'), 'value'),
     State(id('dropdown_shift_feature'), 'value'),
 )
-def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7,
+def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
                 sort_by, filter_query,
-                selected_action, selectedNodeData, data, columns, active_cell, function_type, transform_store, feature_name,
+                selected_action, selectedNodeData, data, columns, active_cell, selected_columns, function_type, transform_store, feature_name,
                 func1, f1a, f1b,
                 func2, f2a, f2b,
                 func3, f3a,
@@ -1798,12 +1807,13 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7,
                 if feature_name in [c['name'] for c in columns]:
                     store = no_update
                     add_feature_msg = 'Feature Name Exist!'
+
                 elif function_type == 'arithmetic':
                     for feature in store['features']:
                         if feature['id'] == f1a: datatype1 = feature['datatype']
                         if feature['id'] == f1b: datatype2 = feature['datatype']
-                    f1 = df2[f1a].str.strip().astype(float).astype(datatype1)
-                    f2 = df2[f1b].str.strip().astype(float).astype(datatype2)
+                    f1 = df2[f1a].str.strip().astype(datatype1, errors='ignore')
+                    f2 = df2[f1b].str.strip().astype(datatype2, errors='ignore')
 
                     if func1 == 'add': data = f1 + f2
                     elif func1 == 'subtract': data = f1 - f2
@@ -1813,10 +1823,28 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7,
                     elif func1 == 'modulus': data = f1 % f2
 
                     transform_func = func1
+                    datatype_out = 'Int64'
                     # dependent_features = [f1, f2]
                     
                 elif function_type == 'comparison':
-                    pass
+                    for feature in store['features']:
+                        if feature['id'] == f2a: datatype1 = feature['datatype']
+                        if feature['id'] == f2b: datatype2 = feature['datatype']
+
+                    f1 = df2[f2a].str.strip().astype(datatype1, errors='ignore')
+                    f2 = df2[f2b].str.strip().astype(datatype2, errors='ignore')
+
+                    if func2 == 'gt':   data = f1.gt(f2, fill_value='')
+                    elif func2 == 'lt': data = f1.lt(f2, fill_value='')
+                    elif func2 == 'ge': data = f1.ge(f2, fill_value='')
+                    elif func2 == 'le': data = f1.le(f2, fill_value='')
+                    elif func2 == 'eq': data = f1.eq(f2, fill_value='')
+                    elif func2 == 'ne': data = f1.ne(f2, fill_value='')
+
+                    transform_func = func2
+                    datatype_out = 'bool'
+                    # dependent_features = [f1, f2]
+
                 elif function_type == 'aggregate':
                     pass
                 elif function_type == 'slidingwindow':
@@ -1831,12 +1859,13 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7,
             except Exception as e:
                 store = no_update
                 add_feature_msg = str(e)
+                print(traceback.format_exc())
             
             if store is not no_update:
                 store['features'].append({
                     'id':       str(uuid.uuid1()),
                     'name':     feature_name,
-                    'datatype': 'Int64',
+                    'datatype': datatype_out,
                     'new':      True,
                     'data':     list(data),
                     'remove':   False,
@@ -1855,7 +1884,8 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7,
                         del store['features'][i]
                     else:
                         store['features'][i]['remove'] = not store['features'][i]['remove']
-                    break
+
+            # selected_columns = []
 
         # Clear Session
         elif triggered == id('button_clear'):

@@ -20,6 +20,7 @@ else:
     AUTH0_CLIENT_SECRET = os.environ['AUTH0_CLIENT_SECRET']
     AUTH0_DOMAIN = os.environ['AUTH0_DOMAIN']
 
+
 # Uploader
 UPLOAD_FOLDER_ROOT = r"C:\tmp\Uploads"
 
@@ -95,7 +96,7 @@ index_col_name = 'no.'
 # List of Transform Functions
 function_options = [
     {'label': 'Arithmetic', 'value':'arithmetic'},
-    {'label': 'Comparison', 'value':'comparison', 'disabled':True},
+    {'label': 'Comparison', 'value':'comparison'},
     {'label': 'Aggregate', 'value':'aggregate', 'disabled':True},
     {'label': 'Sliding Window', 'value':'slidingwindow', 'disabled':True},
     {'label': 'Format Date', 'value':'formatdate', 'disabled':True},
@@ -143,3 +144,9 @@ dateformat_options = [
 
 
 
+# Define path for images used
+HOMEPAGELOGO = "../assets/static/polymath-ai-0research-logo.svg"
+YOUTUBE = "../assets/static/youtube-icon.svg"
+GITHUB = "../assets/static/github-icon.svg"
+DOCKER = "../assets/static/docker-icon.svg"
+GITHUBACTION = "../assets/static/githubaction-icon.svg"

@@ -46,59 +46,37 @@ CONTENT_STYLE = {
     "padding": "1rem 0rem",
 }
 
-# Define path for images used
-HOMEPAGELOGO = "../assets/static/polymath-ai-0research-logo.svg"
-YOUTUBE = "../assets/static/youtube-icon.svg"
-GITHUB = "../assets/static/github-icon.svg"
-DOCKER = "../assets/static/docker-icon.svg"
-GITHUBACTION = "../assets/static/githubaction-icon.svg"
+
 
 
 # Top Navbar
 navbar = dbc.Navbar([
-    dbc.Row([
-        dbc.Col(html.A(html.Img(src=HOMEPAGELOGO, height="30px", id="tooltip-homepagelogo"), href="https://0research.com"),  width={'size':1, "order": "1"}),
-        dbc.Col(html.A(dbc.NavbarBrand("AI-SDK", className='font-weight-bold', id="tooltip-navbarbrand"), href="https://ai-sdk.herokuapp.com"),  width={'size':1, "order": "1"}),
-        dbc.Col(html.A(html.Img(src=YOUTUBE, height="30px",id="tooltip-youtube"), href="https://www.youtube.com/watch?v=ntN3xPEyy3U"),  width={'size':1, "order": "1"}),
-        dbc.Col(dbc.DropdownMenu([
-            dbc.DropdownMenuItem('v4', href="http://demo789.0research.com"),
-            dbc.DropdownMenuItem('v3', href="http://demo788.0research.com"),
-            dbc.DropdownMenuItem('v2', href='http://demo787.0research.com'),
-            dbc.DropdownMenuItem('v1', href='http://demo786.0research.com'),
-        ], label="Choose Version"), width={"size": 1, "order": "1"}),
-
-        dbc.Col(html.A(html.Img(src=GITHUB, height="30px",id="tooltip-github"), href="https://github.com/0research/ai-sdk"), width={"size": 1, "order": "1"}),
-        dbc.Col(html.A(html.Img(src=DOCKER, height="30px",id="tooltip-docker"), href="https://hub.docker.com/r/0research/ai-sdk"), width={"size": 1, "order": "1"}),
-        dbc.Col(html.A(html.Img(src=GITHUBACTION, height="30px",id="tooltip-githubaction"), href="https://github.com/marketplace/actions/ai-sdk-action"), width={"size": 1, "order": "1"}),
-        dbc.Col(dbc.InputGroup([
+    html.Div([
+        html.A(html.Img(src=HOMEPAGELOGO, height="30px", id="tooltip-homepagelogo"), href="https://0research.com"),
+        html.A(dbc.NavbarBrand("AI-SDK", className='font-weight-bold', id="tooltip-navbarbrand"), href="#"),
+        dbc.Tooltip("0Research Homepage",target="tooltip-homepagelogo"),
+        dbc.Tooltip("CloudApp Homepage",target="tooltip-navbarbrand"),
+        dbc.InputGroup([
             dbc.InputGroupText("Project"),
-            dbc.Select(options=[], id='dropdown_current_project', style={'min-width':'120px'}, persistence_type='session', persistence=True),
-        ]), width={"size": 2, "order": "4", 'offset': 2}),
+            dbc.Select(options=[], id='dropdown_current_project', style={'min-width':'80px'}, persistence_type='session', persistence=True),
+        ], style={'display':'none'}),
+    ], className='navbar'),
 
-        # dbc.Col(dbc.InputGroup([
-        #     dbc.InputGroupText("Dataset"),
-        #     dbc.Input(id='display_current_dataset', disabled=True, style={'text-align':'center'})
-        # ]), width={"size": 2, "order": "4", 'offset': 0}, style={'margin-right':'30px', 'height':'100%'}),
+    html.Div([
+        dbc.Input(type="search", id='search', debounce=True, placeholder="Search...", disabled=True, style={'text-align':'center'}),
+    ], className='navbar center'),
 
-        # dbc.Col(dbc.Button("Workflow", href='/apps/workflow', color="info", className="btn btn-info", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "4", 'offset':3}),
-        # dbc.Col(dbc.Button("Data Flow", href='/apps/data_flow', color="primary", className="btn btn-primary", active="exact", style={'width':'130px', 'text-decoration':'none', 'font-size':'16px'}), width={"size": 1, "order": "5", 'offset':0}),
-        dbc.Col(dbc.Input(type="search", id='search', debounce=True, placeholder="Search...", style={'text-align':'center'}), width={"size": 3, "order": "5", 'offset':0})
-    ], className='g-0', style={'width':'100%'}, id='navbar_top'),
+    html.Div([
+        dbc.Button("Login", href="/login", id='login', color='primary', className='me-1', size='lg', style={'width':'100px', 'font-weight':'bold'}),
+    ], className='navbar right'),
 
-    # Tool tips for each Icon
-    dbc.Tooltip("0Research Homepage",target="tooltip-homepagelogo"),
-    dbc.Tooltip("CloudApp Homepage",target="tooltip-navbarbrand"),
-    dbc.Tooltip("Demo Video",target="tooltip-youtube"),
-    dbc.Tooltip("Opensource Repo",target="tooltip-github"),
-    dbc.Tooltip("Self Hosted Docker",target="tooltip-docker"),
-    dbc.Tooltip("Use in Github Action",target="tooltip-githubaction"),
-], color="dark", dark=True)
+], color="dark", dark=True, style={'width':'100%', 'height':'4vh'})
     
 
 # Sidebar
 sidebar_0 = [
-    dbc.NavLink("Admin Panel", href="/apps/admin_panel", active="exact", className="fas fa-upload", disabled=True),
-    dbc.NavLink("New Project", href="/apps/new_project", active="exact", className="fas fa-upload"),
+    dbc.NavLink("Project", href="/apps/new_project", active="exact", className="fas fa-upload"),
+    # dbc.NavLink("Admin Panel", href="/apps/admin_panel", active="exact", className="fas fa-upload", disabled=True),
 ]
 sidebar_1 = [
     dbc.NavLink("Data Flow", href="/apps/data_flow", active="exact", className="fas fa-database"),
@@ -119,7 +97,6 @@ sidebar_4 = [
 divider = [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})]
 sidebar = html.Div([
     dbc.Nav(
-        [dbc.Button("Login", href="/login", className="fas fa-upload", id='login')] + divider +
         sidebar_0 + divider +
         sidebar_1 + divider
         # sidebar_2 + divider +
@@ -257,7 +234,6 @@ def home():
 )
 def toggle_login(pathname, href):
     base = urllib.parse.urljoin(href, '/')
-    print('aaa ', base+'...')
     if 'user' in session:
         return 'Logout', base+'logout'
     else:
@@ -269,31 +245,22 @@ def toggle_login(pathname, href):
 def display_page(pathname):
     if 'user' not in session: return 'Please Login.'
 
-    if pathname.startswith('/apps/admin_panel'): return admin_panel.layout
     if pathname.startswith('/apps/new_project'): return new_project.layout
-    if pathname.startswith('/apps/dashboard'): return dashboard.layout
     if pathname.startswith('/apps/data_flow'): return data_flow.layout
-    if pathname.startswith('/apps/profile'): return profile.layout
-    if pathname.startswith('/apps/plot_graph'): return plot_graph.layout
+    if pathname.startswith('/apps/admin_panel'): return admin_panel.layout
+    if pathname.startswith('/apps/dashboard'): return dashboard.layout
     if pathname.startswith('/apps/search'): return search.layout
-    if pathname.startswith('/apps/impute_data'): return impute_data.layout
-    
-    if pathname.startswith('/apps/merge_strategy'): return merge_strategy.layout
-    if pathname.startswith('/apps/temporal_evolution'): return temporal_evolution.layout
-    if pathname.startswith('/apps/decomposition'): return decomposition.layout
-    
-    if pathname.startswith('/apps/remove_duplicate'): return remove_duplicate.layout
-   
-    # if pathname == '/apps/page3': return page3.layout
-    # if pathname == '/apps/temporal_merge': return temporal_merge.layout
-    # if pathname == '/apps/page2': return page2.layout
-    # if pathname == '/apps/page6': return page6.layout
-    # if pathname == '/apps/page7': return page7.layout
-    # if pathname == '/apps/page8': return page8.layout
-    # if pathname == '/apps/page9': return page9.layout
-    if pathname == '/apps/test': return test.layout
-    # if pathname == '/apps/git_graph': return git_graph.layout
-    else: return data_flow.layout
+
+    # if pathname.startswith('/apps/impute_data'): return impute_data.layout
+    # if pathname.startswith('/apps/profile'): return profile.layout
+    # if pathname.startswith('/apps/plot_graph'): return plot_graph.layout
+    # if pathname.startswith('/apps/merge_strategy'): return merge_strategy.layout
+    # if pathname.startswith('/apps/temporal_evolution'): return temporal_evolution.layout
+    # if pathname.startswith('/apps/decomposition'): return decomposition.layout
+    # if pathname.startswith('/apps/remove_duplicate'): return remove_duplicate.layout
+    # if pathname == '/apps/test': return test.layout
+
+    else: return new_project.layout
 
 
 if __name__ == '__main__':
@@ -305,4 +272,4 @@ if __name__ == '__main__':
     client = initialize_typesense()
 
     port = os.environ.get("PORT", 8050)
-    app.run_server("0.0.0.0", 8050, debug=True)
+    app.run_server("0.0.0.0", 8050, debug=False)

@@ -1,3 +1,17 @@
+
+/* Navbar */
+.navbar .center {
+    width: 50%;
+    margin: 0 auto;
+    text-align: center;
+}
+.navbar .right {
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+
 .Select-menu-outer {
 	color: black;
 	display : block !important;
@@ -17,8 +31,6 @@
 .facebookicon:hover ~ #onhoverfb{
     visibility: visible;
 }
-
-
 
 
 /* dbc.Checklist */
