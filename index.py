@@ -272,4 +272,4 @@ if __name__ == '__main__':
     client = initialize_typesense()
 
     port = os.environ.get("PORT", 8050)
-    app.run_server("0.0.0.0", 8050, debug=False)
+    app.run_server("0.0.0.0", port, debug=True, threaded=True)

@@ -143,7 +143,11 @@ layout = html.Div([
         dbc.Row([
             # Left Panel
             dbc.Col([
-                html.Div(id=id('last_saved'), style={'display':'inline-block', 'margin':'1px'}),
+                html.Div([
+                    dbc.Badge(id=id('project_name'), color='primary', className='me-1'),
+                    dbc.Badge(id=id('last_saved'), color='secondary', className='me-1'),
+                ], style={'display':'inline-block'}),
+                
                 html.Div([
                     dbc.ButtonGroup([
                         dbc.Button('Add Source',    id=id('button_add_dataset'),    color='info',   className='me-1', style={'width':'90px'}),
@@ -185,7 +189,7 @@ layout = html.Div([
 
                     html.Div([
                         dbc.Button('Plot Graph', id=id('button_open_graph_modal'), color='info', className='me-1', style={'width':'90px'}),
-                        dbc.Button("Save", id=id('button_save_changes'), color='success', className='me-1', style={'width':'90px'}),
+                        dbc.Button("Save", id=id('button_save_changes'), color='success', className='me-1', style={'width':'90px', 'display':'none'}),
                         dbc.Button("Revert", id=id('button_revert_changes'), color='primary', className='me-1', style={'width':'90px'}),
                         dbc.Button('Execute', id=id('button_execute_action'), color='warning', className='me-1', style={'width':'90px'}),
                         dbc.Tooltip('Store Changes', target=id('button_save_changes')),
@@ -236,13 +240,17 @@ layout = html.Div([
                                 dbc.Tooltip('Run API', target=id('button_run_restapi')),
                             ], width=4, style={'text-align':'right', 'float':'right'}),
                         ]),
-                        dbc.Row([
-                            dbc.Col([
-                                dbc.Select(options=options_merge, value=options_merge[0]['value'], id=id('merge_type'), style={'display':'none', 'text-align':'center'}),
-                                dbc.Select(options=[], value=None, id=id('merge_idRef'), style={'text-align':'center', 'display':'none'}),
-                            ], width=12),
-                        ])
+                        
                     ], id=id('right_header_2'), style={'display':'none', 'font-size':'14px'}),
+
+                    # Merge Inputs Container
+                    html.Div([
+                        dbc.InputGroup([
+                            dbc.InputGroupText('Merge Type', style={'width':'30%'}),
+                            dbc.Select(options=options_merge, value=options_merge[0]['value'], id=id('merge_type'), style={'text-align':'center', 'width':'68%'})
+                        ], style={'width':'40%', 'float':'left', 'display':'inline-flex'}),
+                        html.Div([], id=id('merge_idRef_container'), style={'width':'58%', 'float':'right', 'display':'inline-block'}),
+                    ], id=id('merge_details_container'), style={'display':'none', 'border-style':'groove'}),
 
                     # Header 3 (Tab 3)
                     dbc.CardHeader([
@@ -257,57 +265,60 @@ layout = html.Div([
                     ], id=id('right_header_3'), style={'display':'none', 'font-size':'14px'}),
                     
                     
-                    # Right Content 0 (No Active Tab)
-                    html.Div([], id=id('right_content_0'), style={'display':'none'}),
-
-                    # Right Content Tab 1 (Data)
+                    # Right Content
                     html.Div([
-                        html.Div(generate_datatable(id('datatable')), id=id('datatable_container'), style={'display':'none'}),
+                        # None
+                        html.Div([], id=id('right_content_0'), style={'display':'none'}),
+
+                        # Tab 1 (Data)
+                        html.Div([
+                            html.Div(generate_datatable(id('datatable')), id=id('datatable_container'), style={'display':'none'}),
+                            html.Div([
+                                dbc.InputGroup([
+                                    dbc.InputGroupText('Group By ', style={'width':'20%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px'}),
+                                    html.Div(dcc.Dropdown(id=id('dropdown_groupby_feature'), multi=True, options=[], value=None, persistence=True, style={'color':'black', 'text-align':'center'}), style={'width':'80%'}),
+                                ]),
+                                dbc.Table([], id=id('table_aggregate_function'), bordered=True, dark=True, hover=True, striped=True, style={'overflow-y': 'auto', 'max-height':'18vh'}),
+                                dbc.Col(generate_datatable(id('datatable_aggregate'), height='25vh')),
+                            ], style={'display':'none'}, id=id('aggregate_container'))
+                        ], id=id('right_content_1'), style={'display':'none'}),
+
+                        
+                        # Tab 2 (Metadata)
+                        html.Div([], id=id('right_content_2'), style={'display':'none'}),
+
+                        # Tab 3 (Config)
                         html.Div([
                             dbc.InputGroup([
-                                dbc.InputGroupText('Group By ', style={'width':'20%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px'}),
-                                html.Div(dcc.Dropdown(id=id('dropdown_groupby_feature'), multi=True, options=[], value=None, persistence=True, style={'color':'black', 'text-align':'center'}), style={'width':'80%'}),
-                            ]),
-                            dbc.Table([], id=id('table_aggregate_function'), bordered=True, dark=True, hover=True, striped=True, style={'overflow-y': 'auto', 'max-height':'18vh'}),
-                            dbc.Col(generate_datatable(id('datatable_aggregate'), height='25vh')),
-                        ], style={'display':'none'}, id=id('aggregate_container'))
-                    ], id=id('right_content_1'), style={'display':'none'}),
+                                dbc.InputGroupText('Data Source Type', style={'width':'30%', 'font-weight':'bold', 'font-size': '13px', 'padding-left':'12px'}),
+                                dbc.Select(id('select_upload_method'), options=[
+                                    {"label": "File Upload", "value": "fileupload"},
+                                    {"label": "Paste Text", "value": "pastetext"},
+                                    {"label": "Rest API", "value": "restapi"},
+                                    {"label": "GraphQL", "value": "graphql", 'disabled':True},
+                                    {"label": "Search Data Catalog", "value": "datacatalog"},
+                                ], value='fileupload', style={'text-align':'center', 'font-size':'15px'}),
+                            ], style={'margin-bottom':'10px'}),
 
-                    
-                    # Right Content Tab 2 (Metadata)
-                    html.Div([], id=id('right_content_2'), style={'display':'none'}),
+                            html.Div(generate_manuafilelupload_details(id), style={'display':'none'}, id=id('config_options_fileupload')),
+                            html.Div(generate_pastetext(id), style={'display':'none'}, id=id('config_options_pastetext')),
+                            html.Div(generate_restapi_details(id), style={'display':'none'}, id=id('config_options_restapi')),
+                            html.Div(generate_datacatalog_options(id), style={'display':'none', 'overflow-y': 'auto', 'max-height':'40vh'}, id=id('config_options_datacatalog')),
 
-                    # Right Content Tab 3 (Config)
-                    html.Div([
-                        dbc.InputGroup([
-                            dbc.InputGroupText('Data Source Type', style={'width':'30%', 'font-weight':'bold', 'font-size': '13px', 'padding-left':'12px'}),
-                            dbc.Select(id('select_upload_method'), options=[
-                                {"label": "File Upload", "value": "fileupload"},
-                                {"label": "Paste Text", "value": "pastetext"},
-                                {"label": "Rest API", "value": "restapi"},
-                                {"label": "GraphQL", "value": "graphql", 'disabled':True},
-                                {"label": "Search Data Catalog", "value": "datacatalog"},
-                            ], value='fileupload', style={'text-align':'center', 'font-size':'15px'}),
-                        ], style={'margin-bottom':'10px'}),
+                            dbc.CardFooter([dbc.Row(dbc.Col(dbc.Button(children='Save', id=id('button_save'), color='warning', style={'width':'100%', 'font-size':'22px'}), width={'size': 8, 'offset': 2}))])
+                        ], id=id('right_content_3'), style={'display': 'none'}),
 
-                        html.Div(generate_manuafilelupload_details(id), style={'display':'none'}, id=id('config_options_fileupload')),
-                        html.Div(generate_pastetext(id), style={'display':'none'}, id=id('config_options_pastetext')),
-                        html.Div(generate_restapi_details(id), style={'display':'none'}, id=id('config_options_restapi')),
-                        html.Div(generate_datacatalog_options(id), style={'display':'none', 'overflow-y': 'auto', 'max-height':'40vh'}, id=id('config_options_datacatalog')),
+                        # Tab 4 (Graph)
+                        dbc.Row([], id=id('right_content_4'), style={'display':'none'}),
 
-                        dbc.CardFooter([dbc.Row(dbc.Col(dbc.Button(children='Save', id=id('button_save'), color='warning', style={'width':'100%', 'font-size':'22px'}), width={'size': 8, 'offset': 2}))])
-                    ], id=id('right_content_3'), style={'display': 'none'}),
-
-                    # Right Content Tab 4 (Graph)
-                    dbc.Row([], id=id('right_content_4'), style={'display':'none'}),
-
-                    # Right Content Tab 5 (Logs)
-                    html.Div([
-                        dbc.Card([
-                            dbc.CardHeader(html.H6("Logs (TBD)", style={'font-size':'14px', 'font-weight': 'bold', 'text-align':'center', 'margin':'0px'}), style={'padding':'1px', 'margin':'0px'}),
-                            dbc.CardBody([], id('log_container')),
-                        ], style={'display': 'none'}),
-                    ], style={'padding':'1px', 'overflow-y':'auto'}),
+                        # Tab 5 (Logs)
+                        html.Div([
+                            dbc.Card([
+                                dbc.CardHeader(html.H6("Logs (TBD)", style={'font-size':'14px', 'font-weight': 'bold', 'text-align':'center', 'margin':'0px'}), style={'padding':'1px', 'margin':'0px'}),
+                                dbc.CardBody([], id('log_container')),
+                            ], style={'display': 'none'}),
+                        ], style={'padding':'1px', 'overflow-y':'auto'}),
+                    ], style={'padding':'5px'}),
 
                 ], className='bg-dark', inverse=True, style={'min-height':'89vh', 'max-height':'89vh', 'overflow-y':'auto'}),    
             ], width=6), 
@@ -372,7 +383,7 @@ layout = html.Div([
     Output(id('action_header_container'), 'style'),
     Output(id('search2'), 'style'),
     Output(id('range_slider_container'), 'style'),
-    Output(id('merge_type'), 'style'),
+    Output(id('merge_details_container'), 'style'),
 
     Input(id('tabs_node'), 'active_tab'),
     Input(id('dropdown_action'), 'value'),
@@ -415,12 +426,12 @@ def generate_right_header(active_tab, selected_action, selectedNodeData):
                 options_inputs = [{'label': d['name'], 'value':d['id']} for d in dataset_list if d['id'] not in action['outputs']]
                 options_outputs = [{'label': d['name'], 'value':d['id']} for d in dataset_list if d['id'] not in action['inputs']]
 
-                if selected_action == 'merge':
-                    s9['display'] = 'block'
-                if selected_action == 'merge':
-                    s2['display'] = 'block'
                 if selected_action == 'transform':
                     s2['display'] = 'block'
+                if selected_action == 'merge':
+                    s9['display'] = 'block'
+                if selected_action == 'aggregate':
+                    pass
                 
             else:
                 s2['display'] = 'block'
@@ -546,7 +557,7 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
             dataset_o = get_document('dataset', action['outputs'][0])
             df = json_normalize(data)
             df = df.iloc[1: , :]
-            df = df.drop(index_col_name, 1)
+            if index_col_name in df: df = df.drop(index_col_name, 1)
 
             try:
                 if action_name == 'merge':
@@ -669,6 +680,15 @@ app.clientside_callback(
     Input(id('interval_cytoscape'), 'n_intervals'),
     State(id('cytoscape_position_store'), 'data'),
 )
+
+@app.callback(
+    Output(id('project_name'), 'children'),
+    Input('url', 'pathname'),
+)
+def display_project_name(pathname):
+    project = get_document('project', get_session('project_id'))
+    return 'Project: ' + project['id']
+
 
 @app.callback(
     Output(id("last_saved"), "children"),
@@ -808,7 +828,7 @@ def display_node_buttons(active_tab, action_name, selectedNodeData, s1, s2, s3, 
         if node_type == 'action':
             action = get_document('action', selectedNodeData[0]['id'])
             action_name = action_name if action_name is not None else action['name']
-            s2['display'] = 'inline-block'
+            # s2['display'] = 'inline-block'
             s3['display'] = 'inline-block'
             s4['display'] = 'inline-block'
 
@@ -840,7 +860,6 @@ def display_node_buttons(active_tab, action_name, selectedNodeData, s1, s2, s3, 
 )
 def enable_disable_tab(selectedNodeData, active_tab, tabs):
     if selectedNodeData is None: return no_update
-    pprint(session_id)
     num_selected = len(selectedNodeData)
     disabled1, disabled2, disabled3, disabled4, disabled5 = True, True, True, False, False
     if num_selected == 0:
@@ -1196,33 +1215,38 @@ def generate_datatable_aggregate(_, groupby_features, n_clicks_list, id_list, se
 
 
 
-
-
-
 @app.callback(
-    Output(id('merge_idRef'), 'style'),
-    Output(id('merge_idRef'), 'options'),
-    Output(id('merge_idRef'), 'value'),
+    Output(id('merge_idRef_container'), 'children'),
     Input(id('merge_type'), 'value'),
-    State(id('merge_type'), 'style'),
-    State(id('cytoscape'), 'selectedNodeData'),
+    Input(id('dropdown_action_inputs'), 'value'),
 )
-def generate_merge_idRef(merge_type, style, selectedNodeData):
-    style_idRef, options_idRef, val_idRef = {'display':'none'}, [], None
-    if style['display'] == 'block' and merge_type == 'arrayMergeById':
-        if merge_type == 'arrayMergeById':
-            style_idRef = {'display':'block', 'text-align':'center'}
-            action = get_document('action', selectedNodeData[0]['id'])
-            inputs = action['inputs']
-            features = set()
+def display_merge_details(merge_type, action_inputs):
+    if action_inputs is None: return no_update
+    if type(action_inputs) != list: action_inputs = [action_inputs]
 
-            for node_id in inputs:
-                data = get_dataset_data(node_id)
-                features.update(data.columns)
-            options_idRef = [{'label': c, 'value': c} for c in features]
-            val_idRef = options_idRef[0]['value']
+    dataset_list = [get_document('dataset', dataset_id) for dataset_id in action_inputs]
+    merge_inputs = []
+    
+    if merge_type == 'arrayMergeByIndex':
+        pass
+    elif merge_type == 'objectMerge':
+        pass
+    if merge_type == 'arrayMergeById':
+        for dataset in dataset_list:
+            merge_inputs += [
+                dbc.InputGroup([
+                    dbc.InputGroupText(dataset['name'], style={'width':'25%'}),
+                    dbc.Select(
+                        options=[{'label': f['name'], 'value':f['id']} for f in dataset['features']],
+                        value= dataset['features'][0]['id'] if len(dataset['features']) > 0 else None, 
+                        id={'type': id('merge_idRef'), 'index': dataset['id']}, style={'text-align':'center'}
+                    ),
+                ])
+            ]
+            
+    return merge_inputs
 
-    return style_idRef, options_idRef, val_idRef
+
 
 
 
@@ -1576,7 +1600,7 @@ def auto_select_column(active_cell, selected_columns):
     Input(id('transform_store'), "data"),
     
     Input(id('merge_type'), 'value'),
-    Input(id('merge_idRef'), 'vale'),
+    Input({'type': id('merge_idRef'), 'index': ALL}, 'value'),
 
     Input(id('range_slider'), 'value'),
     Input(id('search2'), 'value'),
@@ -1587,7 +1611,7 @@ def auto_select_column(active_cell, selected_columns):
     State(id('datatable'), 'columns'),
 )
 def datatable_triggers(_, action_inputs, transform_store, 
-                        merge_type, merge_idRef,
+                        merge_type, merge_idRef_list,
                         range_val, search_val,
                         selected_action, selectedNodeData, data, columns
 ):
@@ -1599,13 +1623,17 @@ def datatable_triggers(_, action_inputs, transform_store,
     
     show_datatype_dropdown = False
     renamable = False
+    merge_idRef_list = ['/'+idRef for idRef in merge_idRef_list]
+    
+    # print("\ntriggered", merge_idRef_list)
+    # pprint(callback_context.triggered)
     
     if num_selected == 1:
         node_id = selectedNodeData[0]['id']
         node_type = selectedNodeData[0]['type']
 
         if node_type == 'action':
-            dataset, df = get_action_source(node_id, action_inputs, merge_type, merge_idRef)
+            dataset, df = get_action_source(node_id, action_inputs, merge_type, merge_idRef_list)
             features = dataset['features']
 
             # Add/Style Session Changes
@@ -1654,7 +1682,7 @@ def datatable_triggers(_, action_inputs, transform_store,
     elif num_selected > 1 and all(node['type'] == 'dataset' for node in selectedNodeData):
         inputs = [node['id'] for node in selectedNodeData]
         dataset = merge_metadata(inputs, 'objectMerge')
-        df = merge_dataset_data(inputs, merge_type, merge_idRef)
+        df = merge_dataset_data(inputs, merge_type, merge_idRef_list)
         features = dataset['features']
 
     else:
@@ -2216,16 +2244,20 @@ def generate_graph_inputs_visibility(graph_type, pathname):
     Input(id('scatter_color'), 'value'),
 
     State(id('datatable_graph'), 'data'),
+    State(id('cytoscape'), 'selectedNodeData'),
 )
 def display_graph(style1, style2, style3, style4, 
                         line_x, line_y,
                         bar_x, bar_y, bar_barmode,
                         pie_names, pie_values,
                         scatter_x, scatter_y, scatter_color,
-                        data):
+                        data, selectedNodeData):
+    if len(selectedNodeData) == 0: return no_update
     df = pd.DataFrame(data)
+    dataset = get_document('dataset', selectedNodeData[0]['id'])
+    labels = {f['id']:f['name'] for f in dataset['features']}
     if style1['display'] != 'none':
-        return get_line_figure(df, line_x, line_y)
+        return get_line_figure(df, line_x, line_y, labels)
     elif style2['display'] != 'none':
         return get_bar_figure(df, bar_x, bar_y, bar_barmode)
     elif style3['display'] != 'none':

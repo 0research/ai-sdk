@@ -15,7 +15,7 @@ from pandas import json_normalize
 import pandas as pd
 import uuid
 from apps.constants import *
-
+from flask import session
 from apps.util import *
 import requests
 import dash_uploader as du
@@ -686,17 +686,18 @@ def graph_input_visibility_callback(graph_type):
     if graph_type == 'pie': style3 = {'display': 'block'}
     if graph_type == 'scatter': style4 = {'display': 'block'}
     return style1, style2, style3, style4
-def get_line_figure(df, x, y):
-    fig = px.line(df, x=x, y=y)
+def get_line_figure(df, x, y, labels=None):
+    fig = px.line(df, x=x, y=y, labels=labels)
+    fig.update_layout(showlegend=False)
     return fig
-def get_bar_figure(df, x, y, barmode):
-    fig = px.bar(df, x=y, y=x, barmode=barmode)
+def get_bar_figure(df, x, y, barmode, labels=None):
+    fig = px.bar(df, x=y, y=x, barmode=barmode, labels=labels)
     return fig
-def get_pie_figure(df, names, values):
-    fig = px.pie(df, names=names, values=values)
+def get_pie_figure(df, names, values, labels=None):
+    fig = px.pie(df, names=names, values=values, labels=labels)
     return fig
-def get_scatter_figure(df, x, y, color):
-    fig = px.scatter(df, x=x, y=y, color=color)
+def get_scatter_figure(df, x, y, color, labels=None):
+    fig = px.scatter(df, x=x, y=y, color=color, labels=labels)
     return fig
 def upsert_graph(project_id, dataset_id, graph):
     project = get_document('project', project_id)
@@ -815,7 +816,10 @@ def get_dataset_data(dataset_id, features=None):
     features = [f['id'] for f in dataset['features']] if features is None else features
     data = search_documents(dataset_id)
     if data != None:
-        return json_normalize(data)[features]
+        df = json_normalize(data)[features]
+        datatypes = {f['id']: f['datatype'] for f in dataset['features']}
+        df = df.astype(datatypes, errors='ignore')
+        return df
     else:
         return json_normalize([])
 def new_project(project_id, project_type):
@@ -832,11 +836,14 @@ def save_dataset(df, dataset_id, upload_method='', details=''):
         'name': str(col), 
         'datatype': str(datatype),
         'expectation': {},
-    } for col, datatype in zip(df.columns, df.convert_dtypes().dtypes)]
+    } for col, datatype in zip(df.columns, df.convert_dtypes(convert_floating=False).dtypes)]
 
     # Rename feature name to Unique ID
     mapper = {f['name']:f['id'] for f in dataset['features']}
     df.rename(columns=mapper, inplace=True)
+
+    # Convert all columns to string
+    df = df.astype(str)
 
     # Upload
     upsert('dataset', dataset)
@@ -1163,13 +1170,6 @@ def get_action_source(dataset_id, inputs=None, merge_type='arrayMergeByIndex', i
     else:
         dataset = merge_metadata(inputs, 'objectMerge')
         df = merge_dataset_data(inputs, merge_type, idRef)
-
-        print("AAAAAAAAAAAAAAAA")
-        print(inputs)
-        print(merge_type)
-        print(idRef)
-        pprint(dataset)
-        print(df)
     
     return dataset, df
 def generate_options(label_list, input_list):

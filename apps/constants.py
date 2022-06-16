@@ -56,19 +56,20 @@ DATATYPE_NONNUMERICAL = ['string', 'bool', 'datetime64', 'geopoint']
 options_merge = [
     {'label': 'Merge by Index', 'value': 'arrayMergeByIndex'},
     {'label': 'Object Merge', 'value': 'objectMerge'},
-    {'label': 'Merge by Id', 'value': 'arrayMergeById', 'disabled':True},
-    {'label': 'Overwrite', 'value': 'overwrite', 'disabled':True},
-    {'label': 'Version Merge', 'value': 'version', 'disabled':True},
+    {'label': 'Merge by Id', 'value': 'arrayMergeById'},
+    # {'label': 'Overwrite', 'value': 'overwrite', 'disabled':True},
+    # {'label': 'Version Merge', 'value': 'version', 'disabled':True},
     {'label': 'Append', 'value': 'append', 'disabled':True},
 ]
 
 
 # List of Actions
 option_actions = [
-    {'label':'Merge', 'value':'merge'},
-    {'label':'Transform', 'value':'transform'},
-    {'label':'Aggregate', 'value':'aggregate'},
-    {'label':'Impute', 'value':'impute'},
+    {'label':'Join',        'value':'join'},
+    {'label':'Merge',       'value':'merge'},
+    {'label':'Transform',   'value':'transform'},
+    {'label':'Aggregate',   'value':'aggregate'},
+    {'label':'Impute',      'value':'impute'},
 ]
 
 

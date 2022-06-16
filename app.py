@@ -77,6 +77,8 @@ app.index_string = '''
 
 # Server
 server = app.server
-
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 
