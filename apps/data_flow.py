@@ -243,6 +243,15 @@ layout = html.Div([
                         
                     ], id=id('right_header_2'), style={'display':'none', 'font-size':'14px'}),
 
+                    # Join Inputs Container
+                    html.Div([
+                        dbc.InputGroup([
+                            dbc.InputGroupText('Merge Type', style={'width':'30%'}),
+                            dbc.Select(options=options_join, value=options_join[0]['value'], id=id('join_method'), style={'text-align':'center', 'width':'68%'})
+                        ], style={'width':'40%', 'float':'left', 'display':'inline-flex'}),
+                        html.Div([], id=id('join_features_container'), style={'width':'58%', 'float':'right', 'display':'inline-block'}),
+                    ], id=id('join_details_container'), style={'display':'none', 'border-style':'groove'}),
+
                     # Merge Inputs Container
                     html.Div([
                         dbc.InputGroup([
@@ -251,6 +260,8 @@ layout = html.Div([
                         ], style={'width':'40%', 'float':'left', 'display':'inline-flex'}),
                         html.Div([], id=id('merge_idRef_container'), style={'width':'58%', 'float':'right', 'display':'inline-block'}),
                     ], id=id('merge_details_container'), style={'display':'none', 'border-style':'groove'}),
+
+                    
 
                     # Header 3 (Tab 3)
                     dbc.CardHeader([
@@ -383,6 +394,7 @@ layout = html.Div([
     Output(id('action_header_container'), 'style'),
     Output(id('search2'), 'style'),
     Output(id('range_slider_container'), 'style'),
+    Output(id('join_details_container'), 'style'),
     Output(id('merge_details_container'), 'style'),
 
     Input(id('tabs_node'), 'active_tab'),
@@ -397,9 +409,9 @@ def generate_right_header(active_tab, selected_action, selectedNodeData):
     # if num_selected == 0: return no_update
     dataset_name, options_selected_nodes  = no_update, no_update 
     options_inputs, selected_inputs, options_outputs, selected_outputs = no_update, no_update, no_update, no_update
-    s1, s2, s3, s4, s5, s6, s7, s8, s9 = ({'display': 'none'}, {'display': 'none'}, {'display': 'none'},
+    s1, s2, s3, s4, s5, s6, s7, s8, s9, s10 = ({'display': 'none'}, {'display': 'none'}, {'display': 'none'},
                                             {'display': 'none'}, {'display': 'none'}, {'display': 'none'},
-                                            {'display': 'none', 'text-align':'center'}, {'display': 'hidden'}, {'display': 'none', 'text-align':'center'}
+                                            {'display': 'none', 'text-align':'center'}, {'display': 'hidden'}, {'display':'none'}, {'display': 'none'}
                                         )
 
     if num_selected != 0:
@@ -420,7 +432,7 @@ def generate_right_header(active_tab, selected_action, selectedNodeData):
 
                 if triggered != id('dropdown_action'):
                     selected_action = action['name']
-                selected_inputs = action['inputs'] if selected_action == 'merge' else action['inputs'][0]
+                selected_inputs = action['inputs'] if selected_action in ['join', 'merge'] else action['inputs'][0]
                 selected_outputs = action['outputs']
 
                 options_inputs = [{'label': d['name'], 'value':d['id']} for d in dataset_list if d['id'] not in action['outputs']]
@@ -428,8 +440,10 @@ def generate_right_header(active_tab, selected_action, selectedNodeData):
 
                 if selected_action == 'transform':
                     s2['display'] = 'block'
-                if selected_action == 'merge':
+                if selected_action == 'join':
                     s9['display'] = 'block'
+                if selected_action == 'merge':
+                    s10['display'] = 'block'
                 if selected_action == 'aggregate':
                     pass
                 
@@ -462,7 +476,7 @@ def generate_right_header(active_tab, selected_action, selectedNodeData):
            
     return (dataset_name, options_selected_nodes, 
             selected_action, options_inputs, selected_inputs, options_outputs, selected_outputs,
-            s1, s2, s3, s4, s5, s6, s7, s8, s9
+            s1, s2, s3, s4, s5, s6, s7, s8, s9, s10
             )
 
 
@@ -560,7 +574,18 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
             if index_col_name in df: df = df.drop(index_col_name, 1)
 
             try:
-                if action_name == 'merge':
+                if action_name == 'join':
+                    action['details'] = {'join_method':'left', 'features': []}
+                    dataset = merge_metadata(action['inputs'], 'objectMerge')
+                    rename_map = {}
+                    for i in range(len(dataset['features'])):
+                        feature_id = str(uuid.uuid1())
+                        rename_map[dataset['features'][i]['id']] = feature_id
+                        dataset['features'][i]['id'] = feature_id
+                    df.rename(columns=rename_map, inplace=True)
+                    dataset_o['features'] = dataset['features']
+
+                elif action_name == 'merge':
                     action['details'] = {'merge_type':'none', 'idRef': 'none'}
                     dataset = merge_metadata(action['inputs'], 'objectMerge')
                     dataset_o['features'] = dataset['features']
@@ -997,7 +1022,7 @@ def upload_data_source(n_clicks_button_save_config,
 )
 def toggle_multi_inputs(action_val, selected_inputs):
     if action_val is None: return no_update
-    elif action_val == 'merge':
+    elif action_val in ['join', 'merge']:
         multi = True
         selected_inputs = no_update
     else:
@@ -1208,11 +1233,36 @@ def generate_datatable_aggregate(_, groupby_features, n_clicks_list, id_list, se
 
         df_agg.droplevel(level=1, axis=1)
         df_agg.columns = feature_id_list
-        features = [{'id': f_id, 'name':'', 'datatype': str(d)} for f_id, d in zip(feature_id_list, df_agg.convert_dtypes().dtypes)]
+        features = [{'id': f_id, 'name':'', 'datatype': str(d)} for f_id, d in df_agg.convert_dtypes().dtypes.apply(lambda x: x.name.lower()).to_dict().items()]
         df_agg, _, _ = generate_datatable_data(df_agg, features)
 
         return df_agg.to_dict('records'), columns, aggregate_store
 
+
+
+@app.callback(
+    Output(id('join_features_container'), 'children'),
+    Input(id('dropdown_action_inputs'), 'value'),
+)
+def display_merge_details(action_inputs):
+    if action_inputs is None: return no_update
+    if type(action_inputs) != list: action_inputs = [action_inputs]
+
+    dataset_list = [get_document('dataset', dataset_id) for dataset_id in action_inputs]
+    join_inputs = []
+    for dataset in dataset_list:
+        join_inputs += [
+                    dbc.InputGroup([
+                        dbc.InputGroupText(dataset['name'], style={'width':'25%'}),
+                        dbc.Select(
+                            options=[{'label': f['name'], 'value':f['id']} for f in dataset['features']],
+                            value= dataset['features'][0]['id'] if len(dataset['features']) > 0 else None, 
+                            id={'type': id('join_keys'), 'index': dataset['id']}, style={'text-align':'center'}
+                        ),
+                    ])
+                ]
+            
+    return join_inputs
 
 
 @app.callback(
@@ -1250,6 +1300,8 @@ def display_merge_details(merge_type, action_inputs):
 
 
 
+
+
 # Right Content 1
 @app.callback(
     Output(id('datatable_container'), 'children'),
@@ -1268,9 +1320,12 @@ def generate_right_content_1(active_tab, selected_action, selectedNodeData):
     if num_selected == 1:
         node_type = selectedNodeData[0]['type']
         if node_type == 'action':
-            if selected_action == 'merge':
+            if selected_action == 'join':
                 s1['display'] = 'block'
-                datatable_container = generate_datatable(id('datatable'), height='63vh')
+                datatable_container = generate_datatable(id('datatable'), height='60vh')
+            elif selected_action == 'merge':
+                s1['display'] = 'block'
+                datatable_container = generate_datatable(id('datatable'), height='60vh')
             elif selected_action == 'transform':
                 s1['display'] = 'block'
                 datatable_container = generate_datatable(id('datatable'), cell_editable=True, height='65vh', sort_action='native', filter_action='native', col_selectable='multi')
@@ -1599,6 +1654,8 @@ def auto_select_column(active_cell, selected_columns):
     Input(id('dropdown_action_inputs'), 'value'),
     Input(id('transform_store'), "data"),
     
+    Input(id('join_method'), 'value'),
+    Input({'type': id('join_keys'), 'index': ALL}, 'value'),
     Input(id('merge_type'), 'value'),
     Input({'type': id('merge_idRef'), 'index': ALL}, 'value'),
 
@@ -1611,7 +1668,7 @@ def auto_select_column(active_cell, selected_columns):
     State(id('datatable'), 'columns'),
 )
 def datatable_triggers(_, action_inputs, transform_store, 
-                        merge_type, merge_idRef_list,
+                        join_method, join_keys, merge_type, merge_idRef_list,
                         range_val, search_val,
                         selected_action, selectedNodeData, data, columns
 ):
@@ -1623,7 +1680,7 @@ def datatable_triggers(_, action_inputs, transform_store,
     
     show_datatype_dropdown = False
     renamable = False
-    merge_idRef_list = ['/'+idRef for idRef in merge_idRef_list]
+    merge_idRef_list = None if merge_idRef_list is None else ['/'+idRef for idRef in merge_idRef_list]
     
     # print("\ntriggered", merge_idRef_list)
     # pprint(callback_context.triggered)
@@ -1633,7 +1690,7 @@ def datatable_triggers(_, action_inputs, transform_store,
         node_type = selectedNodeData[0]['type']
 
         if node_type == 'action':
-            dataset, df = get_action_source(node_id, action_inputs, merge_type, merge_idRef_list)
+            dataset, df = get_action_source(node_id, action_inputs, 'join', join_method, join_keys)
             features = dataset['features']
 
             # Add/Style Session Changes
@@ -1680,10 +1737,11 @@ def datatable_triggers(_, action_inputs, transform_store,
             features = dataset['features']
 
     elif num_selected > 1 and all(node['type'] == 'dataset' for node in selectedNodeData):
-        inputs = [node['id'] for node in selectedNodeData]
-        dataset = merge_metadata(inputs, 'objectMerge')
-        df = merge_dataset_data(inputs, merge_type, merge_idRef_list)
-        features = dataset['features']
+        # inputs = [node['id'] for node in selectedNodeData]
+        # dataset = merge_metadata(inputs, 'objectMerge')
+        # df = merge_dataset_data(inputs, merge_type, merge_idRef_list)
+        # features = dataset['features']
+        pass
 
     else:
         return no_update
@@ -1692,14 +1750,16 @@ def datatable_triggers(_, action_inputs, transform_store,
     # Search Value
 
     # Process into Datatable format
-    if df.empty:
-        print("Empty")
-        return [], [], None, None, None
-    else:
+    if not df.empty:
         df, columns, dropdown_data = generate_datatable_data(df, features, show_datatype_dropdown=show_datatype_dropdown, renamable=renamable)
-
-
-    return df.to_dict('records'), columns, dropdown_data, style_data_conditional, style_header_conditional
+        data = df.to_dict('records')
+        print(df)
+        print(len(df))
+    else:
+        print("Empty Dataframe")
+        data, dropdown_data = [], []
+    
+    return data, columns, dropdown_data, style_data_conditional, style_header_conditional
 
 
 
@@ -1840,8 +1900,8 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
                     for feature in store['features']:
                         if feature['id'] == f1a: datatype1 = feature['datatype']
                         if feature['id'] == f1b: datatype2 = feature['datatype']
-                    f1 = df2[f1a].str.strip().astype(datatype1, errors='ignore')
-                    f2 = df2[f1b].str.strip().astype(datatype2, errors='ignore')
+                    f1 = df2[f1a].astype(datatype1, errors='raise')
+                    f2 = df2[f1b].astype(datatype2, errors='raise')
 
                     if func1 == 'add': data = f1 + f2
                     elif func1 == 'subtract': data = f1 - f2
@@ -1851,7 +1911,7 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
                     elif func1 == 'modulus': data = f1 % f2
 
                     transform_func = func1
-                    datatype_out = 'Int64'
+                    datatype_out = 'int64'
                     # dependent_features = [f1, f2]
                     
                 elif function_type == 'comparison':
@@ -1859,8 +1919,8 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
                         if feature['id'] == f2a: datatype1 = feature['datatype']
                         if feature['id'] == f2b: datatype2 = feature['datatype']
 
-                    f1 = df2[f2a].str.strip().astype(datatype1, errors='ignore')
-                    f2 = df2[f2b].str.strip().astype(datatype2, errors='ignore')
+                    f1 = df2[f2a].astype(datatype1, errors='raise')
+                    f2 = df2[f2b].astype(datatype2, errors='raise')
 
                     if func2 == 'gt':   data = f1.gt(f2, fill_value='')
                     elif func2 == 'lt': data = f1.lt(f2, fill_value='')

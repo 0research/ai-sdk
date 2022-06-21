@@ -47,10 +47,19 @@ SIDEBAR_3_LIST = [
 
 
 # Datatypes
-DATATYPE_LIST = ['string', 'Int64', 'numerical', 'bool', 'datetime', 'geopoint', 'Float64']
-DATATYPE_NUMERICAL = ['Int64', 'Float64']
-DATATYPE_NONNUMERICAL = ['string', 'bool', 'datetime64', 'geopoint']
+DATATYPE_LIST = ['string', 'int64', 'numerical', 'bool', 'datetime', 'geopoint', 'float64']
+DATATYPE_NUMERICAL = ['Int64', 'float64']
+DATATYPE_NONNUMERICAL = ['string', 'bool', 'datetime', 'geopoint']
 
+
+# Types of Merges
+options_join = [
+    {'label': 'Left Join', 'value': 'left'},
+    {'label': 'Right Join', 'value': 'right'},
+    {'label': 'Inner Join', 'value': 'inner'},
+    {'label': 'Outer Join', 'value': 'outer'},
+    # {'label': 'Cross Join', 'value': 'cross'},
+]
 
 # Types of Merges
 options_merge = [
@@ -66,7 +75,7 @@ options_merge = [
 # List of Actions
 option_actions = [
     {'label':'Join',        'value':'join'},
-    {'label':'Merge',       'value':'merge'},
+    # {'label':'Merge',       'value':'merge'},
     {'label':'Transform',   'value':'transform'},
     {'label':'Aggregate',   'value':'aggregate'},
     {'label':'Impute',      'value':'impute'},
@@ -151,3 +160,8 @@ YOUTUBE = "../assets/static/youtube-icon.svg"
 GITHUB = "../assets/static/github-icon.svg"
 DOCKER = "../assets/static/docker-icon.svg"
 GITHUBACTION = "../assets/static/githubaction-icon.svg"
+
+
+
+# Datatypes
+THRESHOLD = 0.8

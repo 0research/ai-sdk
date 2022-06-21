@@ -27,7 +27,7 @@ import socket
 import ast
 import json
 from datetime import datetime
-
+from dateutil.parser import parse
 
 
 
@@ -692,12 +692,15 @@ def get_line_figure(df, x, y, labels=None):
     return fig
 def get_bar_figure(df, x, y, barmode, labels=None):
     fig = px.bar(df, x=y, y=x, barmode=barmode, labels=labels)
+    fig.update_layout(showlegend=False)
     return fig
 def get_pie_figure(df, names, values, labels=None):
     fig = px.pie(df, names=names, values=values, labels=labels)
+    fig.update_layout(showlegend=False)
     return fig
 def get_scatter_figure(df, x, y, color, labels=None):
     fig = px.scatter(df, x=x, y=y, color=color, labels=labels)
+    fig.update_layout(showlegend=False)
     return fig
 def upsert_graph(project_id, dataset_id, graph):
     project = get_document('project', project_id)
@@ -813,30 +816,46 @@ def search_documents(collection_id, per_page=250, search_parameters=None):
     return result
 def get_dataset_data(dataset_id, features=None):
     dataset = get_document('dataset', dataset_id)
-    features = [f['id'] for f in dataset['features']] if features is None else features
+    feature_id_list = [f['id'] for f in dataset['features']] if features is None else features
     data = search_documents(dataset_id)
+    df = json_normalize([])
     if data != None:
-        df = json_normalize(data)[features]
+        df = json_normalize(data)[feature_id_list]
         datatypes = {f['id']: f['datatype'] for f in dataset['features']}
-        df = df.astype(datatypes, errors='ignore')
-        return df
-    else:
-        return json_normalize([])
+    
+       # Convert dtypes
+        for f_id, dtype in datatypes.items():
+            if dtype == 'int64': 
+                df[f_id] = df[f_id].astype(float).astype(datatypes[f_id])  # Pandas bug: require converting to float first
+
+            if dtype == 'float64':
+                condition = df[f_id].apply(lambda x: is_dollar(x))
+                if (sum(condition) / len(condition)) >= THRESHOLD:
+                    df[f_id] = df[f_id].str[1:].astype(float)
+                
+                df[f_id] = df[f_id].astype(datatypes[f_id])
+
+            if 'datetime' in dtype:
+                df[f_id] = pd.to_datetime(df[f_id], infer_datetime_format=True, format='%Y%m%d %H:%M:%S')
+        
+    return df
 def new_project(project_id, project_type):
     project = Project(id=project_id, type=project_type)
     create('project', project)
 def get_all_collections():
     return [c['name'] for c in client.collections.retrieve()]
 def save_dataset(df, dataset_id, upload_method='', details=''):
+    datatypes = get_datatypes(df)
+
     dataset = get_document('dataset', dataset_id)
     dataset['upload_method'] = upload_method 
     dataset['details'] = details
     dataset['features'] = [{
         'id': str(uuid.uuid1()),
-        'name': str(col), 
-        'datatype': str(datatype),
+        'name': name, 
+        'datatype': dtype,
         'expectation': {},
-    } for col, datatype in zip(df.columns, df.convert_dtypes(convert_floating=False).dtypes)]
+    } for name, dtype in datatypes.items()]
 
     # Rename feature name to Unique ID
     mapper = {f['name']:f['id'] for f in dataset['features']}
@@ -1149,8 +1168,8 @@ def generate_transform_inputs(id):
             ]),
         ], id=id('condition'), style={'display': 'none'}),
     ]
-def get_action_source(dataset_id, inputs=None, merge_type='arrayMergeByIndex', idRef=None):
-    action = get_document('action', dataset_id)
+def get_action_source(action_id, inputs=None, combine_method='join', join_method='left', join_keys=[], merge_type='arrayMergeByIndex', idRef=None, features=None):
+    action = get_document('action', action_id)
     if inputs == None:
         inputs = action['inputs']
     else:
@@ -1158,7 +1177,7 @@ def get_action_source(dataset_id, inputs=None, merge_type='arrayMergeByIndex', i
 
     # No Inputs
     if len(inputs) == 0:
-        dataset = get_document('dataset', dataset_id)
+        dataset = get_document('dataset', action_id)
         df = pd.DataFrame()
 
     # Single Source
@@ -1166,12 +1185,35 @@ def get_action_source(dataset_id, inputs=None, merge_type='arrayMergeByIndex', i
         dataset = get_document('dataset', inputs[0])
         df = get_dataset_data(inputs[0])
 
-    # Multiple Sources (Merge)
+    # Multiple Sources (Join/Merge)
     else:
-        dataset = merge_metadata(inputs, 'objectMerge')
-        df = merge_dataset_data(inputs, merge_type, idRef)
-    
+        try:
+            dataset = merge_metadata(inputs, 'objectMerge')
+            if combine_method == 'join':
+                f1_list = None
+                f2_list = None
+                # if features is not None:
+                #     d1_list = [f['id'] for f in get_document('dataset', inputs[0])['features']]
+                #     d2_list = [f['id'] for f in get_document('dataset', inputs[1])['features']]
+                #     f1_list = [f for f in features if f['id'] in d1_list]
+                #     f2_list = [f for f in features if f['id'] in d2_list]
+
+                df1 = get_dataset_data(inputs[0], f1_list)
+                df2 = get_dataset_data(inputs[1], f2_list)
+                df = df1.merge(df2, how=join_method, left_on=join_keys[0], right_on=join_keys[1])
+                for col in df:
+                    if df[col].dtype in ['string', 'object']: df[col].fillna("", inplace=True)
+                    else: df[col].fillna(0, inplace=True)
+                    
+            else:
+                df = merge_dataset_data(inputs, merge_type, idRef)
+                
+        except Exception as e:
+            df = pd.DataFrame([])
+            print('Exception:', e)
+
     return dataset, df
+
 def generate_options(label_list, input_list):
     return [
         (
@@ -1185,12 +1227,43 @@ def generate_options(label_list, input_list):
 
 
 
+""" Validation """
+def is_date(string, fuzzy=False):
+    """
+    Return whether the string can be interpreted as a date.
+
+    :param string: str, string to check for date
+    :param fuzzy: bool, ignore unknown tokens in string if True
+    """
+    try: 
+        parse(string, fuzzy=fuzzy)
+        return True
+
+    except ValueError:
+        return False
+def is_dollar(string):
+    return string[0] == '$'
+""" -------------------------------------------------------------------------------- """
 
 
+""" General """
+def get_datatypes(df):
+    datatypes = df.convert_dtypes().dtypes.apply(lambda x: x.name.lower()).to_dict()
+    for f_id, dtype in datatypes.items():
+        if dtype in ['string', 'object']:
+            # Conditions
+            condition1 = df[f_id].apply(lambda x: is_dollar(x))
+            condition2 = df[f_id].apply(lambda x: is_date(x))
 
+            # Dollar
+            if (sum(condition1) / len(condition1)) >= THRESHOLD:
+                datatypes[f_id] = 'float64'
+            # Date
+            elif (sum(condition2) / len(condition2)) >= THRESHOLD:
+                datatypes[f_id] = 'datetime'
 
-
-
+    return datatypes
+""" -------------------------------------------------------------------------------- """
 
 # Init Typesense
 client = initialize_typesense()
