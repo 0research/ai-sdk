@@ -48,7 +48,7 @@ SIDEBAR_3_LIST = [
 
 # Datatypes
 DATATYPE_LIST = ['string', 'int64', 'numerical', 'bool', 'datetime', 'geopoint', 'float64']
-DATATYPE_NUMERICAL = ['Int64', 'float64']
+DATATYPE_NUMERICAL = ['int64', 'float64']
 DATATYPE_NONNUMERICAL = ['string', 'bool', 'datetime', 'geopoint']
 
 

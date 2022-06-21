@@ -232,6 +232,7 @@ def generate_datatable(component_id, data=[], columns=[], height='450px',
         page_size= 100,
         dropdown=dropdown,
         dropdown_data=dropdown_data,
+        # fixed_columns={'headers':True, 'data':1},
         style_table={'height': height, 'overflowY': 'auto'},
         style_header={
             'backgroundColor': 'rgb(30, 30, 30)',
@@ -931,7 +932,7 @@ def add_dataset(project_id):
     upsert('dataset', dataset)
 def add_action(source_id_list):
     # Get Node Position
-    default_action = 'transform' if len(source_id_list) == 1 else 'merge'
+    default_action = 'transform' if len(source_id_list) == 1 else 'join'
     project = get_document('project', get_session('project_id'))
     dataset_position_list = [d for d in project['dataset_list'] if d['id'] in source_id_list]
     x, y, num_sources = 0, [], len(source_id_list)

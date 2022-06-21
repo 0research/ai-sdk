@@ -1813,6 +1813,8 @@ def datatable_triggers(_, action_inputs, transform_store,
 
     State(id('dropdown_shift_size'), 'value'),
     State(id('dropdown_shift_feature'), 'value'),
+
+    State(id('custom_input'), 'value'),
 )
 def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
                 sort_by, filter_query,
@@ -1823,7 +1825,8 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
                 func4, f4a, f4b,
                 f5a, f5b,
                 f6a,
-                f7a, f7b
+                f7a, f7b,
+                custom_input,
 ):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     add_feature_msg = ''
@@ -2187,7 +2190,7 @@ def generate_right_content(active_tab, selectedNodeData):
     prevent_initial_call=True
 )
 def load_graph(a, b):
-    if len(callback_context.triggered) != 1: return no_update
+    if len(callback_context.triggered) != 1 or callback_context.triggered[0]['value'] is None: return no_update
     triggered = json.loads(callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0])
     graph_id = triggered['index']
     return graph_id 
@@ -2212,6 +2215,9 @@ def button_chart(n_clicks1, n_clicks2, graph_id, selectedNodeData, is_open):
     active_tab = no_update
     s1, s2 = {'display':'none'}, {'display':'none'}
     is_open = not is_open
+
+    print("AAAA")
+    pprint(callback_context.triggered)
 
     if triggered == id('button_open_graph_modal') or triggered == id('graph_id_store'):
         if triggered == id('button_open_graph_modal'): store_session('graph_id', '')
@@ -2338,7 +2344,7 @@ def display_graph(style1, style2, style3, style4,
 )
 def save_graph(n_clicks, graph_type, graph_inputs, name, description, selectedNodeData):
     if n_clicks is None: return no_update
-
+    pprint(graph_inputs)
     if graph_type == 'line':
         x = graph_inputs[1]['props']['children'][0]['props']['children'][1]['props']['value']
         y = graph_inputs[1]['props']['children'][0]['props']['children'][3]['props']['children']['props']['value']
