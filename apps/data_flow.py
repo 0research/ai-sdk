@@ -49,7 +49,7 @@ cytoscape_stylesheet = [
     {
         'selector': 'node',
         'style': {
-            'content': 'data(name)'
+            'content': 'data(name)',
         }
     },
     # Edge
@@ -538,19 +538,19 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
     project = get_document('project', project_id)
     layout = { 'name': 'preset', 'fit': True }
 
-    # Action State
-    for a in project['action_list']:
-        action = get_document('action', a['id'])
-        if action['name'] == 'transform':
-            print('ACTION STATE: ', action['state'])
-            if action['id'] in transform_store:
-                if action['details'] != transform_store[action['id']]:
-                    action['state'].append('amber')
-                    if len(action['state']) > 2: action['state'].pop(0)
-                else:
-                    if len(action['state']) == 2:
-                        action['state'][1] = action['state'][0]
-                upsert('action', action)
+    # # Action State
+    # for a in project['action_list']:
+    #     action = get_document('action', a['id'])
+    #     if action['name'] == 'transform':
+    #         print('ACTION STATE: ', action['state'])
+    #         if action['id'] in transform_store:
+    #             if action['details'] != transform_store[action['id']]:
+    #                 action['state'].append('amber')
+    #                 if len(action['state']) > 2: action['state'].pop(0)
+    #             else:
+    #                 if len(action['state']) == 2:
+    #                     action['state'][1] = action['state'][0]
+    #             upsert('action', action)
 
     # Change Node Name, Action, Inputs  
     if num_selected == 1:
@@ -1923,7 +1923,10 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
                         if feature['id'] == f2b: datatype2 = feature['datatype']
 
                     f1 = df2[f2a].astype(datatype1, errors='raise')
-                    f2 = df2[f2b].astype(datatype2, errors='raise')
+                    if f2b != '_custom':
+                        f2 = df2[f2b].astype(datatype2, errors='raise')
+                    else:
+                        f2 = int(custom_input)
 
                     if func2 == 'gt':   data = f1.gt(f2, fill_value='')
                     elif func2 == 'lt': data = f1.lt(f2, fill_value='')
@@ -2152,13 +2155,16 @@ def generate_right_content(active_tab, selectedNodeData):
 
     for dataset_id in dataset_id_list:
         if dataset_id in project['graph_dict']:
+            dataset = get_document('dataset', dataset_id)
+            labels = {f['id']:f['name'] for f in dataset['features']}
             for graph_id in project['graph_dict'][dataset_id]:
                 graph = get_document('graph', graph_id)
                 df = get_dataset_data(dataset_id)
-                if graph['type'] == 'line': fig = get_line_figure(df, graph['x'], graph['y'])
-                elif graph['type'] == 'bar': fig = get_bar_figure(df, graph['x'], graph['y'], graph['barmode'])
-                elif graph['type'] == 'pie': fig = get_pie_figure(df, graph['names'], graph['values'])
-                elif graph['type'] == 'scatter': fig = get_scatter_figure(df, graph['x'], graph['y'], graph['color'])
+                
+                if graph['type'] == 'line': fig = get_line_figure(df, graph['x'], graph['y'], labels)
+                elif graph['type'] == 'bar': fig = get_bar_figure(df, graph['x'], graph['y'], graph['barmode'], labels)
+                elif graph['type'] == 'pie': fig = get_pie_figure(df, graph['names'], graph['values'], labels)
+                elif graph['type'] == 'scatter': fig = get_scatter_figure(df, graph['x'], graph['y'], graph['color'], labels)
 
                 right_content_4 += [
                     dbc.Col([
@@ -2322,14 +2328,16 @@ def display_graph(style1, style2, style3, style4,
     df = pd.DataFrame(data)
     dataset = get_document('dataset', selectedNodeData[0]['id'])
     labels = {f['id']:f['name'] for f in dataset['features']}
+
+    
     if style1['display'] != 'none':
         return get_line_figure(df, line_x, line_y, labels)
     elif style2['display'] != 'none':
-        return get_bar_figure(df, bar_x, bar_y, bar_barmode)
+        return get_bar_figure(df, bar_x, bar_y, bar_barmode, labels)
     elif style3['display'] != 'none':
-        return get_pie_figure(df, pie_names, pie_values)
+        return get_pie_figure(df, pie_names, pie_values, labels)
     elif style4['display'] != 'none':
-        return get_scatter_figure(df, scatter_x, scatter_y, scatter_color)
+        return get_scatter_figure(df, scatter_x, scatter_y, scatter_color, labels)
 
 # Save Graph
 @app.callback(

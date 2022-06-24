@@ -28,7 +28,7 @@ import ast
 import json
 from datetime import datetime
 from dateutil.parser import parse
-
+import plotly.graph_objects as go
 
 
 # TODO Check if these functions are necessary else remove  
@@ -687,13 +687,19 @@ def graph_input_visibility_callback(graph_type):
     if graph_type == 'pie': style3 = {'display': 'block'}
     if graph_type == 'scatter': style4 = {'display': 'block'}
     return style1, style2, style3, style4
-def get_line_figure(df, x, y, labels=None):
-    fig = px.line(df, x=x, y=y, labels=labels)
-    fig.update_layout(showlegend=False)
+def get_line_figure(df, x, y, labels):
+    y = [y] if type(y) is str else y
+    fig = go.Figure()
+    for i in range(len(y)):
+        fig.add_trace(go.Scatter(x=df[x], y=df[y[i]], name=labels[y[i]]))
+    fig.update_xaxes(title_text=labels[x])
+
     return fig
 def get_bar_figure(df, x, y, barmode, labels=None):
-    fig = px.bar(df, x=y, y=x, barmode=barmode, labels=labels)
-    fig.update_layout(showlegend=False)
+    y = [y] if type(y) is str else y
+    fig = go.Figure()
+    for i in range(len(y)):
+        fig.add_trace(go.Histogram(x=df[x], y=df[y[i]], name=labels[y[i]]))
     return fig
 def get_pie_figure(df, names, values, labels=None):
     fig = px.pie(df, names=names, values=values, labels=labels)
