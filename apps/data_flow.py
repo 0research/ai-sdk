@@ -341,7 +341,7 @@ layout = html.Div([
                 dbc.ModalHeader('Graph', style={'height':'5vh'}),
                 dbc.ModalBody([
                     dcc.Graph(id=id('graph'), style={'height': '32vh'}),
-                    html.Div(generate_datatable(id('datatable_graph'), height='20vh'), style={'margin-top':'35px'}),
+                    html.Div(generate_datatable(id('datatable_graph'), height='15vh'), style={'margin-top':'35px'}),
                     html.Div([
                         html.Div(generate_graph_inputs(id), id=id('graph_inputs'), style={'margin':'10px'}),
                         html.Div([
@@ -450,7 +450,7 @@ def generate_right_header(active_tab, selected_action, selectedNodeData):
             else:
                 s2['display'] = 'block'
                 s4['display'] = 'block'
-                s8['display'] = 'block' # Range Slider Container
+                # s8['display'] = 'block' # Range Slider Container
                 dataset_name = selectedNodeData[0]['name']
 
         elif num_selected > 1 and all(node['type'] == 'dataset' for node in selectedNodeData):
@@ -767,8 +767,8 @@ def save_cytoscape_position(position1, position2):
 def run_config(n_clicks, selectedNodeData):
     if n_clicks is None: return no_update
     dataset = get_document('dataset', selectedNodeData[0]['id'])
-    dataset['upload_details'] = {}
-    method = dataset['upload_details']['method']
+    # dataset['upload_details'] = {}
+    method = dataset['upload_details']['rest_method']
     url = dataset['upload_details']['url']
     header = dataset['upload_details']['header']
     param =dataset['upload_details']['param']
@@ -923,7 +923,7 @@ def set_active_tab(selectedNodeData, active_tab):
     #     active_tab = None
     if num_selected == 1:
         if selectedNodeData[0]['type'] == 'action': active_tab = 'tab1'
-        elif selectedNodeData[0]['type'] == 'raw' and selectedNodeData[0]['upload_details'] == {}: active_tab = 'tab3'
+        elif selectedNodeData[0]['is_source'] == 'True' and selectedNodeData[0]['upload_details'] == {}: active_tab = 'tab3'
         else: active_tab = 'tab1' if active_tab is None else active_tab
     elif (num_selected > 1 and all(node['type'] == 'dataset' for node in selectedNodeData) ):
         active_tab = 'tab1' if (active_tab == 'tab3') else active_tab
@@ -970,7 +970,7 @@ def upload_data_source(n_clicks_button_save_config,
         # Upload Files
         if upload_type == 'fileupload' and fileNames is not None:
             df, details = process_fileupload(upload_id, fileNames[0])
-            save_dataset(df, node_id, upload_type, details)
+            save_dataset(df, node_id, details)
             active_tab = 'tab1'
             
         # Paste Text TODO
@@ -983,7 +983,7 @@ def upload_data_source(n_clicks_button_save_config,
             param = dict(zip(param_key_list, param_value_list))
             body = dict(zip(body_key_list, body_value_list))
             df, details = process_restapi(method, url, header, param, body)
-            save_dataset(df, node_id, upload_type, details)
+            save_dataset(df, node_id, details)
 
             # Add Edges if dataset is dependent on other datasets
             if any(header_value_position_list) != None or any(param_value_position_list) or any(body_value_position_list):
@@ -1429,11 +1429,11 @@ def load_restapi_options(tapNodeData, _, _2, _3, _4, _5, _6, header_div, param_d
         dataset = get_document('dataset', tapNodeData['id'])
         if dataset['upload_details'] != {}:
             if dataset['upload_details']['method'] == 'restapi':
-                for k, v in dataset['details']['header'].items():
+                for k, v in dataset['upload_details']['header'].items():
                     header_div += generate_restapi_options(id, 'header', len(header_div), k, v)
-                for k, v in dataset['details']['param'].items():
+                for k, v in dataset['upload_details']['param'].items():
                     param_div += generate_restapi_options(id, 'param', len(param_div), k, v)
-                for k, v in dataset['details']['body'].items():
+                for k, v in dataset['upload_details']['body'].items():
                     body_div += generate_restapi_options(id, 'body', len(body_div), k, v)
     
     # Add
@@ -2352,7 +2352,7 @@ def display_graph(style1, style2, style3, style4,
 )
 def save_graph(n_clicks, graph_type, graph_inputs, name, description, selectedNodeData):
     if n_clicks is None: return no_update
-    pprint(graph_inputs)
+
     if graph_type == 'line':
         x = graph_inputs[1]['props']['children'][0]['props']['children'][1]['props']['value']
         y = graph_inputs[1]['props']['children'][0]['props']['children'][3]['props']['children']['props']['value']
@@ -2361,7 +2361,7 @@ def save_graph(n_clicks, graph_type, graph_inputs, name, description, selectedNo
     elif graph_type == 'bar':
         x = graph_inputs[2]['props']['children'][0]['props']['children'][1]['props']['value']
         y = graph_inputs[2]['props']['children'][0]['props']['children'][3]['props']['children']['props']['value']
-        barmode = graph_inputs[1]['props']['children'][0]['props']['children'][5]['props']['children']['props']['value']
+        barmode = graph_inputs[2]['props']['children'][0]['props']['children'][5]['props']['children']['props']['value']
         graph = {'type': 'bar', 'x': x, 'y': y, 'barmode': barmode }
 
     elif graph_type == 'pie':
@@ -2372,7 +2372,7 @@ def save_graph(n_clicks, graph_type, graph_inputs, name, description, selectedNo
     elif graph_type == 'scatter':
         x = graph_inputs[4]['props']['children'][0]['props']['children'][1]['props']['value']
         y = graph_inputs[4]['props']['children'][0]['props']['children'][3]['props']['value']
-        color = graph_inputs[3]['props']['children'][0]['props']['children'][5]['props']['value']
+        color = graph_inputs[4]['props']['children'][0]['props']['children'][5]['props']['value']
         graph = {'type': 'scatter', 'x': x, 'y': y, 'color': color}
     
     if get_session('graph_id') == '':

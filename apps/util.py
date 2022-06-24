@@ -290,7 +290,7 @@ def generate_datatable_data(df, features, show_datatype_dropdown=False, renamabl
 def process_fileupload(upload_id, filename):
     root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
     file = (root_folder / filename).as_posix()
-    details = {'filename': filename}
+    details = {'method': 'fileupload', 'filename': filename}
     
     if filename.endswith('.json'):
         json_file = pd.read_json(file).fillna('').to_dict('records')
@@ -320,7 +320,43 @@ def process_restapi(method, url, header, param, body):
     if method == 'get': response = requests.get(url=url, headers=header, params=param, data=body)
     elif method == 'post': response = requests.post(url=url, headers=header, params=param, data=body)
 
-    result = response.text 
+    result = response.text
+
+    # try:
+    #     result = ast.literal_eval(result)
+    #     print(type(result))
+    #     # JSON
+    #     if type(result) == list:
+    #         for a in result:
+    #             print(type(a))
+    #         if all(type(e) == dict for e in result):
+    #             result = do_flatten(json.loads(result))
+    #             for row in result:
+    #                 for k, v in row.items():
+    #                     if row[k] == []:
+    #                         row[k] = ''
+    #             df = json_normalize(result)
+            
+    #         # CSV
+    #         else:
+    #             result = ast.literal_eval(result)
+    #             df = pd.DataFrame(result)
+
+    #     elif type(result) == dict:
+    #         result = do_flatten(json.loads(result))
+    #         for row in result:
+    #             for k, v in row.items():
+    #                 if row[k] == []:
+    #                     row[k] = ''
+    #         df = json_normalize(result)
+
+    # except Exception as e:
+    #     print('Exception: ', e)
+    #     import sys, os
+    #     exc_type, exc_obj, exc_tb = sys.exc_info()
+    #     fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    #     print(exc_type, fname, exc_tb.tb_lineno)
+
     # CSV
     if result.startswith('[\'') or result.startswith('[\"'):
         result = ast.literal_eval(result)
@@ -333,10 +369,11 @@ def process_restapi(method, url, header, param, body):
                 if row[k] == []:
                     row[k] = ''
         df = json_normalize(result)
+
     df = df.fillna('')
     timestamp = str(datetime.now())
     df['timestamp'] = timestamp
-    details = details = {'method': method, 'url': url, 'header': header, 'param':param, 'body':body, 'timestamp': timestamp}
+    details = {'method': 'restapi', 'rest_method': method, 'url': url, 'header': header, 'param':param, 'body':body, 'timestamp': timestamp}
 
     return df, details
 def get_upload_component(component_id, height='100%'):
@@ -699,7 +736,8 @@ def get_bar_figure(df, x, y, barmode, labels=None):
     y = [y] if type(y) is str else y
     fig = go.Figure()
     for i in range(len(y)):
-        fig.add_trace(go.Histogram(x=df[x], y=df[y[i]], name=labels[y[i]]))
+        fig.add_trace(go.Bar(x=df[x], y=df[y[i]], name=labels[y[i]]))
+    fig.update_layout(barmode=barmode)
     return fig
 def get_pie_figure(df, names, values, labels=None):
     fig = px.pie(df, names=names, values=values, labels=labels)
@@ -707,7 +745,6 @@ def get_pie_figure(df, names, values, labels=None):
     return fig
 def get_scatter_figure(df, x, y, color, labels=None):
     fig = px.scatter(df, x=x, y=y, color=color, labels=labels)
-    fig.update_layout(showlegend=False)
     return fig
 def upsert_graph(project_id, dataset_id, graph):
     project = get_document('project', project_id)
@@ -851,12 +888,14 @@ def new_project(project_id, project_type):
     create('project', project)
 def get_all_collections():
     return [c['name'] for c in client.collections.retrieve()]
-def save_dataset(df, dataset_id, upload_method='', details=''):
+def save_dataset(df, dataset_id, details=''):
+    # Rename if no column name found
+    df.columns = [name if name != 0 else 'Feature' for name in df.columns]
+
     datatypes = get_datatypes(df)
 
     dataset = get_document('dataset', dataset_id)
-    dataset['upload_method'] = upload_method 
-    dataset['details'] = details
+    dataset['upload_details'] = details 
     dataset['features'] = [{
         'id': str(uuid.uuid1()),
         'name': name, 
@@ -1249,7 +1288,7 @@ def is_date(string, fuzzy=False):
     except ValueError:
         return False
 def is_dollar(string):
-    return string[0] == '$'
+    return string[0] == '$' if len(string) > 0 else False
 """ -------------------------------------------------------------------------------- """
 
 
