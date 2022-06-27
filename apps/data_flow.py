@@ -302,13 +302,7 @@ layout = html.Div([
                         html.Div([
                             dbc.InputGroup([
                                 dbc.InputGroupText('Data Source Type', style={'width':'30%', 'font-weight':'bold', 'font-size': '13px', 'padding-left':'12px'}),
-                                dbc.Select(id('select_upload_method'), options=[
-                                    {"label": "File Upload", "value": "fileupload"},
-                                    {"label": "Paste Text", "value": "pastetext"},
-                                    {"label": "Rest API", "value": "restapi"},
-                                    {"label": "GraphQL", "value": "graphql", 'disabled':True},
-                                    {"label": "Search Data Catalog", "value": "datacatalog"},
-                                ], value='fileupload', style={'text-align':'center', 'font-size':'15px'}),
+                                dbc.Select(id('select_upload_method'), options=UPLOAD_METHODS, value='fileupload', style={'text-align':'center', 'font-size':'15px'}),
                             ], style={'margin-bottom':'10px'}),
 
                             html.Div(generate_manuafilelupload_details(id), style={'display':'none'}, id=id('config_options_fileupload')),
@@ -764,21 +758,26 @@ def save_cytoscape_position(position1, position2):
     Input(id('button_run_restapi'), 'n_clicks'),
     State(id('cytoscape'), 'selectedNodeData'),
 )
-def run_config(n_clicks, selectedNodeData):
+def run_restapi(n_clicks, selectedNodeData):
     if n_clicks is None: return no_update
     dataset = get_document('dataset', selectedNodeData[0]['id'])
     # dataset['upload_details'] = {}
-    method = dataset['upload_details']['rest_method']
+    restapi_method = dataset['upload_details']['restapi_method']
     url = dataset['upload_details']['url']
     header = dataset['upload_details']['header']
     param =dataset['upload_details']['param']
     body = dataset['upload_details']['body']
-    df, details = process_restapi(method, url, header, param, body)
+    df, details = process_restapi(restapi_method, url, header, param, body)
+
+    mapper = {f['name']:f['id'] for f in dataset['features']}
+    df.rename(columns=mapper, inplace=True)
+    df = df.astype(str)
+
     jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
 
     # Upsert
     r = client.collections[dataset['id']].documents.import_(jsonl, {'action': 'create'})
-    upsert(dataset)
+    # upsert('dataset', dataset)
     # update_logs(get_session('project_id'), node['id'], 'Run Config: '+str(details), details['timestamp'])
 
     return 'tab1'
@@ -789,7 +788,7 @@ def run_config(n_clicks, selectedNodeData):
     Output(id('description'), 'value'),
     Output(id('documentation'), 'value'),
     Output(id('select_upload_method'), 'value'),
-    Output(id('dropdown_method'), 'value'),
+    Output(id('dropdown_restapi_method'), 'value'),
     Output(id('url'), 'value'),
     Output(id('select_upload_method'), 'disabled'),
     Input(id('tabs_node'), 'active_tab'),
@@ -797,7 +796,7 @@ def run_config(n_clicks, selectedNodeData):
 )
 def populate_dataset_config(active_tab, selectedNodeData):
     if active_tab != 'tab3': return no_update
-    description, documentation, upload_method, method, url, disabled = '', '', 'fileupload', 'get', '', False
+    description, documentation, upload_method, restapi_method, url, disabled = '', '', 'fileupload', 'get', '', False
 
     dataset = get_document('dataset', selectedNodeData[0]['id'])
     description = dataset['description']
@@ -805,12 +804,12 @@ def populate_dataset_config(active_tab, selectedNodeData):
     
     if dataset['upload_details'] != {}:
         if dataset['upload_details']['method'] == 'restapi':
-            method = dataset['upload_details']['method']
+            restapi_method = dataset['upload_details']['restapi_method']
             url = dataset['upload_details']['url']
         if dataset['upload_details']['method'] != {}:
             upload_method = dataset['upload_details']['method']
 
-    return description, documentation, upload_method, method, url, disabled
+    return description, documentation, upload_method, restapi_method, url, disabled
 
 
 # Display Node Buttons
@@ -941,7 +940,11 @@ def set_active_tab(selectedNodeData, active_tab):
     State(id('browse_drag_drop'), 'isCompleted'),
     State(id('browse_drag_drop'), 'upload_id'),
     State(id('browse_drag_drop'), 'fileNames'),
-    State(id('dropdown_method'), 'value'),
+    
+    State(id('textarea_pastetext'), 'value'),
+    State(id('pastetext_delimiter'), 'value'),
+
+    State(id('dropdown_restapi_method'), 'value'),
     State(id('url'), 'value'),
     State({'type': id('header_key'), 'index': ALL}, 'value'),
     State({'type': id('header_value'), 'index': ALL}, 'value'),
@@ -955,8 +958,9 @@ def set_active_tab(selectedNodeData, active_tab):
 )
 def upload_data_source(n_clicks_button_save_config,
                     selectedNodeData, upload_type,
-                    isCompleted, upload_id, fileNames,                                               # Tabular / JSON 
-                    method, url, header_key_list, header_value_list, header_value_position_list, param_key_list, param_value_list, param_value_position_list, body_key_list, body_value_list, body_value_position_list,     # REST API
+                    isCompleted, upload_id, fileNames,
+                    pastetext_data, pastetext_delimiter,
+                    restapi_method, url, header_key_list, header_value_list, header_value_position_list, param_key_list, param_value_list, param_value_position_list, body_key_list, body_value_list, body_value_position_list,     # REST API
                     ):
     num_selected = len(selectedNodeData)
     if num_selected == 0: return no_update
@@ -976,13 +980,17 @@ def upload_data_source(n_clicks_button_save_config,
         # Paste Text TODO
         elif upload_type == 'pastetext':
             active_tab = 'tab1'
+            df, details = process_pastetext(pastetext_data, pastetext_delimiter)
+            save_dataset(df, node_id, details)
+            active_tab = 'tab1'
 
         # RestAPI
         elif upload_type == 'restapi':
             header = dict(zip(header_key_list, header_value_list))
             param = dict(zip(param_key_list, param_value_list))
             body = dict(zip(body_key_list, body_value_list))
-            df, details = process_restapi(method, url, header, param, body)
+            print("CCC", upload_type, restapi_method)
+            df, details = process_restapi(restapi_method, url, header, param, body)
             save_dataset(df, node_id, details)
 
             # Add Edges if dataset is dependent on other datasets

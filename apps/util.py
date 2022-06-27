@@ -29,7 +29,8 @@ import json
 from datetime import datetime
 from dateutil.parser import parse
 import plotly.graph_objects as go
-
+import csv
+import io
 
 # TODO Check if these functions are necessary else remove  
 def generate_tabs(tabs_id, tab_labels, tab_values, tab_disabled):
@@ -305,8 +306,13 @@ def process_fileupload(upload_id, filename):
         df = json_normalize(data)
         
     elif filename.endswith('.csv'):
-        df = pd.read_csv(file, sep=',')
+        df = pd.read_csv(file, delimiter=',')
 
+    return df, details
+def process_pastetext(data, delimiter):
+    delimiter = get_delimiter(data) if delimiter == '' or delimiter is None else delimiter
+    df = pd.read_csv(io.StringIO(data), delimiter=delimiter)
+    details = {'method': 'pastetext', 'delimiter':delimiter}
     return df, details
 def process_restapi(method, url, header, param, body):
     # Remove empty keys
@@ -316,7 +322,7 @@ def process_restapi(method, url, header, param, body):
     if None in header: header.pop(None)
     if None in param: param.pop(None) 
     if None in body: body.pop(None)
-    
+
     if method == 'get': response = requests.get(url=url, headers=header, params=param, data=body)
     elif method == 'post': response = requests.post(url=url, headers=header, params=param, data=body)
 
@@ -373,7 +379,7 @@ def process_restapi(method, url, header, param, body):
     df = df.fillna('')
     timestamp = str(datetime.now())
     df['timestamp'] = timestamp
-    details = {'method': 'restapi', 'rest_method': method, 'url': url, 'header': header, 'param':param, 'body':body, 'timestamp': timestamp}
+    details = {'method': 'restapi', 'restapi_method': method, 'url': url, 'header': header, 'param':param, 'body':body, 'timestamp': timestamp}
 
     return df, details
 def get_upload_component(component_id, height='100%'):
@@ -398,10 +404,10 @@ def generate_manuafilelupload_details(id):
     ]
 def generate_pastetext(id):
     return [
-        dbc.Textarea(size="lg", placeholder="Paste Text Here", style={'height':'200px', 'text-align':'center'}),
+        dbc.Textarea(size="lg", id=id('textarea_pastetext'), placeholder="Paste Here", style={'height':'200px', 'text-align':'center'}),
         dbc.InputGroup([
-            dbc.InputGroupText('Delimiter', style={'width':'30%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'12px'}),
-            dbc.Input(id=id('delimiter'), placeholder='Auto Detect', style={'text-align':'center'}),
+            dbc.InputGroupText('Delimiter', style={'width':'20%', 'font-weight':'bold'}),
+            dbc.Input(id=id('pastetext_delimiter'), placeholder='Auto Detect', style={'text-align':'center'}),
         ]),
     ]
 def generate_restapi_details(id, extra=True):
@@ -412,8 +418,8 @@ def generate_restapi_details(id, extra=True):
     return [
         # Inputs
         dbc.InputGroup([
-            dbc.InputGroupText("Method", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
-            dbc.Select(options=options_restapi_method, id=id('dropdown_method'), value=options_restapi_method[0]['value'], style={'text-align':'center'}, persistence=True, persistence_type='session'),
+            dbc.InputGroupText("REST Method", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
+            dbc.Select(options=options_restapi_method, id=id('dropdown_restapi_method'), value=options_restapi_method[0]['value'], style={'text-align':'center'}, persistence=True, persistence_type='session'),
         ]),
         dbc.InputGroup([
             dbc.InputGroupText("URL", style={'width':'20%', 'font-weight':'bold', 'font-size': '12px', 'padding-left':'12px'}),
@@ -1309,6 +1315,9 @@ def get_datatypes(df):
                 datatypes[f_id] = 'datetime'
 
     return datatypes
+def get_delimiter(data, bytes = 4096):
+    sniffer = csv.Sniffer()
+    return sniffer.sniff(data).delimiter
 """ -------------------------------------------------------------------------------- """
 
 # Init Typesense

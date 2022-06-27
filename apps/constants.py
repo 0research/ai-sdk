@@ -101,7 +101,14 @@ aggregate_button_name_list = [ 'min', 'max', 'sum', 'count']
 # Datatable Default Name of Index Column
 index_col_name = 'no.'
 
-
+# UPLOAD METHOD
+UPLOAD_METHODS = [
+    {"label": "File Upload", "value": "fileupload"},
+    {"label": "Paste Text", "value": "pastetext"},
+    {"label": "Rest API", "value": "restapi"},
+    # {"label": "GraphQL", "value": "graphql"},
+    # {"label": "Search Data Catalog", "value": "datacatalog"},
+]
 
 # List of Transform Functions
 function_options = [
