@@ -89,36 +89,71 @@ layout = html.Div([
 #     ),
 
 
+# @app.callback(
+#     Output(id('content'), 'children'),
+#     Input('url', 'pathname'),
+# )
+# def generate_graphs(pathname):
+#     project_id = get_session('project_id')
+#     project = get_document('project', project_id)
+#     content = []
+    
+#     for node_id in project['graph_dict'].keys():
+#         for graph_id in project['graph_dict'][node_id]:
+#             graph = get_document('graph', graph_id)
+
+#             if graph['type'] == 'line': fig = get_line_figure(node_id, graph['x'], graph['y'])
+#             elif graph['type'] == 'bar': fig = get_bar_figure(node_id, graph['x'], graph['y'], graph['barmode'])
+#             elif graph['type'] == 'pie': fig = get_pie_figure(node_id, graph['names'], graph['values'])
+#             elif graph['type'] == 'scatter': fig = get_scatter_figure(node_id, graph['x'], graph['y'], graph['color'])
+
+#             content += [
+#                 dbc.Col([
+#                     dbc.Card([
+#                         dbc.Button(dbc.CardHeader(graph['name']), id={'type': id('button_graph_id'), 'index': graph_id}, href='/apps/plot_graph/', value=graph_id),
+#                         dbc.CardBody([
+#                             dcc.Graph(figure=fig, style={'height':'270px'}),
+#                         ]),
+#                     ], color='primary', inverse=True, style={})
+#                 ], style={'width':'32%', 'display':'inline-block', 'text-align':'center', 'margin':'3px 3px 3px 3px'})
+#             ]
+#     return content
+
+
 @app.callback(
     Output(id('content'), 'children'),
     Input('url', 'pathname'),
 )
-def generate_graphs(pathname):
+def generate_all_graphs(active_tab):
     project_id = get_session('project_id')
     project = get_document('project', project_id)
     content = []
-    
-    for node_id in project['graph_dict'].keys():
-        for graph_id in project['graph_dict'][node_id]:
-            graph = get_document('graph', graph_id)
 
-            if graph['type'] == 'line': fig = get_line_figure(node_id, graph['x'], graph['y'])
-            elif graph['type'] == 'bar': fig = get_bar_figure(node_id, graph['x'], graph['y'], graph['barmode'])
-            elif graph['type'] == 'pie': fig = get_pie_figure(node_id, graph['names'], graph['values'])
-            elif graph['type'] == 'scatter': fig = get_scatter_figure(node_id, graph['x'], graph['y'], graph['color'])
+    for dataset_id, graph_id_list in project['graph_dict'].items():
+        dataset = get_document('dataset', dataset_id)
+        labels = {f['id']:f['name'] for f in dataset['features']}
+
+        for graph_id in graph_id_list:
+            graph = get_document('graph', graph_id)
+            df = get_dataset_data(dataset_id)
+
+            if graph['type'] == 'line': fig = get_line_figure(df, graph['x'], graph['y'], labels)
+            # elif graph['type'] == 'bar': fig = get_bar_figure(df, graph['x'], graph['y'], graph['barmode'], labels)
+            # elif graph['type'] == 'pie': fig = get_pie_figure(df, graph['names'], graph['values'], labels)
+            # elif graph['type'] == 'scatter': fig = get_scatter_figure(df, graph['x'], graph['y'], graph['color'], labels)
 
             content += [
                 dbc.Col([
                     dbc.Card([
-                        dbc.Button(dbc.CardHeader(graph['name']), id={'type': id('button_graph_id'), 'index': graph_id}, href='/apps/plot_graph/', value=graph_id),
+                        dbc.Button(dbc.CardHeader(graph['name']), id={'type': id('button_graph_id'), 'index': graph_id}, href='/apps/data_flow/', value=graph_id),
                         dbc.CardBody([
                             dcc.Graph(figure=fig, style={'height':'270px'}),
                         ]),
                     ], color='primary', inverse=True, style={})
                 ], style={'width':'32%', 'display':'inline-block', 'text-align':'center', 'margin':'3px 3px 3px 3px'})
             ]
+        
     return content
-
 
 
 # @app.callback(

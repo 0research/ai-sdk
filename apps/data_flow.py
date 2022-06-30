@@ -43,100 +43,16 @@ app.css.config.serve_locally = True
 id = id_factory('data_flow')
 du.configure_upload(app, UPLOAD_FOLDER_ROOT)
 
-# Creating styles
-cytoscape_stylesheet = [
-    # All Nodes
-    {
-        'selector': 'node',
-        'style': {
-            'content': 'data(name)',
-        }
-    },
-    # Edge
-    {
-        'selector': 'edge',
-        'style': {
-            'curve-style': 'bezier',
-            'target-arrow-color': 'black',
-            'target-arrow-shape': 'triangle',
-            'line-color': 'black'
-        }
-    },
-    {
-        'selector': '.dependent',
-        'style': {
-            'background-color': '#92a8d1',
-        }
-    },
-    # Dataset Nodes
-    {
-        'selector': '.raw',
-        'style': {
-
-        }
-    },
-    {
-        'selector': '.processed',
-        'style': {
-
-        }
-    },
-    # Action
-    {
-        'selector': '[type = "action"]',
-        'style': {
-            # 'background-color': 'amber',
-            # 'width': 25,
-            # 'height': 25,
-            # 'background-image': "/assets/static/api.png"
-            # 'background-color': '#FFFF00',
-            'shape': 'rectangle',
-            'content': 'data(name)'
-        }
-    },
-
-    # States
-    {
-        'selector': '[state = "red"]',
-        'style': {
-            'background-color': '#FF0000',
-        }
-    },
-    {
-        'selector': '[state = "amber"]',
-        'style': {
-            'background-color': '#FFBF00',
-        }
-    },
-    {
-        'selector': '[state = "yellow"]',
-        'style': {
-            'background-color': '#FFBF00',
-        }
-    },
-    {
-        'selector': '[state = "green"]',
-        'style': {
-            'background-color': '#00FF00',
-        }
-    },
-
-    {
-        'selector': '.selected',
-        'style': {
-            'background-color': '#000000',
-        }
-    },
-]
-
-
 
 layout = html.Div([
     html.Div([
         dcc.Store(id=id('cytoscape_position_store'), storage_type='session', data=[]),
         dcc.Store(id=id('cytoscape_position_store_2'), storage_type='session', data=[]),
+        dcc.Store(id=id('action_store'), storage_type='session', data={}),
+        dcc.Store(id=id('join_store'), storage_type='session', data={}),
         dcc.Store(id=id('transform_store'), storage_type='session', data={}),
-        dcc.Store(id=id('aggregate_store'), storage_type='session', data={}),
+        dcc.Store(id=id('aggregate_store'), storage_type='session', data={}), 
+        dcc.Store(id=id('impute_store'), storage_type='session', data={}),
         dcc.Store(id=id('graph_id_store'), storage_type='session', data=''),
         dcc.Interval(id=id('interval_cytoscape'), interval=500, n_intervals=0),
         
@@ -173,7 +89,7 @@ layout = html.Div([
                                     'zoom': 1,
                                 },
                                 style={'height': '89vh','width': '100%'},
-                                stylesheet=cytoscape_stylesheet)
+                                stylesheet=CYTOSCAPE_STYLESHEET)
             ], width=6),
 
             # Right Panel
@@ -267,11 +183,11 @@ layout = html.Div([
                     dbc.CardHeader([
                         dbc.InputGroup([
                             dbc.InputGroupText('Description', style={'width':'30%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'12px'}),
-                            dbc.Textarea(id=id('description'), placeholder='Enter Dataset Description', style={'height':'50px', 'text-align':'center'}, persistence=True, persistence_type='session'),
+                            dbc.Textarea(id=id('dataset_description'), placeholder='Enter Dataset Description', style={'height':'50px', 'text-align':'center'}, persistence=True, persistence_type='session'),
                         ]),
                         dbc.InputGroup([
                             dbc.InputGroupText('Documentation', style={'width':'30%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'12px'}),
-                            dbc.Input(id=id('documentation'), placeholder='Enter Documentation URL (Optional) ', style={'height':'40px', 'min-width':'120px', 'text-align':'center'}, persistence=True, persistence_type='session'),
+                            dbc.Input(id=id('dataset_documentation'), placeholder='Enter Documentation URL (Optional) ', style={'height':'40px', 'min-width':'120px', 'text-align':'center'}, persistence=True, persistence_type='session'),
                         ]),
                     ], id=id('right_header_3'), style={'display':'none', 'font-size':'14px'}),
                     
@@ -302,7 +218,7 @@ layout = html.Div([
                         html.Div([
                             dbc.InputGroup([
                                 dbc.InputGroupText('Data Source Type', style={'width':'30%', 'font-weight':'bold', 'font-size': '13px', 'padding-left':'12px'}),
-                                dbc.Select(id('select_upload_method'), options=UPLOAD_METHODS, value='fileupload', style={'text-align':'center', 'font-size':'15px'}),
+                                dbc.Select(id('select_upload_method'), options=UPLOAD_METHODS, value='fileupload', style={'text-align':'center', 'font-size':'15px'}, persistence=True, persistence_type='session'),
                             ], style={'margin-bottom':'10px'}),
 
                             html.Div(generate_manuafilelupload_details(id), style={'display':'none'}, id=id('config_options_fileupload')),
@@ -310,7 +226,7 @@ layout = html.Div([
                             html.Div(generate_restapi_details(id), style={'display':'none'}, id=id('config_options_restapi')),
                             html.Div(generate_datacatalog_options(id), style={'display':'none', 'overflow-y': 'auto', 'max-height':'40vh'}, id=id('config_options_datacatalog')),
 
-                            dbc.CardFooter([dbc.Row(dbc.Col(dbc.Button(children='Save', id=id('button_save'), color='warning', style={'width':'100%', 'font-size':'22px'}), width={'size': 8, 'offset': 2}))])
+                            dbc.CardFooter([dbc.Row(dbc.Col(dbc.Button(children='Upload', id=id('button_upload'), color='warning', style={'width':'100%', 'font-size':'22px'}), width={'size': 8, 'offset': 2}))])
                         ], id=id('right_content_3'), style={'display': 'none'}),
 
                         # Tab 4 (Graph)
@@ -360,7 +276,7 @@ layout = html.Div([
                 dbc.ModalBody(generate_transform_inputs(id), style={'height':'20vh'}),
                 dbc.ModalFooter(dbc.Button('Add Feature', color='warning', id=id('button_add_feature'), style={'width':'100%'})),
                 html.Div([], id=id('add_feature_msg'), style={'text-align':'center', 'color':'red'}),
-                html.Div([], style={'height':'50vh'}),
+                html.Div([], id=id('add_feature_container'), style={'height':'60vh'}),
             ], id=id('modal_add_feature'), style={'display':'none'}),
 
         ], id=id('modal_left'), is_open=False, centered=False, backdrop=False),
@@ -457,6 +373,7 @@ def generate_right_header(active_tab, selected_action, selectedNodeData):
     
     if active_tab == 'tab3':
         dataset_name = selectedNodeData[0]['name']
+        s3['display'] = 'block'
 
     
     # # Range Slider TODO 
@@ -785,8 +702,8 @@ def run_restapi(n_clicks, selectedNodeData):
 
 # Load Dataset Config 
 @app.callback(
-    Output(id('description'), 'value'),
-    Output(id('documentation'), 'value'),
+    Output(id('dataset_description'), 'value'),
+    Output(id('dataset_documentation'), 'value'),
     Output(id('select_upload_method'), 'value'),
     Output(id('dropdown_restapi_method'), 'value'),
     Output(id('url'), 'value'),
@@ -862,11 +779,11 @@ def display_node_buttons(active_tab, action_name, selectedNodeData, s1, s2, s3, 
                 pass
 
         elif node_type == 'dataset':
+            dataset = get_document('dataset', selectedNodeData[0]['id'])
             s1['display'] = 'inline-block'
             s8['display'] = 'inline-block'
-            if selectedNodeData[0]['upload_details'] != {}:
-                if selectedNodeData[0]['upload_details']['method'] == 'restapi':
-                    s9['display'] = 'inline-block'
+            if 'method' in dataset['upload_details'] and dataset['upload_details']['method'] == 'restapi':
+                s9['display'] = 'inline-block'
 
     else:
         if all(node['type'] == 'dataset' for node in selectedNodeData):
@@ -934,9 +851,13 @@ def set_active_tab(selectedNodeData, active_tab):
 # Run & Save Data Source
 @app.callback(
     Output(id('tabs_node'), 'active_tab'),
-    Input(id('button_save'), 'n_clicks'),
+    Input(id('button_upload'), 'n_clicks'),
+    Input({'type': id('col_button_copy_dataset'), 'index': ALL}, 'n_clicks'),
     State(id('cytoscape'), 'selectedNodeData'),
     State(id('select_upload_method'), 'value'),
+    State(id('dataset_description'), 'value'),
+    State(id('dataset_documentation'), 'value'),
+
     State(id('browse_drag_drop'), 'isCompleted'),
     State(id('browse_drag_drop'), 'upload_id'),
     State(id('browse_drag_drop'), 'fileNames'),
@@ -956,8 +877,8 @@ def set_active_tab(selectedNodeData, active_tab):
     State({'type': id('body_value'), 'index': ALL}, 'value'),
     State({'type': id('body_value_position'), 'index': ALL}, 'value'),
 )
-def upload_data_source(n_clicks_button_save_config,
-                    selectedNodeData, upload_type,
+def upload_dataset_trigger(n_clicks_button_upload, n_clicks_button_copy_list,
+                    selectedNodeData, upload_type, dataset_description, dataset_documentation,
                     isCompleted, upload_id, fileNames,
                     pastetext_data, pastetext_delimiter,
                     restapi_method, url, header_key_list, header_value_list, header_value_position_list, param_key_list, param_value_list, param_value_position_list, body_key_list, body_value_list, body_value_position_list,     # REST API
@@ -967,49 +888,51 @@ def upload_data_source(n_clicks_button_save_config,
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     active_tab = no_update
 
-    if triggered == id('button_save') and n_clicks_button_save_config is not None:
-        node_id = selectedNodeData[0]['id']
+    if triggered == id('button_upload') and n_clicks_button_upload is not None:
+        dataset_id = selectedNodeData[0]['id']
         project_id = get_session('project_id')
 
         # Upload Files
         if upload_type == 'fileupload' and fileNames is not None:
             df, details = process_fileupload(upload_id, fileNames[0])
-            save_dataset(df, node_id, details)
-            active_tab = 'tab1'
             
-        # Paste Text TODO
+        # Paste Text
         elif upload_type == 'pastetext':
-            active_tab = 'tab1'
             df, details = process_pastetext(pastetext_data, pastetext_delimiter)
-            save_dataset(df, node_id, details)
-            active_tab = 'tab1'
 
         # RestAPI
         elif upload_type == 'restapi':
             header = dict(zip(header_key_list, header_value_list))
             param = dict(zip(param_key_list, param_value_list))
             body = dict(zip(body_key_list, body_value_list))
-            print("CCC", upload_type, restapi_method)
             df, details = process_restapi(restapi_method, url, header, param, body)
-            save_dataset(df, node_id, details)
 
             # Add Edges if dataset is dependent on other datasets
             if any(header_value_position_list) != None or any(param_value_position_list) or any(body_value_position_list):
                 for header in header_value_position_list:
                     if header is not None and header != '': 
                         source_id = header[0]['id']
-                        add_edge(project_id, source_id, node_id)
+                        add_edge(project_id, source_id, dataset_id)
 
                 for param in param_value_position_list:
                     if param is not None and param != '': 
                         source_id = param[0]['id']
-                        add_edge(project_id, source_id, node_id)
+                        add_edge(project_id, source_id, dataset_id)
                 for body in body_value_position_list:
                     if body is not None and body != '': 
                         source_id = body[0]['id']
-                        add_edge(project_id, source_id, node_id)
-                        
-            active_tab = 'tab1'
+                        add_edge(project_id, source_id, dataset_id)
+        
+        active_tab = 'tab1'
+        upload_dataset(df, dataset_id, dataset_description, dataset_documentation, details)
+    
+    # Copy Dataset
+    elif len(callback_context.triggered) == 1 and callback_context.triggered[0]['value'] is not None:
+        triggered = json.loads(callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0])
+        df, dataset_description, dataset_documentation, details = process_copydataset(triggered['index'])
+
+        active_tab = 'tab1'
+        upload_dataset(df, selectedNodeData[0]['id'], dataset_description, dataset_documentation, details)
    
     return active_tab
 
@@ -1017,11 +940,7 @@ def upload_data_source(n_clicks_button_save_config,
 
 
 
-
-
-
-
-# Toggle Multiple Inputs # TODO 5
+# Toggle Multiple Inputs # TODO
 @app.callback(
     # Output(id('dropdown_action_inputs'), 'value'),
     Output(id('dropdown_action_inputs'), 'multi'),
@@ -1043,8 +962,8 @@ def toggle_multi_inputs(action_val, selected_inputs):
 # Update Dataset Particulars (Name, Description, Documentation)
 @app.callback(
     Output('modal', 'children'),
-    Input(id('description'), 'value'),
-    Input(id('documentation'), 'value'),
+    Input(id('dataset_description'), 'value'),
+    Input(id('dataset_documentation'), 'value'),
     State(id('cytoscape'), 'selectedNodeData'),
     prevent_initial_call=True,
 )
@@ -1381,13 +1300,15 @@ def generate_right_content_1(active_tab, selected_action, selectedNodeData):
     Output(id('config_options_restapi'), 'style'),
     Output(id('config_options_datacatalog'), 'style'),
     Output(id('table_datacatalog'), 'children'),
+    Output(id('button_upload'), 'style'),
     Input(id('select_upload_method'), 'value'),
     Input(id('search_datacatalog'), 'value'),
-    State(id('button_save'), 'style'),
+    State(id('button_upload'), 'style'),
 )
-def load_dataset_options(upload_method, search_datacatalog_value, button_save_style):
+def load_dataset_options(upload_method, search_datacatalog_value, button_upload_style):
     style1, style2, style3, style4 = {'display':' none'}, {'display':' none'}, {'display':' none'}, {'display':' none'}
     datacatalog_search_results = no_update
+    button_upload_style['display'] = 'block'
 
     if upload_method == 'fileupload':  style1 = {'display':' block'}
     elif upload_method == 'pastetext': style2 = {'display': 'block'}
@@ -1395,8 +1316,9 @@ def load_dataset_options(upload_method, search_datacatalog_value, button_save_st
     elif upload_method == 'datacatalog':
         style4 = {'display':' block'}
         datacatalog_search_results = generate_datacatalog_table(id, search_datacatalog_value)
+        button_upload_style['display'] = 'none'
 
-    return style1, style2, style3, style4, datacatalog_search_results
+    return style1, style2, style3, style4, datacatalog_search_results, button_upload_style
 
 
 
@@ -1761,14 +1683,25 @@ def datatable_triggers(_, action_inputs, transform_store,
     if not df.empty:
         df, columns, dropdown_data = generate_datatable_data(df, features, show_datatype_dropdown=show_datatype_dropdown, renamable=renamable)
         data = df.to_dict('records')
-        print(df)
-        print(len(df))
     else:
         print("Empty Dataframe")
         data, dropdown_data = [], []
     
     return data, columns, dropdown_data, style_data_conditional, style_header_conditional
 
+
+# Join Store
+@app.callback(
+    Output(id('join_store'), 'data'),
+    Input('url', 'pathname'),
+    Input({'type': id('join_keys'), 'index': ALL}, 'n_clicks'),
+)
+def join_store(pathname, join_keys):
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+
+    print('\n\nAAAAAAAAA')
+    pprint(callback_context.triggered)
+    pprint(triggered)
 
 
 # Transform Node
@@ -1824,7 +1757,7 @@ def datatable_triggers(_, action_inputs, transform_store,
 
     State(id('custom_input'), 'value'),
 )
-def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
+def transform_store(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
                 sort_by, filter_query,
                 selected_action, selectedNodeData, data, columns, active_cell, selected_columns, function_type, transform_store, feature_name,
                 func1, f1a, f1b,
@@ -2005,35 +1938,6 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
 
 
 
-
-
-# # Add Feature (Comparison)
-# @app.callback(
-#     Output(id('new_feature_store'), 'data'),
-#     Input(id('button_add_feature'), 'n_clicks'),
-#     State(id('dropdown_function_type'), 'value'),
-#     State(id('datatable'), 'data'),
-#     State(id('dropdown_comparisonfunction'), 'value'),
-#     State(id('dropdown_comparisonfeature1'), 'value'),
-#     State(id('dropdown_comparisonfeature2'), 'value'),
-#     prevent_initial_call=True,
-# )
-# def add_feature2(n_clicks, function_type, data, function, feature1, feature2):
-#     if n_clicks is None: return no_update
-#     if function_type != 'comparison': return no_update
-#     df = pd.DataFrame(data)
-#     try:
-#         if function == 'gt': feature = df[feature1].gt(df[feature2])
-#         elif function == 'lt': feature = df[feature1].lt(df[feature2])
-#         elif function == 'ge': feature = df[feature1].ge(df[feature2])
-#         elif function == 'le': feature = df[feature1].le(df[feature2])
-#         elif function == 'eq': feature = df[feature1].eq(df[feature2])
-#         elif function == 'ne': feature = df[feature1].ne(df[feature2])
-#     except: 
-#         feature = 'error'
-
-#     return feature
-
 # # Add Feature (aggregate)
 # @app.callback(
 #     Output(id('new_feature_store'), 'data'),
@@ -2141,6 +2045,18 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
 #     return feature.squeeze()
 
 
+# TODO
+@app.callback(
+    Output(id('add_feature_container'), 'children'),
+    Input(id('transform_store'), 'data'),
+)
+def display_add_features(transform_store):
+    pprint(transform_store)
+    add_feature_container = []
+
+
+    return add_feature_container
+
 
 
 ''' Plot Graph '''
@@ -2151,7 +2067,7 @@ def transform_triggers(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
     Input(id('tabs_node'), 'active_tab'),
     State(id('cytoscape'), 'selectedNodeData'),
 )
-def generate_right_content(active_tab, selectedNodeData):
+def generate_all_graphs(active_tab, selectedNodeData):
     if active_tab != 'tab4': return no_update
     num_selected = len(selectedNodeData)
     project_id = get_session('project_id')
@@ -2186,6 +2102,8 @@ def generate_right_content(active_tab, selectedNodeData):
                 ]
         
     return right_content_4
+
+
 
 
 # @app.callback(

@@ -80,8 +80,8 @@ sidebar_0 = [
 ]
 sidebar_1 = [
     dbc.NavLink("Data Flow", href="/apps/data_flow", active="exact", className="fas fa-database"),
-    dbc.NavLink("Dashboard", href="/apps/dashboard", active="exact", className="fas fa-chart-pie", disabled=True),
-    dbc.NavLink("Storyboard", href="/apps/storyboard", active="exact", className="fas fa-chart-pie", disabled=True),
+    dbc.NavLink("Dashboard", href="/apps/dashboard", active="exact", className="fas fa-chart-pie"),
+    # dbc.NavLink("Storyboard", href="/apps/storyboard", active="exact", className="fas fa-chart-pie", disabled=True),
 ]
 sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className'], disabled=nav['disabled']) for nav in SIDEBAR_2_LIST]
 sidebar_3 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_3_LIST]

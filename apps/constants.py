@@ -107,7 +107,7 @@ UPLOAD_METHODS = [
     {"label": "Paste Text", "value": "pastetext"},
     {"label": "Rest API", "value": "restapi"},
     # {"label": "GraphQL", "value": "graphql"},
-    # {"label": "Search Data Catalog", "value": "datacatalog"},
+    {"label": "Search Data Catalog", "value": "datacatalog"},
 ]
 
 # List of Transform Functions
@@ -172,3 +172,103 @@ GITHUBACTION = "../assets/static/githubaction-icon.svg"
 
 # Datatypes
 THRESHOLD = 0.8
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Cytocsape
+CYTOSCAPE_STYLESHEET = [
+    # All Nodes
+    {
+        'selector': 'node',
+        'style': {
+            'content': 'data(name)',
+        }
+    },
+    # Edge
+    {
+        'selector': 'edge',
+        'style': {
+            'curve-style': 'bezier',
+            'target-arrow-color': 'black',
+            'target-arrow-shape': 'triangle',
+            'line-color': 'black'
+        }
+    },
+    {
+        'selector': '.dependent',
+        'style': {
+            'background-color': '#92a8d1',
+        }
+    },
+    # Dataset Nodes
+    {
+        'selector': '.raw',
+        'style': {
+
+        }
+    },
+    {
+        'selector': '.processed',
+        'style': {
+
+        }
+    },
+    # Action
+    {
+        'selector': '[type = "action"]',
+        'style': {
+            # 'background-color': 'amber',
+            # 'width': 25,
+            # 'height': 25,
+            # 'background-image': "/assets/static/api.png"
+            # 'background-color': '#FFFF00',
+            'shape': 'rectangle',
+            'content': 'data(name)'
+        }
+    },
+
+    # States
+    {
+        'selector': '[state = "red"]',
+        'style': {
+            'background-color': '#FF0000',
+        }
+    },
+    {
+        'selector': '[state = "amber"]',
+        'style': {
+            'background-color': '#FFBF00',
+        }
+    },
+    {
+        'selector': '[state = "yellow"]',
+        'style': {
+            'background-color': '#FFBF00',
+        }
+    },
+    {
+        'selector': '[state = "green"]',
+        'style': {
+            'background-color': '#00FF00',
+        }
+    },
+
+    {
+        'selector': '.selected',
+        'style': {
+            'background-color': '#000000',
+        }
+    },
+]

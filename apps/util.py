@@ -288,6 +288,38 @@ def generate_datatable_data(df, features, show_datatype_dropdown=False, renamabl
 # --------------------------------------------------------------------------------
 
 # Dataset 
+def upload_dataset(df, dataset_id, description, documentation, details=''):
+    # Rename if no column name found
+    df.columns = [name if name != 0 else 'Feature' for name in df.columns]
+
+    datatypes = get_datatypes(df)
+
+    dataset = get_document('dataset', dataset_id)
+    dataset['upload_details'] = details
+    dataset['description'] = description
+    dataset['documentation'] = documentation
+    dataset['features'] = [{
+        'id': str(uuid.uuid1()),
+        'name': name, 
+        'datatype': dtype,
+        'expectation': {},
+    } for name, dtype in datatypes.items()]
+
+    # Rename feature name to Unique ID
+    mapper = {f['name']:f['id'] for f in dataset['features']}
+    df.rename(columns=mapper, inplace=True)
+
+    # Convert all columns to string
+    df = df.astype(str)
+
+    # Upload
+    upsert('dataset', dataset)
+    collection_name_list = [row['name'] for row in client.collections.retrieve()]
+    if dataset_id in collection_name_list:
+        client.collections[dataset_id].delete()
+    client.collections.create(generate_schema_auto(dataset_id))
+    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
+    r = client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 def process_fileupload(upload_id, filename):
     root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
     file = (root_folder / filename).as_posix()
@@ -382,6 +414,14 @@ def process_restapi(method, url, header, param, body):
     details = {'method': 'restapi', 'restapi_method': method, 'url': url, 'header': header, 'param':param, 'body':body, 'timestamp': timestamp}
 
     return df, details
+def process_copydataset(dataset_id):
+    dataset = get_document('dataset', dataset_id)
+    df = get_dataset_data(dataset_id)
+    mapper = {f['id']:f['name'] for f in dataset['features']}
+    df.rename(columns=mapper, inplace=True)
+    details = {'method': 'datacatalog'}
+
+    return df, details
 def get_upload_component(component_id, height='100%'):
     return du.Upload(
         id=component_id,
@@ -471,13 +511,14 @@ def generate_restapi_options(id, option_type, index, key_val='', val_val=''):
 def generate_datacatalog_options(id):
     return [
         dbc.Input(type="search", id=id('search_datacatalog'), value='', debounce=False, autoFocus=True, placeholder="Search...", style={'text-align':'center', 'font-size':'15px'}),
-        html.Table(html.Div(id=id('table_datacatalog'), style={'overflow-y': 'auto', 'height':'440px', 'width':'100%'}), style={'width':'100%'})
+        html.Table(html.Div(id=id('table_datacatalog'), style={'overflow-y': 'auto', 'height':'60vh', 'width':'100%'}), style={'width':'100%'})
     ]
 def generate_datacatalog_table(id, search_value):
     if search_value == '' or search_value is None:
         search_value = '*'
     query_by = 'name, description, details',
     # filter_by = 'type:=[raw_userinput, restapi, datacatalog]'
+    # filter_by = 'name:!='
     search_parameters = {
         'q': search_value,
         'query_by'  : query_by,
@@ -504,20 +545,12 @@ def generate_datacatalog_table(id, search_value):
                     html.P(dataset['name'], id={'type':id('col_name'), 'index': i}, style={'font-weight':'bold'}),
                     html.P(dataset['description'], id={'type':id('col_description'), 'index': i}),
                     html.P(dataset['documentation']),
-                    html.P(dataset['id']),
                 ], style={'width':'75%'}),
                 # html.Td(dataset['type'], id={'type':id('col_type'), 'index': i}, style={'width':'15%'}),
                 html.Td([
                     dbc.ButtonGroup([
-                        dbc.Button('Preview', value=dataset['id'], id={'type':id('col_button_preview'), 'index': i}, className='btn btn-info'),
-                        dbc.Button('Add', value=dataset['id'], id={'type':id('col_button_add'), 'index': i}, className='btn btn-primary'),
-                        # dbc.Button('Edit', id={'type':id('col_button_edit'), 'index': i}, className='btn btn-success'),
-                        # dbc.Button(' X ', id={'type':id('col_button_remove'), 'index': i}, className='btn btn-danger'),
-
-                        dbc.Tooltip('Preview Dataset Data', target={'type':id('col_button_preview'), 'index': i}),
-                        dbc.Tooltip('Add Dataset to Current Project', target={'type':id('col_button_add'), 'index': i}),
-                        # dbc.Tooltip('Edit Dataset Details', target={'type':id('col_button_edit'), 'index': i}),
-                        # dbc.Tooltip('Remove Dataset', target={'type':id('col_button_remove'), 'index': i}),
+                        dbc.Button('Copy', value=dataset['id'], id={'type':id('col_button_copy_dataset'), 'index': dataset['id']}, className='btn btn-primary'),    
+                        dbc.Tooltip('Copy this Dataset', target={'type':id('col_button_copy_dataset'), 'index': dataset['id']}),
                     ], vertical=True),
                 ], style={'width':'20%'}),
             ], id={'type':id('row'), 'index': i}) for i, dataset in enumerate(dataset_list)
@@ -894,36 +927,6 @@ def new_project(project_id, project_type):
     create('project', project)
 def get_all_collections():
     return [c['name'] for c in client.collections.retrieve()]
-def save_dataset(df, dataset_id, details=''):
-    # Rename if no column name found
-    df.columns = [name if name != 0 else 'Feature' for name in df.columns]
-
-    datatypes = get_datatypes(df)
-
-    dataset = get_document('dataset', dataset_id)
-    dataset['upload_details'] = details 
-    dataset['features'] = [{
-        'id': str(uuid.uuid1()),
-        'name': name, 
-        'datatype': dtype,
-        'expectation': {},
-    } for name, dtype in datatypes.items()]
-
-    # Rename feature name to Unique ID
-    mapper = {f['name']:f['id'] for f in dataset['features']}
-    df.rename(columns=mapper, inplace=True)
-
-    # Convert all columns to string
-    df = df.astype(str)
-
-    # Upload
-    upsert('dataset', dataset)
-    collection_name_list = [row['name'] for row in client.collections.retrieve()]
-    if dataset_id in collection_name_list:
-        client.collections[dataset_id].delete()
-    client.collections.create(generate_schema_auto(dataset_id))
-    jsonl = df.to_json(orient='records', lines=True) # Convert to jsonl
-    r = client.collections[dataset_id].documents.import_(jsonl, {'action': 'create'})
 
 # Session
 def store_session(key, value):
@@ -999,7 +1002,7 @@ def add_action(source_id_list):
     project['action_list'].append({'id': action_id, 'position': {'x': x, 'y': y}})
     project['dataset_list'].append({'id': dataset_id, 'position': {'x': x, 'y': y+100}})
     action = Action(id=action_id, name=default_action, inputs=source_id_list, outputs=[dataset_id])
-    dataset = Dataset(id=dataset_id, name='New', description='')
+    dataset = Dataset(id=dataset_id, name='', description='')
     
     # Upload Changes
     upsert('project', project)
@@ -1313,7 +1316,8 @@ def get_datatypes(df):
             # Date
             elif (sum(condition2) / len(condition2)) >= THRESHOLD:
                 datatypes[f_id] = 'datetime'
-
+        
+        # if dtype
     return datatypes
 def get_delimiter(data, bytes = 4096):
     sniffer = csv.Sniffer()
