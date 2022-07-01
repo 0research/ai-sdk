@@ -187,6 +187,61 @@ def flatten_json(data):
     elif type(data) == dict:
         data = flatten(data)
     return data
+def get_action_source(action_id, inputs=None, join_method='left', join_keys=[], overwrite=False):
+    action = get_document('action', action_id)
+    if inputs == None:
+        inputs = action['inputs']
+    else:
+        inputs = [inputs] if type(inputs) == str else inputs
+
+    # No Inputs
+    if len(inputs) == 0:
+        dataset = get_document('dataset', action_id)
+        df = pd.DataFrame()
+
+    # Single Source
+    elif len(inputs) == 1:
+        dataset = get_document('dataset', inputs[0])
+        df = get_dataset_data(inputs[0])
+
+    # Multiple Sources (Join)
+    else:
+        try:
+            dataset = merge_metadata(inputs, 'objectMerge')
+            df1 = get_dataset_data(inputs[0])
+            df2 = get_dataset_data(inputs[1])
+
+            if overwrite:
+                dataset1 = get_document('dataset', inputs[0])
+                dataset2 = get_document('dataset', inputs[1])
+                mapper1 = {f['id']:f['name'] for f in dataset1['features']}
+                mapper2 = {f['id']:f['name'] for f in dataset2['features']}
+                df1.rename(columns=mapper1, inplace=True)
+                df2.rename(columns=mapper2, inplace=True)
+                join_keys = [f['name'] for f in dataset['features'] if f['id'] in join_keys]
+                print("INSIDE OVWRWTEITE")
+
+            df = df1.merge(df2, how=join_method, left_on=join_keys[0], right_on=join_keys[1])
+            for col in df:
+                if df[col].dtype in ['string', 'object']: df[col].fillna("", inplace=True)
+                else: df[col].fillna(0, inplace=True)
+            
+            
+            print(df1.columns)
+            print(df2.columns)
+            print(df.columns)
+            print(mapper1)
+                
+        except Exception as e:
+            df = pd.DataFrame([])
+            print('Exception:', e, join_method, join_keys)
+
+            import sys
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+
+    return dataset, df
 # --------------------------------------------------------------------------------
 
 
@@ -581,6 +636,31 @@ def generate_upload(component_id, display_text=None, max_size=1000000):
         multiple=True,
         max_size=max_size
     )
+def get_dataset_data(dataset_id, features=None):
+    dataset = get_document('dataset', dataset_id)
+    feature_id_list = [f['id'] for f in dataset['features']] if features is None else features
+    data = search_documents(dataset_id)
+    df = json_normalize([])
+    if data != None:
+        df = json_normalize(data)[feature_id_list]
+        datatypes = {f['id']: f['datatype'] for f in dataset['features']}
+    
+       # Convert dtypes
+        for f_id, dtype in datatypes.items():
+            if dtype == 'int64': 
+                df[f_id] = df[f_id].astype(float).astype(datatypes[f_id])  # Pandas bug: require converting to float first
+
+            if dtype == 'float64':
+                condition = df[f_id].apply(lambda x: is_dollar(x))
+                if (sum(condition) / len(condition)) >= THRESHOLD:
+                    df[f_id] = df[f_id].str[1:].astype(float)
+                
+                df[f_id] = df[f_id].astype(datatypes[f_id])
+
+            if 'datetime' in dtype:
+                df[f_id] = pd.to_datetime(df[f_id], infer_datetime_format=True, format='%Y%m%d %H:%M:%S')
+        
+    return df
 # --------------------------------------------------------------------------------
 
 # Merge
@@ -897,31 +977,6 @@ def search_documents(collection_id, per_page=250, search_parameters=None):
     else:
         result = None
     return result
-def get_dataset_data(dataset_id, features=None):
-    dataset = get_document('dataset', dataset_id)
-    feature_id_list = [f['id'] for f in dataset['features']] if features is None else features
-    data = search_documents(dataset_id)
-    df = json_normalize([])
-    if data != None:
-        df = json_normalize(data)[feature_id_list]
-        datatypes = {f['id']: f['datatype'] for f in dataset['features']}
-    
-       # Convert dtypes
-        for f_id, dtype in datatypes.items():
-            if dtype == 'int64': 
-                df[f_id] = df[f_id].astype(float).astype(datatypes[f_id])  # Pandas bug: require converting to float first
-
-            if dtype == 'float64':
-                condition = df[f_id].apply(lambda x: is_dollar(x))
-                if (sum(condition) / len(condition)) >= THRESHOLD:
-                    df[f_id] = df[f_id].str[1:].astype(float)
-                
-                df[f_id] = df[f_id].astype(datatypes[f_id])
-
-            if 'datetime' in dtype:
-                df[f_id] = pd.to_datetime(df[f_id], infer_datetime_format=True, format='%Y%m%d %H:%M:%S')
-        
-    return df
 def new_project(project_id, project_type):
     project = Project(id=project_id, type=project_type)
     create('project', project)
@@ -1223,52 +1278,6 @@ def generate_transform_inputs(id):
             ]),
         ], id=id('condition'), style={'display': 'none'}),
     ]
-def get_action_source(action_id, inputs=None, combine_method='join', join_method='left', join_keys=[], merge_type='arrayMergeByIndex', idRef=None, features=None):
-    action = get_document('action', action_id)
-    if inputs == None:
-        inputs = action['inputs']
-    else:
-        inputs = [inputs] if type(inputs) == str else inputs
-
-    # No Inputs
-    if len(inputs) == 0:
-        dataset = get_document('dataset', action_id)
-        df = pd.DataFrame()
-
-    # Single Source
-    elif len(inputs) == 1:
-        dataset = get_document('dataset', inputs[0])
-        df = get_dataset_data(inputs[0])
-
-    # Multiple Sources (Join/Merge)
-    else:
-        try:
-            dataset = merge_metadata(inputs, 'objectMerge')
-            if combine_method == 'join':
-                f1_list = None
-                f2_list = None
-                # if features is not None:
-                #     d1_list = [f['id'] for f in get_document('dataset', inputs[0])['features']]
-                #     d2_list = [f['id'] for f in get_document('dataset', inputs[1])['features']]
-                #     f1_list = [f for f in features if f['id'] in d1_list]
-                #     f2_list = [f for f in features if f['id'] in d2_list]
-
-                df1 = get_dataset_data(inputs[0], f1_list)
-                df2 = get_dataset_data(inputs[1], f2_list)
-                df = df1.merge(df2, how=join_method, left_on=join_keys[0], right_on=join_keys[1])
-                for col in df:
-                    if df[col].dtype in ['string', 'object']: df[col].fillna("", inplace=True)
-                    else: df[col].fillna(0, inplace=True)
-                    
-            else:
-                df = merge_dataset_data(inputs, merge_type, idRef)
-                
-        except Exception as e:
-            df = pd.DataFrame([])
-            print('Exception:', e)
-
-    return dataset, df
-
 def generate_options(label_list, input_list):
     return [
         (

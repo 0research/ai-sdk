@@ -52,7 +52,7 @@ DATATYPE_NUMERICAL = ['int64', 'float64']
 DATATYPE_NONNUMERICAL = ['string', 'bool', 'datetime', 'geopoint']
 
 
-# Types of Merges
+# Join / Merge
 options_join = [
     {'label': 'Left Join', 'value': 'left'},
     {'label': 'Right Join', 'value': 'right'},
@@ -60,8 +60,10 @@ options_join = [
     {'label': 'Outer Join', 'value': 'outer'},
     # {'label': 'Cross Join', 'value': 'cross'},
 ]
+options_join_checklist = [
+    {'label': 'Feature Overwrite', 'value': 1},
+]
 
-# Types of Merges
 options_merge = [
     {'label': 'Merge by Index', 'value': 'arrayMergeByIndex'},
     {'label': 'Object Merge', 'value': 'objectMerge'},
@@ -70,6 +72,7 @@ options_merge = [
     # {'label': 'Version Merge', 'value': 'version', 'disabled':True},
     {'label': 'Append', 'value': 'append', 'disabled':True},
 ]
+
 
 
 # List of Actions

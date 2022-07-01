@@ -67,7 +67,7 @@ layout = html.Div([
                 html.Div([
                     dbc.ButtonGroup([
                         dbc.Button('Add Source',    id=id('button_add_dataset'),    color='info',   className='me-1', style={'width':'90px'}),
-                        dbc.Button('Action',        id=id('button_new_action'),     color='warning', className='me-1', style={'width':'90px'}),
+                        dbc.Button('Action',        id=id('button_add_action'),     color='warning', className='me-1', style={'width':'90px'}),
                         dbc.Button('Remove',        id=id('button_remove'),         color='danger', className='me-1', style={'width':'90px'}),
                         dbc.Button('Group',         id=id('button_group'),          color='success', className='me-1', style={'width':'90px', 'display':'none'}),
                         dbc.Button('Reset',         id=id('button_reset_layout'),   color='dark',   className='me-1', style={'width':'90px'}),
@@ -163,7 +163,8 @@ layout = html.Div([
                     html.Div([
                         dbc.InputGroup([
                             dbc.InputGroupText('Merge Type', style={'width':'30%'}),
-                            dbc.Select(options=options_join, value=options_join[0]['value'], id=id('join_method'), style={'text-align':'center', 'width':'68%'})
+                            dbc.Select(options=options_join, value=options_join[0]['value'], id=id('join_method'), style={'text-align':'center', 'width':'68%'}),
+                            dbc.Checklist(options=options_join_checklist, value=options_join_checklist[0]['value'], id=id('join_checklist'), inline=True),
                         ], style={'width':'40%', 'float':'left', 'display':'inline-flex'}),
                         html.Div([], id=id('join_features_container'), style={'width':'58%', 'float':'right', 'display':'inline-block'}),
                     ], id=id('join_details_container'), style={'display':'none', 'border-style':'groove'}),
@@ -393,8 +394,8 @@ def generate_right_header(active_tab, selected_action, selectedNodeData):
 
 
 @app.callback(
-    Output(id('button_new_action'), 'disabled'),
-    Output(id('button_new_action'), 'outline'),
+    Output(id('button_add_action'), 'disabled'),
+    Output(id('button_add_action'), 'outline'),
     Input(id('cytoscape'), 'selectedNodeData'),
 )
 def toggle_action_button(selectedNodeData):
@@ -422,12 +423,13 @@ def toggle_remove_button(selectedNodeData):
 
     Input(id('button_execute_action'), 'n_clicks'),
     Input(id('button_add_dataset'), 'n_clicks'),
-    Input(id('button_new_action'), 'n_clicks'),
+    Input(id('button_add_action'), 'n_clicks'),
     Input(id('button_remove'), 'n_clicks'),
     Input(id('button_group'), 'n_clicks'),
     Input(id('button_reset_layout'), 'n_clicks'),
     Input(id('button_run_cytoscape'), 'n_clicks'),
 
+    Input(id('action_store'), 'data'),
     Input(id('transform_store'), 'data'),
     Input(id('aggregate_store'), 'data'),
 
@@ -440,7 +442,7 @@ def toggle_remove_button(selectedNodeData):
     State(id('datatable_aggregate'), 'columns'),
 )
 def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
-                        transform_store, aggregate_store,
+                        action_store, transform_store, aggregate_store,
                         action_name, action_inputs, selectedNodeData, elements, data, data_agg, columns_agg
 ):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
@@ -465,11 +467,12 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
 
     # Change Node Name, Action, Inputs  
     if num_selected == 1:
-        node_id = selectedNodeData[0]['id']
         if selectedNodeData[0]['type'] == 'dataset':
-            dataset = get_document('dataset', node_id)
+            dataset_id = selectedNodeData[0]['id']
+            dataset = get_document('dataset', dataset_id)
         elif selectedNodeData[0]['type'] == 'action':
-            action = get_document('action', node_id)
+            action_id = selectedNodeData[0]['id']
+            action = get_document('action', action_id)
         
         if triggered == id('dataset_name'):
             dataset['name'] = dataset_name
@@ -486,7 +489,7 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
 
             try:
                 if action_name == 'join':
-                    action['details'] = {'join_method':'left', 'features': []}
+                    action['details'] = action_store[action_id]['details']
                     dataset = merge_metadata(action['inputs'], 'objectMerge')
                     rename_map = {}
                     for i in range(len(dataset['features'])):
@@ -502,13 +505,13 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
                     dataset_o['features'] = dataset['features']
 
                 elif action_name == 'transform':
-                    action['details'] = transform_store[node_id]
+                    action['details'] = transform_store[action_id]
                     dataset_o['features'] = [{
                         'id': f['id'],
                         'name': f['name'],
                         'datatype': f['datatype'],
                         'expectation': [],
-                    } for f in transform_store[node_id]['features'] if f['remove'] == False]
+                    } for f in transform_store[action_id]['features'] if f['remove'] == False]
 
                     # # TODO truncate, filter, sort_by
                     # df.iloc[]
@@ -516,7 +519,7 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
                     # dataset_o['sort_by'] = transform_store[node_id]['features']['others']['sort_by']      
 
                 elif action_name == 'aggregate':
-                    action['details'] = aggregate_store[node_id]
+                    action['details'] = aggregate_store[action_id]
                     df = pd.DataFrame(data_agg)
                     df = df.drop(columns=index_col_name, axis=1)
                     row_0 = df.iloc[0].to_dict()
@@ -553,7 +556,7 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
     if triggered == id('button_add_dataset'):
         add_dataset(project_id)
 
-    elif triggered == id('button_new_action'):
+    elif triggered == id('button_add_action'):
         if num_selected == 0: return no_update
         if any(node['type'] == 'action' for node in selectedNodeData): return no_update
         source_id_list = [node['id'] for node in selectedNodeData]
@@ -1041,6 +1044,7 @@ def generate_right_content_display(active_tab, style0, style1, style2, style3, s
 #     datatable = datatable = generate_datatable(id('datatable_logs'), df.to_dict('records'), columns, height='18vh', sort_action='native', filter_action='native')
 
 #     return datatable
+
 
 
 
@@ -1582,12 +1586,9 @@ def auto_select_column(active_cell, selected_columns):
 
     Input(id('datatable_container'), 'children'),
     Input(id('dropdown_action_inputs'), 'value'),
+
     Input(id('transform_store'), "data"),
-    
-    Input(id('join_method'), 'value'),
-    Input({'type': id('join_keys'), 'index': ALL}, 'value'),
-    Input(id('merge_type'), 'value'),
-    Input({'type': id('merge_idRef'), 'index': ALL}, 'value'),
+    Input(id('action_store'), 'data'),
 
     Input(id('range_slider'), 'value'),
     Input(id('search2'), 'value'),
@@ -1597,8 +1598,8 @@ def auto_select_column(active_cell, selected_columns):
     State(id('datatable'), 'data'),
     State(id('datatable'), 'columns'),
 )
-def datatable_triggers(_, action_inputs, transform_store, 
-                        join_method, join_keys, merge_type, merge_idRef_list,
+def datatable_triggers(_, action_inputs,
+                        transform_store, action_store,
                         range_val, search_val,
                         selected_action, selectedNodeData, data, columns
 ):
@@ -1610,25 +1611,33 @@ def datatable_triggers(_, action_inputs, transform_store,
     
     show_datatype_dropdown = False
     renamable = False
-    merge_idRef_list = None if merge_idRef_list is None else ['/'+idRef for idRef in merge_idRef_list]
     
-    # print("\ntriggered", merge_idRef_list)
+    # print("\ntriggered")
     # pprint(callback_context.triggered)
     
     if num_selected == 1:
-        node_id = selectedNodeData[0]['id']
         node_type = selectedNodeData[0]['type']
 
         if node_type == 'action':
-            dataset, df = get_action_source(node_id, action_inputs, 'join', join_method, join_keys)
+            action_id = selectedNodeData[0]['id']
+            dataset, df = get_action_source(action_id, action_inputs)
             features = dataset['features']
 
-            # Add/Style Session Changes
-            if selected_action == 'transform':
+            # Join Action
+            if selected_action == 'join':
+                join_method = action_store[action_id]['details']['join_method']
+                join_keys = action_store[action_id]['details']['join_keys']
+                overwrite = action_store[action_id]['details']['overwrite']
+                dataset, df = get_action_source(action_id, action_inputs, join_method, join_keys, overwrite)
+                
+                # style_data_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "#8B8000"}]
+
+            # Transform Action
+            elif selected_action == 'transform':
                 renamable = True
                 show_datatype_dropdown = True
-                if node_id in transform_store:
-                    store = transform_store[node_id]
+                if action_id in transform_store:
+                    store = transform_store[action_id]
                     
                     if 'features' in store:
                         for feature in store['features']:
@@ -1662,8 +1671,9 @@ def datatable_triggers(_, action_inputs, transform_store,
                     # store['others']['sort_by']
 
         else:
-            dataset = get_document('dataset', node_id)
-            df = get_dataset_data(node_id)
+            dataset_id = selectedNodeData[0]['id']
+            dataset = get_document('dataset', dataset_id)
+            df = get_dataset_data(dataset_id)
             features = dataset['features']
 
     elif num_selected > 1 and all(node['type'] == 'dataset' for node in selectedNodeData):
@@ -1690,18 +1700,85 @@ def datatable_triggers(_, action_inputs, transform_store,
     return data, columns, dropdown_data, style_data_conditional, style_header_conditional
 
 
-# Join Store
-@app.callback(
-    Output(id('join_store'), 'data'),
-    Input('url', 'pathname'),
-    Input({'type': id('join_keys'), 'index': ALL}, 'n_clicks'),
-)
-def join_store(pathname, join_keys):
-    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
 
-    print('\n\nAAAAAAAAA')
-    pprint(callback_context.triggered)
-    pprint(triggered)
+
+# Init Action Store Dict
+@app.callback(
+    Output(id('action_store'), 'data'),
+    Input('url', 'pathname'),
+)
+def initialize_action_store_c(pathname):
+    project = get_document('project', get_session('project_id'))
+    action_store = {}
+    for a in project['action_list']:
+        action = get_document('action',  a['id'])
+        action_store[action['id']] = action
+
+    return action_store
+
+# Load Join Session
+@app.callback(
+    Output(id('join_method'), 'value'),
+    Output({'type': id('join_keys'), 'index': ALL}, 'value'),
+    Output(id('join_checklist'), 'value'),
+    Input(id('dropdown_action'), 'value'),
+    State(id('action_store'), 'data'),
+    State(id('cytoscape'), 'selectedNodeData'),
+    State({'type': id('join_keys'), 'index': ALL}, 'value'),
+)
+def load_join_session_c(selected_action, action_store, selectedNodeData, join_keys2):
+    if len(selectedNodeData) != 1: return no_update
+    if selectedNodeData[0]['type'] != 'action' or selectedNodeData[0]['name'] != 'join': return no_update
+    if selectedNodeData[0]['id'] not in action_store: return no_update
+
+    action_id = selectedNodeData[0]['id']
+    details = action_store[action_id]['details']
+    join_method =   details['join_method']    if 'join_method'    in details else no_update
+    join_keys   =   details['join_keys']      if 'join_keys'      in details else join_keys2
+    join_checklist = []
+    if 'overwrite' in details and details['overwrite'] is True:
+        join_checklist.append(1)
+
+    return join_method, join_keys, join_checklist
+
+
+# Join Action Session
+@app.callback(
+    Output(id('action_store'), 'data'),
+    Input(id('join_method'), 'value'),
+    Input({'type': id('join_keys'), 'index': ALL}, 'value'),
+    Input(id('join_checklist'), 'value'),
+    State(id('action_store'), 'data'),
+    State(id('cytoscape'), 'selectedNodeData'),
+    prevent_initial_call=True,
+)
+def store_join_session_c(join_method, join_keys, join_checklist, action_store, selectedNodeData):
+    if len(selectedNodeData) != 1: return no_update
+    if selectedNodeData[0]['type'] != 'action' or selectedNodeData[0]['name'] != 'join': return no_update
+
+    action_id = selectedNodeData[0]['id']
+    action = get_document('action', action_id)
+    if action_id not in action_store:
+        action_store[action_id] = {
+            'id':           action['id'],
+            'name':         action['name'],
+            'description':  action['description'],
+            'state':        action['state'],
+            'details':      action['details'],
+            'input':        action['input'],
+            'output':       action['output'],
+        }
+
+    action_store[action_id]['details'] = {
+        'join_method':  join_method,
+        'join_keys':    join_keys,
+        'overwrite':    True if 1 in join_checklist else False,
+    }
+
+    return action_store
+
+
+
 
 
 # Transform Node
@@ -1757,7 +1834,7 @@ def join_store(pathname, join_keys):
 
     State(id('custom_input'), 'value'),
 )
-def transform_store(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
+def transform_store_c(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
                 sort_by, filter_query,
                 selected_action, selectedNodeData, data, columns, active_cell, selected_columns, function_type, transform_store, feature_name,
                 func1, f1a, f1b,
