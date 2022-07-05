@@ -162,7 +162,7 @@ layout = html.Div([
                     # Join Inputs Container
                     html.Div([
                         dbc.InputGroup([
-                            dbc.InputGroupText('Merge Type', style={'width':'30%'}),
+                            dbc.InputGroupText('Join Method', style={'width':'30%'}),
                             dbc.Select(options=options_join, value=options_join[0]['value'], id=id('join_method'), style={'text-align':'center', 'width':'68%'}),
                             dbc.Checklist(options=options_join_checklist, value=options_join_checklist[0]['value'], id=id('join_checklist'), inline=True),
                         ], style={'width':'40%', 'float':'left', 'display':'inline-flex'}),
@@ -490,7 +490,7 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
             try:
                 if action_name == 'join':
                     action['details'] = action_store[action_id]['details']
-                    dataset = merge_metadata(action['inputs'], 'objectMerge')
+                    dataset = combine_features(action['inputs'])
                     rename_map = {}
                     for i in range(len(dataset['features'])):
                         feature_id = str(uuid.uuid1())
@@ -499,10 +499,6 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
                     df.rename(columns=rename_map, inplace=True)
                     dataset_o['features'] = dataset['features']
 
-                elif action_name == 'merge':
-                    action['details'] = {'merge_type':'none', 'idRef': 'none'}
-                    dataset = merge_metadata(action['inputs'], 'objectMerge')
-                    dataset_o['features'] = dataset['features']
 
                 elif action_name == 'transform':
                     action['details'] = transform_store[action_id]
@@ -689,7 +685,7 @@ def run_restapi(n_clicks, selectedNodeData):
     body = dataset['upload_details']['body']
     df, details = process_restapi(restapi_method, url, header, param, body)
 
-    mapper = {f['name']:f['id'] for f in dataset['features']}
+    mapper = {feature['name']:feature_id for feature_id, feature in dataset['features'].items() }
     df.rename(columns=mapper, inplace=True)
     df = df.astype(str)
 
@@ -1059,9 +1055,9 @@ def generate_groupby_options(selected_action, selected_columns, selectedNodeData
     if len(selectedNodeData) != 1 or selectedNodeData[0]['type'] != 'action': return no_update
     if selected_action != 'aggregate': return no_update
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
-    dataset, df = get_action_source(selectedNodeData[0]['id'])
-    options = [{'label': f['name'], 'value': f['id']} for f in dataset['features']]
-
+    features, df = get_action_source(selectedNodeData[0]['id'])
+    options = [{'label': feature['name'], 'value': feature_id} for feature_id, feature in features.items()]
+    
     if triggered == id('dropdown_action'): value = options[0]['value']
     elif triggered == id('datatable'): value = selected_columns
 
@@ -1074,8 +1070,8 @@ def generate_groupby_options(selected_action, selected_columns, selectedNodeData
 )
 def generate_agg_table(groupby_features, selectedNodeData):
     if len(selectedNodeData) != 1 or selectedNodeData[0]['type'] != 'action': return no_update
-    dataset, df = get_action_source(selectedNodeData[0]['id'])
-    features = list(dataset['features'])
+    features, df = get_action_source(selectedNodeData[0]['id'])
+    features = list(features.keys())
     features = [f for f in features if f['id'] not in groupby_features]
     
     # aggregate_button_id_list = [id('button_agg_function{}'.format(i)) for i in range(len(aggregate_button_name_list))]
@@ -1150,12 +1146,12 @@ def generate_datatable_aggregate(_, groupby_features, n_clicks_list, id_list, se
 
         # Group by, Aggregate
         action_id = selectedNodeData[0]['id']
-        dataset, df = get_action_source(action_id)
+        features, df = get_action_source(action_id)
         df_agg = df.groupby(groupby_features, as_index=False).agg(agg_feature_function_dict)
 
         # Columns
         columns = [{'id':index_col_name, 'name': [index_col_name, ''], 'selectable': False}]
-        feature_id_name_dict = {f['id']: f['name'] for f in dataset['features']}
+        feature_id_name_dict = {feature_id: feature['name'] for feature_id, feature in features.items()}
         feature_id_list = []
         for header1, header2 in df_agg.columns:
             feature_id = str(uuid.uuid1())
@@ -1175,7 +1171,7 @@ def generate_datatable_aggregate(_, groupby_features, n_clicks_list, id_list, se
     Output(id('join_features_container'), 'children'),
     Input(id('dropdown_action_inputs'), 'value'),
 )
-def display_merge_details(action_inputs):
+def display_join_details(action_inputs):
     if action_inputs is None: return no_update
     if type(action_inputs) != list: action_inputs = [action_inputs]
 
@@ -1186,8 +1182,8 @@ def display_merge_details(action_inputs):
                     dbc.InputGroup([
                         dbc.InputGroupText(dataset['name'], style={'width':'25%'}),
                         dbc.Select(
-                            options=[{'label': f['name'], 'value':f['id']} for f in dataset['features']],
-                            value= dataset['features'][0]['id'] if len(dataset['features']) > 0 else None, 
+                            options=[{'label': feature['name'], 'value':feature_id} for feature_id, feature in dataset['features'].items()],
+                            value= next(iter(dataset['features'].items()))[1] if len(dataset['features']) > 0 else None, 
                             id={'type': id('join_keys'), 'index': dataset['id']}, style={'text-align':'center'}
                         ),
                     ])
@@ -1620,15 +1616,14 @@ def datatable_triggers(_, action_inputs,
 
         if node_type == 'action':
             action_id = selectedNodeData[0]['id']
-            dataset, df = get_action_source(action_id, action_inputs)
-            features = dataset['features']
+            features, df = get_action_source(action_id, action_inputs)
 
             # Join Action
             if selected_action == 'join':
                 join_method = action_store[action_id]['details']['join_method']
                 join_keys = action_store[action_id]['details']['join_keys']
                 overwrite = action_store[action_id]['details']['overwrite']
-                dataset, df = get_action_source(action_id, action_inputs, join_method, join_keys, overwrite)
+                features, df = get_action_source(action_id, action_inputs, join_method, join_keys, overwrite)
                 
                 # style_data_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "#8B8000"}]
 
@@ -1677,10 +1672,7 @@ def datatable_triggers(_, action_inputs,
             features = dataset['features']
 
     elif num_selected > 1 and all(node['type'] == 'dataset' for node in selectedNodeData):
-        # inputs = [node['id'] for node in selectedNodeData]
-        # dataset = merge_metadata(inputs, 'objectMerge')
-        # df = merge_dataset_data(inputs, merge_type, merge_idRef_list)
-        # features = dataset['features']
+        inputs = [node['id'] for node in selectedNodeData]
         pass
 
     else:
@@ -1714,6 +1706,8 @@ def initialize_action_store_c(pathname):
         action = get_document('action',  a['id'])
         action_store[action['id']] = action
 
+    print('action store:')
+    pprint(action_store)
     return action_store
 
 # Load Join Session
@@ -1726,15 +1720,16 @@ def initialize_action_store_c(pathname):
     State(id('cytoscape'), 'selectedNodeData'),
     State({'type': id('join_keys'), 'index': ALL}, 'value'),
 )
-def load_join_session_c(selected_action, action_store, selectedNodeData, join_keys2):
+def load_join_session_c(selected_action, action_store, selectedNodeData, join_keys):
     if len(selectedNodeData) != 1: return no_update
     if selectedNodeData[0]['type'] != 'action' or selectedNodeData[0]['name'] != 'join': return no_update
     if selectedNodeData[0]['id'] not in action_store: return no_update
 
+    print('CCCc', join_keys)
     action_id = selectedNodeData[0]['id']
     details = action_store[action_id]['details']
     join_method =   details['join_method']    if 'join_method'    in details else no_update
-    join_keys   =   details['join_keys']      if 'join_keys'      in details else join_keys2
+    join_keys   =   details['join_keys']      if 'join_keys'      in details else join_keys
     join_checklist = []
     if 'overwrite' in details and details['overwrite'] is True:
         join_checklist.append(1)
@@ -2128,7 +2123,6 @@ def transform_store_c(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
     Input(id('transform_store'), 'data'),
 )
 def display_add_features(transform_store):
-    pprint(transform_store)
     add_feature_container = []
 
 
@@ -2157,7 +2151,7 @@ def generate_all_graphs(active_tab, selectedNodeData):
     for dataset_id in dataset_id_list:
         if dataset_id in project['graph_dict']:
             dataset = get_document('dataset', dataset_id)
-            labels = {f['id']:f['name'] for f in dataset['features']}
+            labels = {feature_id:feature['name'] for feature_id, feature in dataset['features'].items()}
             for graph_id in project['graph_dict'][dataset_id]:
                 graph = get_document('graph', graph_id)
                 df = get_dataset_data(dataset_id)
@@ -2224,9 +2218,6 @@ def button_chart(n_clicks1, n_clicks2, graph_id, selectedNodeData, is_open):
     active_tab = no_update
     s1, s2 = {'display':'none'}, {'display':'none'}
     is_open = not is_open
-
-    print("AAAA")
-    pprint(callback_context.triggered)
 
     if triggered == id('button_open_graph_modal') or triggered == id('graph_id_store'):
         if triggered == id('button_open_graph_modal'): store_session('graph_id', '')

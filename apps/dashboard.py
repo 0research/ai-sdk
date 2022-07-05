@@ -131,7 +131,7 @@ def generate_all_graphs(active_tab):
 
     for dataset_id, graph_id_list in project['graph_dict'].items():
         dataset = get_document('dataset', dataset_id)
-        labels = {f['id']:f['name'] for f in dataset['features']}
+        labels = {feature_id:feature['name'] for feature_id, feature in dataset['features'].items()}
 
         for graph_id in graph_id_list:
             graph = get_document('graph', graph_id)

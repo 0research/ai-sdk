@@ -54,7 +54,6 @@ def generate_dropdown(component_id, options, value=None, multi=False, placeholde
         style=style,
     )
 def display_metadata(dataset, id, disabled=True, height='750px'):
-    features = {f['name']:f['datatype'] for f in dataset['features']}
     options_datatype = [{'label': d, 'value': d} for d in DATATYPE_LIST]
     return (html.Div([
             # html.Div([
@@ -189,6 +188,7 @@ def flatten_json(data):
     return data
 def get_action_source(action_id, inputs=None, join_method='left', join_keys=[], overwrite=False):
     action = get_document('action', action_id)
+    features = {}
     if inputs == None:
         inputs = action['inputs']
     else:
@@ -197,40 +197,43 @@ def get_action_source(action_id, inputs=None, join_method='left', join_keys=[], 
     # No Inputs
     if len(inputs) == 0:
         dataset = get_document('dataset', action_id)
+        features = dataset['features']
         df = pd.DataFrame()
 
     # Single Source
     elif len(inputs) == 1:
         dataset = get_document('dataset', inputs[0])
+        features = dataset['features']
         df = get_dataset_data(inputs[0])
 
     # Multiple Sources (Join)
     else:
         try:
-            dataset = merge_metadata(inputs, 'objectMerge')
             df1 = get_dataset_data(inputs[0])
             df2 = get_dataset_data(inputs[1])
+
+            print('\n\n Keys: ', join_keys)
 
             if overwrite:
                 dataset1 = get_document('dataset', inputs[0])
                 dataset2 = get_document('dataset', inputs[1])
-                mapper1 = {f['id']:f['name'] for f in dataset1['features']}
-                mapper2 = {f['id']:f['name'] for f in dataset2['features']}
+                mapper1 = {feature_id:feature['name'] for feature_id, feature in dataset1['features'].items()}
+                mapper2 = {feature_id:feature['name'] for feature_id, feature in dataset2['features'].items()}
                 df1.rename(columns=mapper1, inplace=True)
                 df2.rename(columns=mapper2, inplace=True)
-                join_keys = [f['name'] for f in dataset['features'] if f['id'] in join_keys]
-                print("INSIDE OVWRWTEITE")
+                join_keys = [feature['name'] for feature_id, feature in dataset['features'].items() if feature_id in join_keys]
+
+                print(df1.columns)
+                print(df2.columns)
+                print(mapper1)
+            else:
+                features = combine_features(inputs)
 
             df = df1.merge(df2, how=join_method, left_on=join_keys[0], right_on=join_keys[1])
             for col in df:
                 if df[col].dtype in ['string', 'object']: df[col].fillna("", inplace=True)
                 else: df[col].fillna(0, inplace=True)
             
-            
-            print(df1.columns)
-            print(df2.columns)
-            print(df.columns)
-            print(mapper1)
                 
         except Exception as e:
             df = pd.DataFrame([])
@@ -241,7 +244,7 @@ def get_action_source(action_id, inputs=None, join_method='left', join_keys=[], 
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
             print(exc_type, fname, exc_tb.tb_lineno)
 
-    return dataset, df
+    return features, df
 # --------------------------------------------------------------------------------
 
 
@@ -322,13 +325,13 @@ def generate_datatable_data(df, features, show_datatype_dropdown=False, renamabl
     dropdown_data = []
     
     # Add First Row for Datatype Dropdown
-    df.loc[-1] = {f['id']: f['datatype'] for f in features}
+    df.loc[-1] = {feature_id: feature['datatype'] for feature_id, feature in features.items()}
     df.index += 1
     df.sort_index(inplace=True)
 
     # Get Datatable Columns
     columns = [{'id':'no.', 'name':'no.', 'selectable':False}]
-    columns += [{"id": f['id'], "name": f['name'], "selectable": True, 'presentation': 'dropdown', 'renamable': renamable} for f in features]
+    columns += [{"id": feature_id, "name": feature['name'], "selectable": True, 'presentation': 'dropdown', 'renamable': renamable} for feature_id, feature in features.items()]
 
     # Add Index Column to df
     df.reset_index(inplace=True)
@@ -342,26 +345,51 @@ def generate_datatable_data(df, features, show_datatype_dropdown=False, renamabl
     return df, columns, dropdown_data
 # --------------------------------------------------------------------------------
 
-# Dataset 
+# Dataset
+def combine_features(dataset_id_list):
+    dataset = get_document('dataset', dataset_id_list[0])
+    features = dataset['features']
+    for dataset_id in dataset_id_list[1:]:
+        dataset = get_document('dataset', dataset_id)
+        features.update(dataset['features'])
+    return features
+def get_datatypes(df):
+    datatypes = df.convert_dtypes().dtypes.apply(lambda x: x.name.lower()).to_dict()
+    for f_id, dtype in datatypes.items():
+        if dtype in ['string', 'object']:
+            # Conditions
+            condition1 = df[f_id].apply(lambda x: is_dollar(x))
+            condition2 = df[f_id].apply(lambda x: is_date(x))
+
+            # Dollar
+            if (sum(condition1) / len(condition1)) >= THRESHOLD:
+                datatypes[f_id] = 'float64'
+            # Date
+            elif (sum(condition2) / len(condition2)) >= THRESHOLD:
+                datatypes[f_id] = 'datetime'
+        
+        # if dtype
+    return datatypes
 def upload_dataset(df, dataset_id, description, documentation, details=''):
     # Rename if no column name found
     df.columns = [name if name != 0 else 'Feature' for name in df.columns]
-
+    
     datatypes = get_datatypes(df)
+
 
     dataset = get_document('dataset', dataset_id)
     dataset['upload_details'] = details
     dataset['description'] = description
     dataset['documentation'] = documentation
-    dataset['features'] = [{
-        'id': str(uuid.uuid1()),
-        'name': name, 
-        'datatype': dtype,
-        'expectation': {},
-    } for name, dtype in datatypes.items()]
+    for name, dtype in datatypes.items():
+         dataset['features'][str(uuid.uuid1())] = {
+            'name': name, 
+            'datatype': dtype,
+            'expectation': {},
+         }
 
     # Rename feature name to Unique ID
-    mapper = {f['name']:f['id'] for f in dataset['features']}
+    mapper = {feature['name']:feature_id for feature_id, feature in dataset['features'].items()}
     df.rename(columns=mapper, inplace=True)
 
     # Convert all columns to string
@@ -472,7 +500,7 @@ def process_restapi(method, url, header, param, body):
 def process_copydataset(dataset_id):
     dataset = get_document('dataset', dataset_id)
     df = get_dataset_data(dataset_id)
-    mapper = {f['id']:f['name'] for f in dataset['features']}
+    mapper = {feature_id:feature['name'] for feature_id, feature in dataset['features'].items()}
     df.rename(columns=mapper, inplace=True)
     details = {'method': 'datacatalog'}
 
@@ -638,13 +666,13 @@ def generate_upload(component_id, display_text=None, max_size=1000000):
     )
 def get_dataset_data(dataset_id, features=None):
     dataset = get_document('dataset', dataset_id)
-    feature_id_list = [f['id'] for f in dataset['features']] if features is None else features
+    feature_id_list = list(dataset['features'].keys()) if features is None else features
     data = search_documents(dataset_id)
     df = json_normalize([])
     if data != None:
         df = json_normalize(data)[feature_id_list]
-        datatypes = {f['id']: f['datatype'] for f in dataset['features']}
-    
+        datatypes = {feature_id: feature['datatype'] for feature_id, feature in dataset['features'].items()}
+
        # Convert dtypes
         for f_id, dtype in datatypes.items():
             if dtype == 'int64': 
@@ -664,18 +692,18 @@ def get_dataset_data(dataset_id, features=None):
 # --------------------------------------------------------------------------------
 
 # Merge
-def merge_metadata(dataset_id_list, merge_type='objectMerge'):
-    dataset = get_document('dataset', dataset_id_list[0])
-    dataset['details'] = ''
-    features = dataset['features']
-    for dataset_id in dataset_id_list[1:]:
-        new_dataset = get_document('dataset', dataset_id)
-        new_dataset['details'] = ''
-        features += new_dataset['features']
-        dataset = json_merge(dataset, new_dataset, merge_type)
-    dataset['features'] = features
-    return dataset
-def merge_dataset_data(dataset_id_list, merge_type='objectMerge', idRef=None):
+# def merge_metadata(dataset_id_list, merge_type='objectMerge'):
+#     dataset = get_document('dataset', dataset_id_list[0])
+#     dataset['details'] = ''
+#     features = dataset['features']
+#     for dataset_id in dataset_id_list[1:]:
+#         new_dataset = get_document('dataset', dataset_id)
+#         new_dataset['details'] = ''
+#         features += new_dataset['features']
+#         dataset = json_merge(dataset, new_dataset, merge_type)
+#     dataset['features'] = features
+#     return dataset
+# def merge_dataset_data(dataset_id_list, merge_type='objectMerge', idRef=None):
     try:
         # Merge
         data = get_dataset_data(dataset_id_list[0]).to_dict('records')
@@ -770,20 +798,21 @@ def generate_graph_inputs(id):
 def graph_inputs_options_callback(dataset_id, graph_id=''):
     dataset = get_document('dataset', dataset_id)
     df = get_dataset_data(dataset_id)
-    features = dataset['features']
-    options = [{'label': f['name'], 'value': f['id']} for f in features]
 
-    features_nonnumerical = [f for f in features if f['datatype'] in DATATYPE_NONNUMERICAL]
-    features_numerical = [f for f in features if f['datatype'] in DATATYPE_NUMERICAL]
+    options = [{'label': feature['name'], 'value': feature_id} for feature_id, feature in dataset['features'].items()]
+    features_nonnumerical, features_numerical = [], []
+    for feature_id, feature in dataset['features'].items():
+        if feature['datatype'] in DATATYPE_NONNUMERICAL: features_nonnumerical.append(feature_id)
+        if feature['datatype'] in DATATYPE_NUMERICAL: features_numerical.append(feature_id)
 
     options_nonnumerical =[{'label': f['name'], 'value': f['id']} for f in features_nonnumerical]
     options_numerical = [{'label': f['name'], 'value': f['id']} for f in features_numerical]
 
-    default = features[0]['id'] if len(features) != 0 else None
+    default = options[0]['id'] if len(options) != 0 else None
     default_nonnumerical = features_nonnumerical[0]['id'] if len(features_nonnumerical) != 0 else None
     default_numerical = features_numerical[0]['id'] if len(features_numerical) != 0 else None
 
-    columns = [{"id": f['id'], "name": f['name'], "deletable": False, "selectable": True} for f in features]
+    columns = [{"id": feature_id, "name": feature['name'], "deletable": False, "selectable": True} for feature_id, feature in dataset['features'].items()]
 
     # Display Clean Graph if no Graph ID exist else Display Selected Graph Values
     if graph_id == '':
@@ -1311,23 +1340,6 @@ def is_dollar(string):
 
 
 """ General """
-def get_datatypes(df):
-    datatypes = df.convert_dtypes().dtypes.apply(lambda x: x.name.lower()).to_dict()
-    for f_id, dtype in datatypes.items():
-        if dtype in ['string', 'object']:
-            # Conditions
-            condition1 = df[f_id].apply(lambda x: is_dollar(x))
-            condition2 = df[f_id].apply(lambda x: is_date(x))
-
-            # Dollar
-            if (sum(condition1) / len(condition1)) >= THRESHOLD:
-                datatypes[f_id] = 'float64'
-            # Date
-            elif (sum(condition2) / len(condition2)) >= THRESHOLD:
-                datatypes[f_id] = 'datetime'
-        
-        # if dtype
-    return datatypes
 def get_delimiter(data, bytes = 4096):
     sniffer = csv.Sniffer()
     return sniffer.sniff(data).delimiter
