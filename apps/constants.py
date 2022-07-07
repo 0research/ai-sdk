@@ -32,7 +32,6 @@ SIDEBAR_2_LIST = [
     
     {'label': 'Merge Datasets',             'value': '#',                       'multiple':True,    'disabled': False,  'className': 'fas fa-search-plus'},
 
-    # {'label': 'Join',               'value': '/apps/join',               'multiple':True,   'className': 'fas fa-search-plus'},
     # {'label': 'Modify Profile',             'value': '/apps/profile',           'multiple':False,   'disabled': False,  'className': 'fas fa-chess-knight'},
     
 ]
@@ -52,15 +51,19 @@ DATATYPE_NUMERICAL = ['int64', 'float64']
 DATATYPE_NONNUMERICAL = ['string', 'bool', 'datetime', 'geopoint']
 
 
-# Join / Merge
-options_join = [
+# Combine Datasets
+LEFT_DATASET_COLOR = '#1B4F72'
+RIGHT_DATASET_COLOR = '#0E6251'
+options_combine = [
     {'label': 'Left Join', 'value': 'left'},
     {'label': 'Right Join', 'value': 'right'},
     {'label': 'Inner Join', 'value': 'inner'},
     {'label': 'Outer Join', 'value': 'outer'},
-    # {'label': 'Cross Join', 'value': 'cross'},
+    {'label': 'Cross Join', 'value': 'cross'},
+    {'label': 'Fill NA', 'value': 'fillna'},
+    {'label': 'Fill NA + Overwrite', 'value': 'fillna_overwrite'},
 ]
-options_join_checklist = [
+options_combine_checklist = [
     {'label': 'Feature Overwrite', 'value': 1},
 ]
 
@@ -77,8 +80,7 @@ options_merge = [
 
 # List of Actions
 option_actions = [
-    {'label':'Join',        'value':'join'},
-    # {'label':'Merge',       'value':'merge'},
+    {'label':'Combine',     'value':'combine'},
     {'label':'Transform',   'value':'transform'},
     {'label':'Aggregate',   'value':'aggregate'},
     {'label':'Impute',      'value':'impute'},

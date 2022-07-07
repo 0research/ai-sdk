@@ -1,4 +1,5 @@
 import json
+from re import A
 from typing import List
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
@@ -31,6 +32,7 @@ from dateutil.parser import parse
 import plotly.graph_objects as go
 import csv
 import io
+import sys
 
 # TODO Check if these functions are necessary else remove  
 def generate_tabs(tabs_id, tab_labels, tab_values, tab_disabled):
@@ -186,9 +188,10 @@ def flatten_json(data):
     elif type(data) == dict:
         data = flatten(data)
     return data
-def get_action_source(action_id, inputs=None, join_method='left', join_keys=[], overwrite=False):
+def get_action_source(action_id, inputs=None, combine_method='left', combine_key_left=None, combine_key_right=None, overwrite=False):
     action = get_document('action', action_id)
-    features = {}
+    features ={}
+
     if inputs == None:
         inputs = action['inputs']
     else:
@@ -206,40 +209,52 @@ def get_action_source(action_id, inputs=None, join_method='left', join_keys=[], 
         features = dataset['features']
         df = get_dataset_data(inputs[0])
 
-    # Multiple Sources (Join)
+    # Multiple Sources (Combine)
     else:
         try:
-            df1 = get_dataset_data(inputs[0])
+            df = get_dataset_data(inputs[0])
             df2 = get_dataset_data(inputs[1])
 
-            print('\n\n Keys: ', join_keys)
+            dataset1 = get_document('dataset', inputs[0])
+            dataset2 = get_document('dataset', inputs[1])
+            mapper1 = {feature_id:feature['name'] for feature_id, feature in dataset1['features'].items()}
+            mapper2 = {feature_id:feature['name'] for feature_id, feature in dataset2['features'].items()}
+            df.rename(columns=mapper1, inplace=True)
+            df2.rename(columns=mapper2, inplace=True)
+            combine_key_left = mapper1[combine_key_left]
+            combine_key_right = mapper2[combine_key_right]
+            
+            if combine_method in ['left', 'right', 'inner', 'outer', 'cross']:
+                if combine_method == 'cross':
+                    combine_key_left = None
+                    combine_key_right = None
+                df = df.merge(df2, how=combine_method, left_on=combine_key_left, right_on=combine_key_right, suffixes=('_{}'.format(dataset1['name']), '_{}'.format(dataset2['name'])))
 
-            if overwrite:
+            elif combine_method in ['fillna', 'fillna_overwrite']:
+                overwrite = True if combine_method == 'fillna_overwrite' else False
                 dataset1 = get_document('dataset', inputs[0])
                 dataset2 = get_document('dataset', inputs[1])
-                mapper1 = {feature_id:feature['name'] for feature_id, feature in dataset1['features'].items()}
-                mapper2 = {feature_id:feature['name'] for feature_id, feature in dataset2['features'].items()}
-                df1.rename(columns=mapper1, inplace=True)
-                df2.rename(columns=mapper2, inplace=True)
-                join_keys = [feature['name'] for feature_id, feature in dataset['features'].items() if feature_id in join_keys]
 
-                print(df1.columns)
-                print(df2.columns)
-                print(mapper1)
-            else:
-                features = combine_features(inputs)
+                mapper = {}
+                for feature_id, feature in dataset1['features'].items():
+                    if feature['name'] in dataset2['features'].keys():
+                        mapper[feature_id] = feature['name']
 
-            df = df1.merge(df2, how=join_method, left_on=join_keys[0], right_on=join_keys[1])
+                df.update(df2, overwrite=overwrite)
+
+            # Get Features
+            for c in df.columns:
+                features[c] = { 'name': c, 'datatype': 'string'}
+
+            # Replace NaN after combining
             for col in df:
                 if df[col].dtype in ['string', 'object']: df[col].fillna("", inplace=True)
                 else: df[col].fillna(0, inplace=True)
-            
                 
         except Exception as e:
             df = pd.DataFrame([])
-            print('Exception:', e, join_method, join_keys)
+            print('Exception:', e, combine_method, combine_key_left, combine_key_right)
 
-            import sys
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
             print(exc_type, fname, exc_tb.tb_lineno)
@@ -340,7 +355,7 @@ def generate_datatable_data(df, features, show_datatype_dropdown=False, renamabl
 
     # Get Dropdown Data
     if show_datatype_dropdown:
-        dropdown_data = [ {f['id']: {'options': [{'label': datatype, 'value': datatype} for datatype in DATATYPE_LIST], 'clearable': False} for f in features}]
+        dropdown_data = [ {feature_id: {'options': [{'label': datatype, 'value': feature['datatype']} for datatype in DATATYPE_LIST], 'clearable': False} for feature_id, feature in features.items()}]
 
     return df, columns, dropdown_data
 # --------------------------------------------------------------------------------
@@ -376,17 +391,17 @@ def upload_dataset(df, dataset_id, description, documentation, details=''):
     
     datatypes = get_datatypes(df)
 
-
     dataset = get_document('dataset', dataset_id)
     dataset['upload_details'] = details
     dataset['description'] = description
     dataset['documentation'] = documentation
+    dataset['features'] = {}
     for name, dtype in datatypes.items():
-         dataset['features'][str(uuid.uuid1())] = {
+        dataset['features'][str(uuid.uuid1())] = {
             'name': name, 
             'datatype': dtype,
             'expectation': {},
-         }
+        }
 
     # Rename feature name to Unique ID
     mapper = {feature['name']:feature_id for feature_id, feature in dataset['features'].items()}
@@ -666,9 +681,10 @@ def generate_upload(component_id, display_text=None, max_size=1000000):
     )
 def get_dataset_data(dataset_id, features=None):
     dataset = get_document('dataset', dataset_id)
-    feature_id_list = list(dataset['features'].keys()) if features is None else features
+    feature_id_list = features if features is not None else list(dataset['features'].keys())
     data = search_documents(dataset_id)
-    df = json_normalize([])
+    df = pd.DataFrame([])
+
     if data != None:
         df = json_normalize(data)[feature_id_list]
         datatypes = {feature_id: feature['datatype'] for feature_id, feature in dataset['features'].items()}
@@ -704,34 +720,34 @@ def get_dataset_data(dataset_id, features=None):
 #     dataset['features'] = features
 #     return dataset
 # def merge_dataset_data(dataset_id_list, merge_type='objectMerge', idRef=None):
-    try:
-        # Merge
-        data = get_dataset_data(dataset_id_list[0]).to_dict('records')
-        if merge_type in ['objectMerge', 'overwrite']:
-            for dataset_id in dataset_id_list[1:]:
-                new_data = get_dataset_data(dataset_id).to_dict('records')
-                data = [json_merge(row, row_new, merge_type) for row, row_new in zip(data, new_data)]
+#     try:
+#         # Merge
+#         data = get_dataset_data(dataset_id_list[0]).to_dict('records')
+#         if merge_type in ['objectMerge', 'overwrite']:
+#             for dataset_id in dataset_id_list[1:]:
+#                 new_data = get_dataset_data(dataset_id).to_dict('records')
+#                 data = [json_merge(row, row_new, merge_type) for row, row_new in zip(data, new_data)]
 
-        elif merge_type == 'arrayMergeByIndex':
-            schema = {"mergeStrategy": merge_type}
-            for dataset_id in dataset_id_list[1:]:
-                new_data = get_dataset_data(dataset_id).to_dict('records')
-                data = jsonmerge.merge(data, new_data, schema)
+#         elif merge_type == 'arrayMergeByIndex':
+#             schema = {"mergeStrategy": merge_type}
+#             for dataset_id in dataset_id_list[1:]:
+#                 new_data = get_dataset_data(dataset_id).to_dict('records')
+#                 data = jsonmerge.merge(data, new_data, schema)
 
-        elif merge_type == 'arrayMergeById':
-            schema = {"mergeStrategy": merge_type, "mergeOptions": {"idRef": idRef}}
-            for dataset_id in dataset_id_list[1:]:
-                new_data = get_dataset_data(dataset_id).to_dict('records')
-                data = jsonmerge.merge(data, new_data, schema)
+#         elif merge_type == 'arrayMergeById':
+#             schema = {"mergeStrategy": merge_type, "mergeOptions": {"idRef": idRef}}
+#             for dataset_id in dataset_id_list[1:]:
+#                 new_data = get_dataset_data(dataset_id).to_dict('records')
+#                 data = jsonmerge.merge(data, new_data, schema)
 
-        # Remove NaN
-        df = json_normalize(data).fillna('')
+#         # Remove NaN
+#         df = json_normalize(data).fillna('')
 
-    except Exception as e:
-        print(e, idRef)
-        df = pd.DataFrame(columns=[])
+#     except Exception as e:
+#         print(e, idRef)
+#         df = pd.DataFrame(columns=[])
     
-    return df
+#     return df
 def json_merge(base, new, merge_strategy):
     schema = {'mergeStrategy': merge_strategy}
     merger = Merger(schema)
@@ -1070,7 +1086,7 @@ def add_dataset(project_id):
     upsert('dataset', dataset)
 def add_action(source_id_list):
     # Get Node Position
-    default_action = 'transform' if len(source_id_list) == 1 else 'join'
+    default_action = 'transform' if len(source_id_list) == 1 else 'combine'
     project = get_document('project', get_session('project_id'))
     dataset_position_list = [d for d in project['dataset_list'] if d['id'] in source_id_list]
     x, y, num_sources = 0, [], len(source_id_list)

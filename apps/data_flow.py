@@ -49,7 +49,6 @@ layout = html.Div([
         dcc.Store(id=id('cytoscape_position_store'), storage_type='session', data=[]),
         dcc.Store(id=id('cytoscape_position_store_2'), storage_type='session', data=[]),
         dcc.Store(id=id('action_store'), storage_type='session', data={}),
-        dcc.Store(id=id('join_store'), storage_type='session', data={}),
         dcc.Store(id=id('transform_store'), storage_type='session', data={}),
         dcc.Store(id=id('aggregate_store'), storage_type='session', data={}), 
         dcc.Store(id=id('impute_store'), storage_type='session', data={}),
@@ -159,15 +158,27 @@ layout = html.Div([
                         
                     ], id=id('right_header_2'), style={'display':'none', 'font-size':'14px'}),
 
-                    # Join Inputs Container
+                    # Combine Inputs Container
                     html.Div([
-                        dbc.InputGroup([
-                            dbc.InputGroupText('Join Method', style={'width':'30%'}),
-                            dbc.Select(options=options_join, value=options_join[0]['value'], id=id('join_method'), style={'text-align':'center', 'width':'68%'}),
-                            dbc.Checklist(options=options_join_checklist, value=options_join_checklist[0]['value'], id=id('join_checklist'), inline=True),
-                        ], style={'width':'40%', 'float':'left', 'display':'inline-flex'}),
-                        html.Div([], id=id('join_features_container'), style={'width':'58%', 'float':'right', 'display':'inline-block'}),
-                    ], id=id('join_details_container'), style={'display':'none', 'border-style':'groove'}),
+                        html.Div([
+                            dbc.InputGroup([
+                                dbc.InputGroupText('Combine Method', style={'width':'25%'}),
+                                dbc.Select(options=options_combine, value=options_combine[0]['value'], id=id('combine_method'), style={'text-align':'center', 'width':'68%'}),
+                            ], style={'float':'left', 'display':'inline-flex'}),
+                            dbc.InputGroup([
+                                dbc.InputGroupText('', id=id('combine_dataset_name_left'), style={'width':'50%', 'color':'white', 'background-color': LEFT_DATASET_COLOR}),
+                                dbc.InputGroupText('', id=id('combine_dataset_name_right'), style={'width':'50%', 'color':'white', 'background-color': RIGHT_DATASET_COLOR}),
+                            ]),
+                            dbc.InputGroup([
+                                dbc.Select(options=[], value=None, id=id('combine_key_left'), style={'text-align':'center'}),
+                                dbc.Select(options=[], value=None, id=id('combine_key_right'), style={'text-align':'center'}),
+                            ]),
+                        ], style={'width':'80%', 'margin':'0 auto'}),
+
+                        # html.Div([
+                        #     dbc.Checklist(options=options_combine_checklist, value=options_combine_checklist[0]['value'], id=id('combine_checklist'), inline=True),
+                        # ], style={'width':'28%', 'float':'right'}),
+                    ], id=id('combine_details_container'), style={'display':'none', 'border-style':'groove'}),
 
                     # Merge Inputs Container
                     html.Div([
@@ -177,8 +188,6 @@ layout = html.Div([
                         ], style={'width':'40%', 'float':'left', 'display':'inline-flex'}),
                         html.Div([], id=id('merge_idRef_container'), style={'width':'58%', 'float':'right', 'display':'inline-block'}),
                     ], id=id('merge_details_container'), style={'display':'none', 'border-style':'groove'}),
-
-                    
 
                     # Header 3 (Tab 3)
                     dbc.CardHeader([
@@ -305,7 +314,7 @@ layout = html.Div([
     Output(id('action_header_container'), 'style'),
     Output(id('search2'), 'style'),
     Output(id('range_slider_container'), 'style'),
-    Output(id('join_details_container'), 'style'),
+    Output(id('combine_details_container'), 'style'),
     Output(id('merge_details_container'), 'style'),
 
     Input(id('tabs_node'), 'active_tab'),
@@ -343,7 +352,7 @@ def generate_right_header(active_tab, selected_action, selectedNodeData):
 
                 if triggered != id('dropdown_action'):
                     selected_action = action['name']
-                selected_inputs = action['inputs'] if selected_action in ['join', 'merge'] else action['inputs'][0]
+                selected_inputs = action['inputs'] if selected_action in ['combine', 'merge'] else action['inputs'][0]
                 selected_outputs = action['outputs']
 
                 options_inputs = [{'label': d['name'], 'value':d['id']} for d in dataset_list if d['id'] not in action['outputs']]
@@ -351,7 +360,7 @@ def generate_right_header(active_tab, selected_action, selectedNodeData):
 
                 if selected_action == 'transform':
                     s2['display'] = 'block'
-                if selected_action == 'join':
+                if selected_action == 'combine':
                     s9['display'] = 'block'
                 if selected_action == 'merge':
                     s10['display'] = 'block'
@@ -488,16 +497,20 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
             if index_col_name in df: df = df.drop(index_col_name, 1)
 
             try:
-                if action_name == 'join':
+                if action_name == 'combine':
                     action['details'] = action_store[action_id]['details']
-                    dataset = combine_features(action['inputs'])
+                    features, _ = get_action_source(action_id, action_inputs, action['details']['combine_method'], action['details']['combine_key_left'], action['details']['combine_key_right'])
+
                     rename_map = {}
-                    for i in range(len(dataset['features'])):
-                        feature_id = str(uuid.uuid1())
-                        rename_map[dataset['features'][i]['id']] = feature_id
-                        dataset['features'][i]['id'] = feature_id
+                    for feature_id, features in features.items():
+                        new_feature_id = str(uuid.uuid1())
+                        rename_map[features['name']] = new_feature_id
+                        features[new_feature_id] = features.pop(feature_id)
+
                     df.rename(columns=rename_map, inplace=True)
-                    dataset_o['features'] = dataset['features']
+                    dataset_o['features'] = features
+
+                    # TODO 5
 
 
                 elif action_name == 'transform':
@@ -948,7 +961,7 @@ def upload_dataset_trigger(n_clicks_button_upload, n_clicks_button_copy_list,
 )
 def toggle_multi_inputs(action_val, selected_inputs):
     if action_val is None: return no_update
-    elif action_val in ['join', 'merge']:
+    elif action_val in ['combine', 'merge']:
         multi = True
         selected_inputs = no_update
     else:
@@ -1168,28 +1181,32 @@ def generate_datatable_aggregate(_, groupby_features, n_clicks_list, id_list, se
 
 
 @app.callback(
-    Output(id('join_features_container'), 'children'),
+    Output(id('combine_dataset_name_left'), 'children'),
+    Output(id('combine_key_left'), 'options'),
+    Output(id('combine_key_left'), 'value'),
+
+    Output(id('combine_dataset_name_right'), 'children'),
+    Output(id('combine_key_right'), 'options'),
+    Output(id('combine_key_right'), 'value'),
+
     Input(id('dropdown_action_inputs'), 'value'),
 )
-def display_join_details(action_inputs):
+def display_combine_details(action_inputs):
     if action_inputs is None: return no_update
-    if type(action_inputs) != list: action_inputs = [action_inputs]
+    if type(action_inputs) != list or len(action_inputs) < 2: return no_update
 
-    dataset_list = [get_document('dataset', dataset_id) for dataset_id in action_inputs]
-    join_inputs = []
-    for dataset in dataset_list:
-        join_inputs += [
-                    dbc.InputGroup([
-                        dbc.InputGroupText(dataset['name'], style={'width':'25%'}),
-                        dbc.Select(
-                            options=[{'label': feature['name'], 'value':feature_id} for feature_id, feature in dataset['features'].items()],
-                            value= next(iter(dataset['features'].items()))[1] if len(dataset['features']) > 0 else None, 
-                            id={'type': id('join_keys'), 'index': dataset['id']}, style={'text-align':'center'}
-                        ),
-                    ])
-                ]
+    dataset = get_document('dataset', action_inputs[0])
+    name_left = dataset['name']
+    options_left = [{'label': feature['name'], 'value':feature_id} for feature_id, feature in dataset['features'].items()]
+    value_left = options_left[0]['value']
+
+    dataset = get_document('dataset', action_inputs[1])
+    name_right = dataset['name']
+    options_right = [{'label': feature['name'], 'value':feature_id} for feature_id, feature in dataset['features'].items()]
+    value_right = options_right[0]['value']
             
-    return join_inputs
+    return (name_left, options_left, value_left,
+            name_right, options_right, value_right)
 
 
 @app.callback(
@@ -1247,7 +1264,7 @@ def generate_right_content_1(active_tab, selected_action, selectedNodeData):
     if num_selected == 1:
         node_type = selectedNodeData[0]['type']
         if node_type == 'action':
-            if selected_action == 'join':
+            if selected_action == 'combine':
                 s1['display'] = 'block'
                 datatable_container = generate_datatable(id('datatable'), height='60vh')
             elif selected_action == 'merge':
@@ -1585,7 +1602,7 @@ def auto_select_column(active_cell, selected_columns):
 
     Input(id('transform_store'), "data"),
     Input(id('action_store'), 'data'),
-
+    
     Input(id('range_slider'), 'value'),
     Input(id('search2'), 'value'),
 
@@ -1593,6 +1610,7 @@ def auto_select_column(active_cell, selected_columns):
     State(id('cytoscape'), 'selectedNodeData'),
     State(id('datatable'), 'data'),
     State(id('datatable'), 'columns'),
+    preven_initial_call=True,
 )
 def datatable_triggers(_, action_inputs,
                         transform_store, action_store,
@@ -1601,6 +1619,7 @@ def datatable_triggers(_, action_inputs,
 ):
     num_selected = len(selectedNodeData)
     triggered = callback_context.triggered[0]['prop_id']
+
     if num_selected == 0: return no_update
     if triggered == '.': return no_update
     style_data_conditional, style_header_conditional = [], []
@@ -1617,18 +1636,40 @@ def datatable_triggers(_, action_inputs,
         if node_type == 'action':
             action_id = selectedNodeData[0]['id']
             features, df = get_action_source(action_id, action_inputs)
+            inputs = action_store[action_id]['inputs']
 
-            # Join Action
-            if selected_action == 'join':
-                join_method = action_store[action_id]['details']['join_method']
-                join_keys = action_store[action_id]['details']['join_keys']
-                overwrite = action_store[action_id]['details']['overwrite']
-                features, df = get_action_source(action_id, action_inputs, join_method, join_keys, overwrite)
+
+            # Combine Action
+            if selected_action == 'combine':
+                combine_method = action_store[action_id]['details']['combine_method']
+                combine_key_left = action_store[action_id]['details']['combine_key_left']
+                combine_key_right = action_store[action_id]['details']['combine_key_right']
+                features, df = get_action_source(action_id, action_inputs, combine_method, combine_key_left, combine_key_right)
                 
-                # style_data_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "#8B8000"}]
+                dataset1 = get_document('dataset', inputs[0])
+                dataset2 = get_document('dataset', inputs[1])
+
+                # Styling Datatable
+                for c in df.columns:
+                    if dataset1['name'] in c:
+                        style_data_conditional += [{"if": {"column_id": c}, "backgroundColor": LEFT_DATASET_COLOR}]
+                    elif dataset2['name'] in c:
+                        style_data_conditional += [{"if": {"column_id": c}, "backgroundColor": RIGHT_DATASET_COLOR}]
+                    else:
+                        style_data_conditional += [{"if": {"column_id": c}, "backgroundColor": LEFT_DATASET_COLOR}]
+                key_name = [feature['name'] for feature_id, feature in dataset1['features'].items() if feature_id == combine_key_left][0]
+                style_data_conditional += [{"if": {"column_id": key_name}, "backgroundColor": "#8B8000"}]
+
 
             # Transform Action
             elif selected_action == 'transform':
+                renamable = True
+                show_datatype_dropdown = True
+                
+                
+                
+
+            elif selected_action == 'transform1':
                 renamable = True
                 show_datatype_dropdown = True
                 if action_id in transform_store:
@@ -1706,50 +1747,44 @@ def initialize_action_store_c(pathname):
         action = get_document('action',  a['id'])
         action_store[action['id']] = action
 
-    print('action store:')
-    pprint(action_store)
     return action_store
 
-# Load Join Session
+# Load Combine Session
 @app.callback(
-    Output(id('join_method'), 'value'),
-    Output({'type': id('join_keys'), 'index': ALL}, 'value'),
-    Output(id('join_checklist'), 'value'),
+    Output(id('combine_method'), 'value'),
+    Output(id('combine_key_left'), 'value'),
+    Output(id('combine_key_right'), 'value'),
     Input(id('dropdown_action'), 'value'),
     State(id('action_store'), 'data'),
     State(id('cytoscape'), 'selectedNodeData'),
-    State({'type': id('join_keys'), 'index': ALL}, 'value'),
 )
-def load_join_session_c(selected_action, action_store, selectedNodeData, join_keys):
+def load_combine_session_c(selected_action, action_store, selectedNodeData):
     if len(selectedNodeData) != 1: return no_update
-    if selectedNodeData[0]['type'] != 'action' or selectedNodeData[0]['name'] != 'join': return no_update
+    if selectedNodeData[0]['type'] != 'action' or selectedNodeData[0]['name'] != 'combine': return no_update
     if selectedNodeData[0]['id'] not in action_store: return no_update
 
-    print('CCCc', join_keys)
     action_id = selectedNodeData[0]['id']
     details = action_store[action_id]['details']
-    join_method =   details['join_method']    if 'join_method'    in details else no_update
-    join_keys   =   details['join_keys']      if 'join_keys'      in details else join_keys
-    join_checklist = []
-    if 'overwrite' in details and details['overwrite'] is True:
-        join_checklist.append(1)
+    combine_method    =   details['combine_method']    if 'combine_method'    in details else no_update
+    combine_key_left  =   details['combine_key_left']    if 'combine_key_left'      in details else no_update
+    combine_key_right =   details['combine_key_right']   if 'combine_key_right'      in details else no_update
 
-    return join_method, join_keys, join_checklist
+    return combine_method, combine_key_left, combine_key_right
 
 
-# Join Action Session
+# Combine Action Session
 @app.callback(
     Output(id('action_store'), 'data'),
-    Input(id('join_method'), 'value'),
-    Input({'type': id('join_keys'), 'index': ALL}, 'value'),
-    Input(id('join_checklist'), 'value'),
+    Input(id('combine_method'), 'value'),
+    Input(id('combine_key_left'), 'value'),
+    Input(id('combine_key_right'), 'value'),
     State(id('action_store'), 'data'),
     State(id('cytoscape'), 'selectedNodeData'),
     prevent_initial_call=True,
 )
-def store_join_session_c(join_method, join_keys, join_checklist, action_store, selectedNodeData):
+def store_combine_session_c(combine_method, combine_key_left, combine_key_right, action_store, selectedNodeData):
     if len(selectedNodeData) != 1: return no_update
-    if selectedNodeData[0]['type'] != 'action' or selectedNodeData[0]['name'] != 'join': return no_update
+    if selectedNodeData[0]['type'] != 'action' or selectedNodeData[0]['name'] != 'combine': return no_update
 
     action_id = selectedNodeData[0]['id']
     action = get_document('action', action_id)
@@ -1760,14 +1795,14 @@ def store_join_session_c(join_method, join_keys, join_checklist, action_store, s
             'description':  action['description'],
             'state':        action['state'],
             'details':      action['details'],
-            'input':        action['input'],
-            'output':       action['output'],
+            'inputs':        action['inputs'],
+            'outputs':       action['outputs'],
         }
 
     action_store[action_id]['details'] = {
-        'join_method':  join_method,
-        'join_keys':    join_keys,
-        'overwrite':    True if 1 in join_checklist else False,
+        'combine_method':  combine_method,
+        'combine_key_left': combine_key_left,
+        'combine_key_right': combine_key_right,
     }
 
     return action_store
@@ -1778,12 +1813,10 @@ def store_join_session_c(join_method, join_keys, join_checklist, action_store, s
 
 # Transform Node
 @app.callback(
-    Output(id('transform_store'), 'data'),
+    Output(id('action_store'), 'data'),
     Output(id('add_feature_msg'), 'children'),
-    # Output(id('datatable'), 'selected_columns'),
-    Input('url', 'pathname'),
-    Input(id('right_content_1'), 'style'),
-    Input(id('button_save_changes'), 'n_clicks'),
+
+    # Input(id('right_content_1'), 'style'),
     Input(id('button_revert_changes'), 'n_clicks'),
     Input(id('button_execute_action'), 'n_clicks'),
     Input(id('button_add_feature'), 'n_clicks'),
@@ -1793,7 +1826,7 @@ def store_join_session_c(join_method, join_keys, join_checklist, action_store, s
 
     State(id('datatable'), 'sort_by'),
     State(id('datatable'), 'filter_query'),
-    
+
     State(id('dropdown_action'), 'value'),
     State(id('cytoscape'), 'selectedNodeData'),
     State(id('datatable'), 'data'),
@@ -1801,7 +1834,7 @@ def store_join_session_c(join_method, join_keys, join_checklist, action_store, s
     State(id('datatable'), 'active_cell'),
     State(id('datatable'), 'selected_columns'),
     State(id('dropdown_function_type'), 'value'),
-    State(id('transform_store'), 'data'),
+    State(id('action_store'), 'data'),
     State(id('feature_name'), 'value'),
 
     State(id('dropdown_arithmeticfunction'), 'value'),
@@ -1829,9 +1862,9 @@ def store_join_session_c(join_method, join_keys, join_checklist, action_store, s
 
     State(id('custom_input'), 'value'),
 )
-def transform_store_c(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
+def transform_store_c(_3, _4, _5, _6, _7, data_previous,
                 sort_by, filter_query,
-                selected_action, selectedNodeData, data, columns, active_cell, selected_columns, function_type, transform_store, feature_name,
+                selected_action, selectedNodeData, data, columns, active_cell, selected_columns, function_type, action_store, feature_name,
                 func1, f1a, f1b,
                 func2, f2a, f2b,
                 func3, f3a,
@@ -1844,166 +1877,154 @@ def transform_store_c(_, _1, _2, _3, _4, _5, _6, _7, data_previous,
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
     add_feature_msg = ''
 
-    # print('\ntriggered: ')
-    # pprint(callback_context.triggered)
+    print('\ntriggered1: ')
+    pprint(callback_context.triggered)
 
-    # On Page Load instantiate transform_store 
-    if triggered == '':
-        project = get_document('project', get_session('project_id'))
-        transform_store = {}
-        for a in project['action_list']:
-            action_id = a['id']
-            action = get_document('action', action_id)
-            transform_store[action_id] = action['details']
-            
-    else:
-        if len(selectedNodeData) != 1 or selectedNodeData[0]['type'] != 'action' or selected_action != 'transform':  return no_update
-        if data == []: return no_update
-        df = json_normalize(data)
-        df.set_index(index_col_name, inplace=True)
-        columns = [c for c in columns if c['name'] != index_col_name]
-        action_id = selectedNodeData[0]['id']
-        action = get_document('action', action_id)
-        
-        if action_id not in transform_store: transform_store[action_id] = {}
-        store = transform_store[action_id]
-        if 'features'   not in store:   store['features'] = []
-        if 'others'     not in store:   store['others'] = {}
-        feature_id_list = [f['id'] for f in store['features']]
+    if len(selectedNodeData) != 1 or selectedNodeData[0]['type'] != 'action' or selected_action != 'transform':  return no_update
+    if data == []: return no_update
+    df = json_normalize(data)
+    df.set_index(index_col_name, inplace=True)
+    columns = [c for c in columns if c['name'] != index_col_name]
+    action_id = selectedNodeData[0]['id']
+    action = get_document('action', action_id)
+    
+    # Create store if don't exist
+    if action_id not in action_store:
+        action_store[action_id] = { 'features': {}, 'others': [] }
         for c in columns:
-            if c['id'] not in feature_id_list:
-                store['features'].append({
-                    'id':                   c['id'],
-                    'name':                 '',
-                    'datatype':             '',
-                    'new':                  False,
-                    'data':                 None,
-                    'remove':               False,
-                    'condition':            [],
-                    'function':             '',
-                    'dependent_features':   []
-                })
+            action_store[action_id][c['id']] = {
+                'name':                 '',
+                'datatype':             '',
+                'new':                  False,
+                'remove':               False,
+                'condition':            [],
+                'function':             '',
+                'dependent_features':   []
+            }
+        action_store[action_id] = {
+            'truncate': [],
+            'filter': {},
+            'sort_by': {},
+        }
 
-        if 'truncate'   not in store['others']: store['others']['truncate'] = []
-        if 'filter'     not in store['others']: store['others']['filter'] = {}
-        if 'sort_by'    not in store['others']: store['others']['sort_by'] = {}
+    store = action_store[action_id]
+    
+    # Store Feature Name, Datatype, sort_by column
+    row_0 = df.iloc[0].to_dict()
+    columns2 = {c['id']:c['name'] for c in columns}
+
+    for i in range(len(store['features'])):
+        feature_id = store['features'][i]['id']
+        store['features'][i]['name'] = columns2[feature_id]
+        store['features'][i]['datatype'] = row_0[feature_id]
         
-        # Store Feature Name, Datatype, sort_by column
-        row_0 = df.iloc[0].to_dict()
-        columns2 = {c['id']:c['name'] for c in columns}
+        # Condition
+    
+    # Truncate, Filter, Sort_by
+    # store['others']['truncate'] = ___
+    store['others']['filter'] = filter_query
+    store['others']['sort_by'] = sort_by
+
+    # Add Feature
+    if triggered == id('button_add_feature'):
+        df2 = df[1:].reset_index()
+        try:
+            if feature_name in [c['name'] for c in columns]:
+                store = no_update
+                add_feature_msg = 'Feature Name Exist!'
+
+            elif function_type == 'arithmetic':
+                for feature in store['features']:
+                    if feature['id'] == f1a: datatype1 = feature['datatype']
+                    if feature['id'] == f1b: datatype2 = feature['datatype']
+                f1 = df2[f1a].astype(datatype1, errors='raise')
+                f2 = df2[f1b].astype(datatype2, errors='raise')
+
+                if func1 == 'add': data = f1 + f2
+                elif func1 == 'subtract': data = f1 - f2
+                elif func1 == 'divide': data = f1 / f2
+                elif func1 == 'multiply': data = f1 * f2
+                elif func1 == 'exponent': data = f1 ** f2
+                elif func1 == 'modulus': data = f1 % f2
+
+                transform_func = func1
+                datatype_out = 'int64'
+                # dependent_features = [f1, f2]
+                
+            elif function_type == 'comparison':
+                for feature in store['features']:
+                    if feature['id'] == f2a: datatype1 = feature['datatype']
+                    if feature['id'] == f2b: datatype2 = feature['datatype']
+
+                f1 = df2[f2a].astype(datatype1, errors='raise')
+                if f2b != '_custom':
+                    f2 = df2[f2b].astype(datatype2, errors='raise')
+                else:
+                    f2 = int(custom_input)
+
+                if func2 == 'gt':   data = f1.gt(f2, fill_value='')
+                elif func2 == 'lt': data = f1.lt(f2, fill_value='')
+                elif func2 == 'ge': data = f1.ge(f2, fill_value='')
+                elif func2 == 'le': data = f1.le(f2, fill_value='')
+                elif func2 == 'eq': data = f1.eq(f2, fill_value='')
+                elif func2 == 'ne': data = f1.ne(f2, fill_value='')
+
+                transform_func = func2
+                datatype_out = 'bool'
+                # dependent_features = [f1, f2]
+
+            elif function_type == 'aggregate':
+                pass
+            elif function_type == 'slidingwindow':
+                pass
+            elif function_type == 'formatdate':
+                pass
+            elif function_type == 'cumulative':
+                pass
+            elif function_type == 'shift':
+                pass
+
+        except Exception as e:
+            store = no_update
+            add_feature_msg = str(e)
+            print(traceback.format_exc())
+        
+        if store is not no_update:
+            store['features'].append({
+                'id':       str(uuid.uuid1()),
+                'name':     feature_name,
+                'datatype': datatype_out,
+                'new':      True,
+                'data':     list(data),
+                'remove':   False,
+                'condition':[],
+                'function': transform_func,
+                'dependent_features': []
+            })
+
+    # Remove Feature
+    elif triggered == id('button_remove_feature') and active_cell is not None:
+        selected_feature_id = active_cell['column_id']
 
         for i in range(len(store['features'])):
-            feature_id = store['features'][i]['id']
-            store['features'][i]['name'] = columns2[feature_id]
-            store['features'][i]['datatype'] = row_0[feature_id]
-            
-            # Condition
-        
-        # Truncate, Filter, Sort_by
-        # store['others']['truncate'] = ___
-        store['others']['filter'] = filter_query
-        store['others']['sort_by'] = sort_by
+            if store['features'][i]['id'] == selected_feature_id:
+                if store['features'][i]['new'] == True:
+                    del store['features'][i]
+                else:
+                    store['features'][i]['remove'] = not store['features'][i]['remove']
 
-        # Add Feature
-        if triggered == id('button_add_feature'):
-            df2 = df[1:].reset_index()
-            try:
-                if feature_name in [c['name'] for c in columns]:
-                    store = no_update
-                    add_feature_msg = 'Feature Name Exist!'
+        # selected_columns = []
 
-                elif function_type == 'arithmetic':
-                    for feature in store['features']:
-                        if feature['id'] == f1a: datatype1 = feature['datatype']
-                        if feature['id'] == f1b: datatype2 = feature['datatype']
-                    f1 = df2[f1a].astype(datatype1, errors='raise')
-                    f2 = df2[f1b].astype(datatype2, errors='raise')
+    # Clear Session
+    elif triggered == id('button_clear'):
+        print("Clear Transform Session")
+        transform_store[action_id] = {}
+        transform_store[action_id]['features'] = []
+        transform_store[action_id]['others'] = {}
 
-                    if func1 == 'add': data = f1 + f2
-                    elif func1 == 'subtract': data = f1 - f2
-                    elif func1 == 'divide': data = f1 / f2
-                    elif func1 == 'multiply': data = f1 * f2
-                    elif func1 == 'exponent': data = f1 ** f2
-                    elif func1 == 'modulus': data = f1 % f2
-
-                    transform_func = func1
-                    datatype_out = 'int64'
-                    # dependent_features = [f1, f2]
-                    
-                elif function_type == 'comparison':
-                    for feature in store['features']:
-                        if feature['id'] == f2a: datatype1 = feature['datatype']
-                        if feature['id'] == f2b: datatype2 = feature['datatype']
-
-                    f1 = df2[f2a].astype(datatype1, errors='raise')
-                    if f2b != '_custom':
-                        f2 = df2[f2b].astype(datatype2, errors='raise')
-                    else:
-                        f2 = int(custom_input)
-
-                    if func2 == 'gt':   data = f1.gt(f2, fill_value='')
-                    elif func2 == 'lt': data = f1.lt(f2, fill_value='')
-                    elif func2 == 'ge': data = f1.ge(f2, fill_value='')
-                    elif func2 == 'le': data = f1.le(f2, fill_value='')
-                    elif func2 == 'eq': data = f1.eq(f2, fill_value='')
-                    elif func2 == 'ne': data = f1.ne(f2, fill_value='')
-
-                    transform_func = func2
-                    datatype_out = 'bool'
-                    # dependent_features = [f1, f2]
-
-                elif function_type == 'aggregate':
-                    pass
-                elif function_type == 'slidingwindow':
-                    pass
-                elif function_type == 'formatdate':
-                    pass
-                elif function_type == 'cumulative':
-                    pass
-                elif function_type == 'shift':
-                    pass
-
-            except Exception as e:
-                store = no_update
-                add_feature_msg = str(e)
-                print(traceback.format_exc())
-            
-            if store is not no_update:
-                store['features'].append({
-                    'id':       str(uuid.uuid1()),
-                    'name':     feature_name,
-                    'datatype': datatype_out,
-                    'new':      True,
-                    'data':     list(data),
-                    'remove':   False,
-                    'condition':[],
-                    'function': transform_func,
-                    'dependent_features': []
-                })
-
-        # Remove Feature
-        elif triggered == id('button_remove_feature') and active_cell is not None:
-            selected_feature_id = active_cell['column_id']
-
-            for i in range(len(store['features'])):
-                if store['features'][i]['id'] == selected_feature_id:
-                    if store['features'][i]['new'] == True:
-                        del store['features'][i]
-                    else:
-                        store['features'][i]['remove'] = not store['features'][i]['remove']
-
-            # selected_columns = []
-
-        # Clear Session
-        elif triggered == id('button_clear'):
-            print("Clear Transform Session")
-            transform_store[action_id] = {}
-            transform_store[action_id]['features'] = []
-            transform_store[action_id]['others'] = {}
-
-        # Revert to Last Saved Data
-        elif triggered == id('button_revert_changes'):
-            transform_store[action_id] = action['details']
+    # Revert to Last Saved Data
+    elif triggered == id('button_revert_changes'):
+        transform_store[action_id] = action['details']
 
     return transform_store, add_feature_msg
 
