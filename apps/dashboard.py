@@ -94,7 +94,7 @@ layout = html.Div([
 #     Input('url', 'pathname'),
 # )
 # def generate_graphs(pathname):
-#     project_id = get_session('project_id')
+#     project_id = session.get('project_id')
 #     project = get_document('project', project_id)
 #     content = []
     
@@ -125,7 +125,7 @@ layout = html.Div([
     Input('url', 'pathname'),
 )
 def generate_all_graphs(active_tab):
-    project_id = get_session('project_id')
+    project_id = session.get('project_id')
     project = get_document('project', project_id)
     content = []
 

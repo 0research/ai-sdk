@@ -109,9 +109,8 @@ def button_create_load_dataset(n_clicks, project_id, project_type):
         project_list = search_documents('project')
         if project_id not in [d['id'] for d in project_list]: # Create Project if doesn't exist
             new_project(project_id, project_type)
-        store_session('project_id', project_id)
-        store_session('node_id', None)
-            
+        session['project_id'] = project_id
+
     return pathname, invalid
 
 

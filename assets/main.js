@@ -27,6 +27,8 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
 
 
 
+console.log("aaaaa")
+
 // import typesense from "typesense"
 // const typesense = require('typesense')
 

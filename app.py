@@ -1,6 +1,6 @@
 import dash
 import dash_bootstrap_components as dbc
-from dash_extensions.enrich import DashProxy, MultiplexerTransform
+from dash_extensions.enrich import DashProxy, MultiplexerTransform, NoOutputTransform, TriggerTransform
 import sentry_sdk
 import socket
 import sys
@@ -46,7 +46,7 @@ app = DashProxy(__name__,
     # prevent_initial_callbacks=True,
     suppress_callback_exceptions=True,
     external_scripts=external_scripts,
-    transforms=[MultiplexerTransform()],
+    transforms=[MultiplexerTransform(), NoOutputTransform(), TriggerTransform()],
     external_stylesheets=external_stylesheets,
     meta_tags=[{'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'}],
     title='AI-SDK'

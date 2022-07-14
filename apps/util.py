@@ -170,7 +170,7 @@ def id_factory(page: str):
     return func
 
 
-# Actions
+
 def do_flatten(json_file):
     data = []
     if type(json_file) == list:
@@ -1084,10 +1084,10 @@ def add_dataset(project_id):
     # Upload to Typesense
     upsert('project', project)
     upsert('dataset', dataset)
-def add_action(source_id_list):
+def add_action(project_id, source_id_list):
     # Get Node Position
     default_action = 'transform' if len(source_id_list) == 1 else 'combine'
-    project = get_document('project', get_session('project_id'))
+    project = get_document('project', project_id)
     dataset_position_list = [d for d in project['dataset_list'] if d['id'] in source_id_list]
     x, y, num_sources = 0, [], len(source_id_list)
     for d in dataset_position_list:
@@ -1235,94 +1235,6 @@ def cEdge(source_id, destination_id, position=None, classes=''):
 
 
 
-def generate_transform_inputs(id):
-    return [
-        dbc.InputGroup([
-            dbc.InputGroupText('Feature Name', style={'width':'33.3%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px'}),
-            dbc.Input(id=id('feature_name'), style={'height':'40px', 'text-align':'center'}, persistence=True),
-        ]),
-
-        dbc.InputGroup([
-            dbc.InputGroupText('Function Type', style={'width':'33.3%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px'}),
-            dbc.Select(id=id('dropdown_function_type'), options=function_options, value=function_options[0]['value'], style={'height':'40px', 'text-align':'center'}, persistence=True),
-        ]),
-        
-        # Arithmetic Functions
-        dbc.InputGroup([
-            dbc.InputGroupText('Feature', style={'width':'33.3%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.InputGroupText('Operator', style={'width':'33.3%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.InputGroupText('Feature', style={'width':'33.3%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.Select(id=id('dropdown_arithmeticfeature1'), options=[], value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
-            dbc.Select(id=id('dropdown_arithmeticfunction'), options=arithmetic_options, value=arithmetic_options[0]['value'], style={'height':'40px', 'text-align':'center'}, persistence=True),
-            dbc.Select(id=id('dropdown_arithmeticfeature2'), options=[], value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
-        ], id=id('arithmetic_inputs'), style={'display': 'none'}),
-
-        # Comparison Functions
-        dbc.InputGroup([
-            dbc.InputGroupText('Feature', style={'width':'33.3%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.InputGroupText('Operator', style={'width':'33.3%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.InputGroupText('Feature', style={'width':'33.3%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.Select(id=id('dropdown_comparisonfeature1'), options=[], value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
-            dbc.Select(id=id('dropdown_comparisonfunction'), options=comparison_options, value=comparison_options[0]['value'], style={'height':'40px', 'text-align':'center'}, persistence=True),
-            dbc.Select(id=id('dropdown_comparisonfeature2'), options=[], value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
-        ], id=id('comparison_inputs'), style={'display': 'none'}),
-
-        # Custom Input
-        dbc.Input(id=id('custom_input'), style={'display':'none', 'height':'40px', 'text-align':'center', 'width':'33.3%', 'float':'right'}, persistence=True),
-
-        # Aggregate Functions
-        dbc.InputGroup([
-            dbc.InputGroupText('Function', style={'width':'20%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.InputGroupText('Features', style={'width':'80%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.Select(id=id('dropdown_aggregate_function'), options=aggregate_options, value=aggregate_options[0]['value'], style={'text-align':'center', 'width':'20%'}, persistence=True),
-            html.Div(dcc.Dropdown(id=id('dropdown_aggregatefeatures'), multi=True, options=[], value=None, persistence=True), style={'width':'50%'}),
-            dbc.Button('Use Features', id=id('button_aggregate_use_features'), color='info', style={'width':'30%'}),
-        ], id=id('aggregate_inputs'), style={'display': 'none'}),
-
-        # Sliding Window Functions
-        dbc.InputGroup([
-            dbc.InputGroupText('Function', style={'width':'25%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.InputGroupText('Window Size', style={'width':'25%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.InputGroupText('Feature', style={'width':'50%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.Select(id=id('dropdown_slidingwindow_function'), options=slidingwindow_options, value=slidingwindow_options[0]['value'], style={'text-align':'center', 'width':'25%'}, persistence=True),
-            dbc.Select(id=id('dropdown_slidingwindow_size'), options=[], value=None, style={'text-align':'center', 'width':'25%'}, persistence=True),
-            dbc.Select(id=id('dropdown_slidingwindow_feature'), options=[], value=None, style={'width':'50%', 'text-align':'center'}, persistence=True),
-        ], id=id('slidingwindow_inputs'), style={'display': 'none'}),
-
-        # Format Date Functions
-        dbc.InputGroup([
-            dbc.InputGroupText('Feature', style={'width':'50%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.InputGroupText('Format', style={'width':'50%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.Select(id=id('dropdown_formatdatefeature'), options=[], value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
-            dbc.Select(id=id('dropdown_dateformat'), options=dateformat_options, value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
-        ], id=id('formatdate_inputs'), style={'display': 'none'}),
-
-        # Cumulative Function
-        dbc.InputGroup([
-            dbc.InputGroupText('Feature', style={'width':'100%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.Select(id=id('dropdown_cumulativefeature'), options=[], value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
-        ], id=id('cumulative_inputs'), style={'display': 'none'}),
-
-        # Shift Function
-        dbc.InputGroup([
-            dbc.InputGroupText('Size', style={'width':'20%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.InputGroupText('Feature', style={'width':'80%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px', 'text-align':'center'}),
-            dbc.Select(id=id('dropdown_shift_size'), options=[], value=None, style={'text-align':'center', 'width':'20%'}, persistence=True),
-            dbc.Select(id=id('dropdown_shift_feature'), options=[], value=None, persistence=True, style={'width':'80%'}),
-        ], id=id('shift_inputs'), style={'display': 'none'}),
-
-        # Conditions
-        dbc.InputGroup([
-            dbc.InputGroup([
-                dbc.InputGroupText("Conditions", style={'width':'80%', 'font-weight':'bold', 'font-size': '13px', 'text-align':'center'}),
-                dbc.Button(' - ', id=id('button_add_condition'), color='dark', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
-                dbc.Button(' + ', id=id('button_remove_condition'), color='dark', outline=True, style={'font-size':'15px', 'font-weight':'bold', 'width':'10%', 'height':'28px'}),
-                # dbc.Select(id=id('dropdown_conditionfeature1'), options=[], value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
-                # dbc.Select(id=id('dropdown_conditionfunction'), options=comparison_options, value=comparison_options[0]['value'], style={'height':'40px', 'text-align':'center'}, persistence=True),
-                # dbc.Select(id=id('dropdown_conditionfeature2'), options=[], value=None, style={'height':'40px', 'text-align':'center'}, persistence=True),
-            ]),
-        ], id=id('condition'), style={'display': 'none'}),
-    ]
 def generate_options(label_list, input_list):
     return [
         (

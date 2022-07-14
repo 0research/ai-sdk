@@ -8,8 +8,7 @@ from app import app
 from app import server 
 from app import dbc
 
-from apps import (admin_panel, new_project, search, plot_graph, dashboard, profile, merge_strategy, temporal_evolution, temporal_merge, 
-                decomposition, impute_data, remove_duplicate, data_flow, test)
+from apps import (admin_panel, new_project, search, dashboard, data_flow, test)
 import ast
 from apps.constants import *
 
@@ -34,7 +33,7 @@ SIDEBAR_STYLE = {
     "bottom": 0,
     "width": "14rem",
     "padding": "2rem 1rem",
-    "background-color": "#f8f9fa",
+    # "background-color": "#f8f9fa",
     "font-size": "0.9em",
 }
 
@@ -43,7 +42,7 @@ SIDEBAR_STYLE = {
 CONTENT_STYLE = {
     "margin-left": "14rem",
     "margin-right": "10px",
-    "padding": "1rem 0rem",
+    "padding": "2px 0rem",
 }
 
 
@@ -56,10 +55,6 @@ navbar = dbc.Navbar([
         html.A(dbc.NavbarBrand("AI-SDK", className='font-weight-bold', id="tooltip-navbarbrand"), href="#"),
         dbc.Tooltip("0Research Homepage",target="tooltip-homepagelogo"),
         dbc.Tooltip("CloudApp Homepage",target="tooltip-navbarbrand"),
-        dbc.InputGroup([
-            dbc.InputGroupText("Project"),
-            dbc.Select(options=[], id='dropdown_current_project', style={'min-width':'80px'}, persistence_type='session', persistence=True),
-        ], style={'display':'none'}),
     ], className='navbar'),
 
     html.Div([
@@ -67,7 +62,7 @@ navbar = dbc.Navbar([
     ], className='navbar center'),
 
     html.Div([
-        dbc.Button("Login", href="/login", id='login', color='primary', className='me-1', size='lg', style={'width':'100px', 'font-weight':'bold'}),
+        dbc.Button("Login", href="/login", id='login', color='secondary', className='me-1', size='lg', style={'width':'100px', 'font-weight':'bold'}),
     ], className='navbar right'),
 
 ], color="dark", dark=True, style={'width':'100%', 'height':'4vh'})
@@ -83,25 +78,12 @@ sidebar_1 = [
     dbc.NavLink("Dashboard", href="/apps/dashboard", active="exact", className="fas fa-chart-pie"),
     # dbc.NavLink("Storyboard", href="/apps/storyboard", active="exact", className="fas fa-chart-pie", disabled=True),
 ]
-sidebar_2 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className'], disabled=nav['disabled']) for nav in SIDEBAR_2_LIST]
-sidebar_3 = [dbc.NavLink(nav['label'], href=nav['value'], active='exact', className=nav['className']) for nav in SIDEBAR_3_LIST]
-sidebar_4 = [
-    dbc.NavLink("Workflow", href="/apps/workflow", active="exact", className="fas fa-arrow-alt-circle-right"),
-    dbc.NavLink("Remove Duplicate", href="/apps/remove_duplicate", active="exact", className='far fa-copy'),
-    dbc.NavLink("Decomposition", href="/apps/decomposition", active="exact", className='fas fa-recycle'),
-    dbc.NavLink("Balance Dataset", href="/apps/balance_dataset", active="exact", className='fas fa-chess-knight'),
-    dbc.NavLink("Anomaly Detection", href="/apps/anomaly_detection", active="exact", className='fas fa-chess-knight'),
-    dbc.NavLink("Split Dataset", href="/apps/split_dataset", active="exact", className='fas fa-recycle'),
-    dbc.NavLink("Model Evaluation", href="/apps/model_evaluation", active="exact", className='fas fa-recycle'),
-]
 divider = [html.Hr(style={'border': '1px dotted black', 'margin': '17px 0px 17px 0px'})]
+
 sidebar = html.Div([
     dbc.Nav(
         sidebar_0 + divider +
         sidebar_1 + divider
-        # sidebar_2 + divider +
-        # sidebar_3 + divider +
-        # sidebar_4
     , vertical=True, pills=True, id='sidebar'),
 ], style=SIDEBAR_STYLE)
 
@@ -136,29 +118,6 @@ def highlight_active_nav(pathname, sidebar):
     return sidebar
 
 
-# Load Project Options in dropdown
-@app.callback([Output('dropdown_current_project', 'options')],
-                Input('url', 'pathname'),)
-def load_project_dropdown(pathname):
-    project_list = search_documents('project')
-    options = [{'label': d['id'], 'value': d['id']} for d in project_list]
-    return options
-
-# Store Project ID Session on selecting dropdown
-@app.callback(Output('modal', 'children'),
-                Input('dropdown_current_project', 'value'))
-def load_dataset_dropdown(project_id):
-    if project_id is None or project_id == '': return no_update
-    store_session('project_id', project_id)
-    # project_list = search_documents('project')
-    
-    return no_update
-
-# Load Project ID and Dataset ID
-@app.callback(Output('dropdown_current_project', 'value'),
-                Input('url', 'pathname'))
-def load_project_id(pathname):
-    return get_session('project_id')
 
 # Search Function
 @app.callback(
@@ -250,6 +209,7 @@ def display_page(pathname):
     if pathname.startswith('/apps/admin_panel'): return admin_panel.layout
     if pathname.startswith('/apps/dashboard'): return dashboard.layout
     if pathname.startswith('/apps/search'): return search.layout
+    if pathname.startswith('/apps/test'): return test.layout
 
     # if pathname.startswith('/apps/impute_data'): return impute_data.layout
     # if pathname.startswith('/apps/profile'): return profile.layout
