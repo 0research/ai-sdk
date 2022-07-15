@@ -1374,10 +1374,13 @@ def display_tab1(active_tab, selectedNodeData, action_store, s1, s2, s3):
     
     if len(selectedNodeData) == 1:
         node_type = selectedNodeData[0]['type']
-        action_id = selectedNodeData[0]['id']
-        selected_action = action_store[action_id]['name']
+        
+        if node_type == 'dataset':
+            s1['display'] = 'block'
 
         if node_type == 'action':
+            action_id = selectedNodeData[0]['id']
+            selected_action = action_store[action_id]['name']
             if selected_action == 'combine':
                 s1['display'] = 'block'
 
@@ -1391,9 +1394,6 @@ def display_tab1(active_tab, selectedNodeData, action_store, s1, s2, s3):
 
             elif selected_action == 'impute':
                 pass
-
-        elif node_type == 'dataset':
-            s1['display'] = 'block'
 
     elif len(selectedNodeData) > 1 and all(node['type'] == 'dataset' for node in selectedNodeData):
         s1['display'] = 'block'
@@ -1754,6 +1754,7 @@ def store_combine_session_c(combine_method, combine_key_left, combine_key_right,
 @app.callback(
     Output(id('datatable'), 'data'),
     Output(id('datatable'), 'columns'),
+    Output(id('datatable'), 'selected_columns'),
     Output(id('datatable'), "dropdown_data"),
     Output(id('datatable'), "style_data_conditional"),
     Output(id('datatable'), "style_header_conditional"),
@@ -1786,7 +1787,7 @@ def datatable_triggers(active_tab, action_store, selectedNodeData, style_table
     if active_tab != 'tab1': return no_update
     # if triggered == '.': return no_update
     
-    style_data_conditional, style_header_conditional = [], []
+    selected_columns, style_data_conditional, style_header_conditional = [], [], []
     style_table['height'] = '75vh'
     editable, sort_action, filter_action, column_selectable = (no_update,) * 4
 
@@ -1836,6 +1837,11 @@ def datatable_triggers(active_tab, action_store, selectedNodeData, style_table
                 filter_action = 'native'
                 column_selectable = 'multi'
                 show_datatype_dropdown = True
+
+                for feature_id, feature in store['transform']['features'].items():
+                    if feature['remove'] == True:
+                        style_data_conditional += [{"if": {"column_id": feature_id}, "backgroundColor": "red"}]
+
 
             # elif selected_action == 'transform1':
             #     show_datatype_dropdown = True
@@ -1898,7 +1904,7 @@ def datatable_triggers(active_tab, action_store, selectedNodeData, style_table
         print("Empty Dataframe")
         data, dropdown_data = [], []
 
-    return (data, columns, dropdown_data, style_data_conditional, style_header_conditional,
+    return (data, columns, selected_columns, dropdown_data, style_data_conditional, style_header_conditional,
             style_table, editable, sort_action, filter_action, column_selectable)
 
 
@@ -1991,22 +1997,10 @@ def store_transform_session_c(data_previous, sort_by, filter_query, selected_act
     df = json_normalize(data)
     df.set_index(index_col_name, inplace=True)
     columns = [c for c in columns if c['name'] != index_col_name]
+    selected_columns = [c for c in selected_columns if c != 'no.']
     action_id = selectedNodeData[0]['id']
     action = get_document('action', action_id)
-
-    # Init
-    store = action_store[action_id]
-    for c in columns:
-        store['transform']['features'][c['id']] = {
-            'name':                 c['name'],
-            'datatype':             '',
-            'remove':               False,
-            'condition':            [],
-            'new':                  False,
-            'function':             '',
-            'dependent_features':   []
-        }
-    
+    store = action_store[action_id]    
     add_feature_msg = ''
 
     # Clear Session
@@ -2031,6 +2025,20 @@ def store_transform_session_c(data_previous, sort_by, filter_query, selected_act
         # Rename (create custom rename button+popup)
         # for c in columns:
         #     store['features'][feature_id]['name'] = tmp['name']
+    
+    elif trigg_comp == id('button_feature_left'):
+        pass
+    
+    elif trigg_comp == id('button_feature_right'):
+        pass
+
+    # Remove Feature
+    elif trigg_comp == id('button_remove_feature'):
+        for feature_id in selected_columns:
+            if store['transform']['features'][feature_id]['new'] == True:
+                del store['transform']['features'][feature_id]
+            else:
+                store['transform']['features'][feature_id]['remove'] = not store['transform']['features'][feature_id]['remove']
 
     elif trigg_comp == id('datatable'):
         # Datatype
@@ -2043,12 +2051,14 @@ def store_transform_session_c(data_previous, sort_by, filter_query, selected_act
                     'name': mapper[feature_id],
                     'datatype': dtype,
                 }
-            
-            pprint(tmp)
-            pprint(store)
-            for feature_id, feature in tmp.items():
-                store['transform']['features'][feature_id]['datatype'] = tmp['datatype']
 
+            pprint(store['transform']['features'])
+            for feature_id, feature in tmp.items():
+                store['transform']['features'][feature_id]['datatype'] = tmp[feature_id]['datatype']
+
+            print('\n\n')
+            pprint(store['transform']['features'])
+            
         # sort_by
         elif trigg_attr == 'sort_by':
             store['sort_by'] = sort_by
@@ -2083,14 +2093,6 @@ def store_transform_session_c(data_previous, sort_by, filter_query, selected_act
                 'function': func,
                 'dependent_features': []
             }
-
-    # Remove Feature
-    elif trigg_comp == id('button_remove_feature'):
-        for feature_id in selected_columns:
-            if store['transform']['features'][feature_id]['new'] == True:
-                del store['transform']['features'][feature_id]
-            else:
-                store['transform']['features'][feature_id]['remove'] = not store['features'][feature_id]['remove']
 
     return action_store, add_feature_msg
 

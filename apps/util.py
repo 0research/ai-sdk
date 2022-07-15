@@ -1101,6 +1101,7 @@ def add_action(project_id, source_id_list):
     dataset_id = str(uuid.uuid1())
     project['action_list'].append({'id': action_id, 'position': {'x': x, 'y': y}})
     project['dataset_list'].append({'id': dataset_id, 'position': {'x': x, 'y': y+100}})
+
     action = Action(id=action_id, name=default_action, inputs=source_id_list, outputs=[dataset_id])
     dataset = Dataset(id=dataset_id, name='', description='')
     
@@ -1202,6 +1203,19 @@ def Project(id, type, dataset_list=[], action_list=[], group_list=[], edge_list=
 def Dataset(id, name, description='', documentation='', features={}, upload_details={}, is_source='False'):
     return {'id':id, 'name':name, 'description':description, 'documentation':documentation, 'features':features, 'upload_details':upload_details, 'is_source': is_source}
 def Action(id, name, description='', state=['amber', 'amber'], combine={}, transform={}, aggregate={}, inputs=[], outputs=[]):
+    transform_features = {}
+    dataset = get_document('dataset', inputs[0])
+    for feature_id, feature in dataset['features'].items():
+        transform_features[feature_id] = {
+            'name':                 feature['name'],
+            'datatype':             feature['datatype'],
+            'remove':               False,
+            'condition':            [],
+            'new':                  False,
+            'function':             '',
+            'dependent_features':   []
+        }
+
     return {
         'id':id,
         'name':name,
@@ -1213,7 +1227,7 @@ def Action(id, name, description='', state=['amber', 'amber'], combine={}, trans
             'combine_key_right': '',
         },
         'transform':{
-            'features':     {},
+            'features':     transform_features,
             'truncate':     [],
             'filter_query': {},
             'sort_by':      {},
