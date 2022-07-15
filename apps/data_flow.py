@@ -49,7 +49,6 @@ layout = html.Div([
         dcc.Store(id=id('cytoscape_position_store'), storage_type='session', data=[]),
         dcc.Store(id=id('cytoscape_position_store_2'), storage_type='session', data=[]),
         dcc.Store(id=id('action_store'), storage_type='session', data={}),
-        dcc.Store(id=id('transform_store'), storage_type='session', data={}),
         dcc.Store(id=id('aggregate_store'), storage_type='session', data={}), 
         dcc.Store(id=id('graph_id_store'), storage_type='session', data=''),
         dcc.Interval(id=id('interval_cytoscape'), interval=500, n_intervals=0),
@@ -210,7 +209,7 @@ layout = html.Div([
                         # Tab 1 (Data)
                         html.Div([
                             html.Div(generate_datatable(id('datatable')), id=id('datatable_container'), style={'display':'none'}),
-                            html.Div([], id=id('add_feature_container'), style={'width':'100%', 'display':'none'}),
+                            html.Div([], id=id('add_feature_container'), style={'width':'100%', 'display':'none', 'margin-top':'10px'}),
                             html.Div([
                                 dbc.InputGroup([
                                     dbc.InputGroupText('Group By ', style={'width':'20%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px'}),
@@ -256,6 +255,42 @@ layout = html.Div([
             ], className='bg-dark', style={'padding':'6px', 'width':'50%', 'float':'right'}), 
         ]),
 
+        # Tmp Modal
+        dbc.Modal([
+            dbc.ModalBody([
+                html.Div([
+                    html.Div([
+                        html.Div('aaa', id=id('prev_operand')),
+                        html.Div('bbb', id=id('curr_operand'))
+                    ], className='calc_outputs', style={'text-align':'right', 'padding':'2rem'}),
+
+                    html.Button('AC', className='calc_button span-two'),
+                    html.Button('DEL', className='calc_button'),
+                    html.Button('÷', className='calc_button'),
+
+                    html.Button('1', className='calc_button'),
+                    html.Button('2', className='calc_button'),
+                    html.Button('3', className='calc_button'),
+                    html.Button('*', className='calc_button'),
+
+                    html.Button('4', className='calc_button'),
+                    html.Button('5', className='calc_button'),
+                    html.Button('6', className='calc_button'),
+                    html.Button('+', className='calc_button'),
+
+                    html.Button('7', className='calc_button'),
+                    html.Button('8', className='calc_button'),
+                    html.Button('9', className='calc_button'),
+                    html.Button('-', className='calc_button'),
+
+                    html.Button('.', className='calc_button'),
+                    html.Button('0', className='calc_button'),
+                    html.Button('=', className='calc_button span-two'),
+
+                ], className='calculator-grid')
+            ], id=id('calculator_container')),
+        ], is_open=False, centered=True, backdrop=False),
+
         # Rename Modal
         dbc.Modal([
             dbc.ModalHeader(dbc.ModalTitle('Rename')),
@@ -264,7 +299,7 @@ layout = html.Div([
                 dbc.Button('Cancel', id('rename_cancel')),
                 dbc.Button('Confirm', id('rename_confirm'))
             ]),
-        ], id=id('rename_modal'), is_open=False, centered=False, backdrop=False),
+        ], id=id('rename_modal'), is_open=False, centered=True, backdrop=False),
 
         # Add Feature Modal
         html.Div([
@@ -307,7 +342,7 @@ layout = html.Div([
 
 
 
-# Init Action
+# Init Action Store
 @app.callback(
     Output(id('action_store'), 'data'),
     Trigger('url', 'pathname'),
@@ -318,8 +353,9 @@ def initialize_action_store():
     for a in project['action_list']:
         action = get_document('action',  a['id'])
         action_store[action['id']] = action
-
+    
     return action_store
+
 
 
 # Generate Right Header 1,2,3
@@ -455,18 +491,17 @@ def toggle_remove_button(selectedNodeData):
 @app.callback(
     Output(id('cytoscape'), 'elements'),
     Output(id('cytoscape'), 'layout'),
+    
+    Trigger(id('button_execute_action'), 'n_clicks'),
+    Trigger(id('button_add_dataset'), 'n_clicks'),
+    Trigger(id('button_add_action'), 'n_clicks'),
+    Trigger(id('button_remove'), 'n_clicks'),
+    Trigger(id('button_group'), 'n_clicks'),
+    Trigger(id('button_reset_layout'), 'n_clicks'),
+    Trigger(id('button_run_cytoscape'), 'n_clicks'),
+
     Input(id('dataset_name'), 'value'),
-
-    Input(id('button_execute_action'), 'n_clicks'),
-    Input(id('button_add_dataset'), 'n_clicks'),
-    Input(id('button_add_action'), 'n_clicks'),
-    Input(id('button_remove'), 'n_clicks'),
-    Input(id('button_group'), 'n_clicks'),
-    Input(id('button_reset_layout'), 'n_clicks'),
-    Input(id('button_run_cytoscape'), 'n_clicks'),
-
     Input(id('action_store'), 'data'),
-    Input(id('transform_store'), 'data'),
     Input(id('aggregate_store'), 'data'),
 
     State(id('dropdown_action'), 'value'),
@@ -477,8 +512,7 @@ def toggle_remove_button(selectedNodeData):
     State(id('datatable_aggregate'), 'data'),
     State(id('datatable_aggregate'), 'columns'),
 )
-def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
-                        action_store, transform_store, aggregate_store,
+def cytoscape_triggers(dataset_name, action_store, aggregate_store,
                         action_name, action_inputs, selectedNodeData, elements, data, data_agg, columns_agg
 ):
     triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
@@ -492,8 +526,8 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
     #     action = get_document('action', a['id'])
     #     if action['name'] == 'transform':
     #         print('ACTION STATE: ', action['state'])
-    #         if action['id'] in transform_store:
-    #             if action['details'] != transform_store[action['id']]:
+    #         if action['id'] in action_store:
+    #             if action['details'] != action_store[action['id']]:
     #                 action['state'].append('amber')
     #                 if len(action['state']) > 2: action['state'].pop(0)
     #             else:
@@ -525,37 +559,36 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
 
             try:
                 if action_name == 'combine':
-                    action['details'] = action_store[action_id]['details']
-                    features, _ = get_action_source(action_id, action_inputs, action['details']['combine_method'], action['details']['combine_key_left'], action['details']['combine_key_right'])
+                    action['combine'] = action_store[action_id]['combine']
+                    features, _ = get_action_source(action_id, action_inputs, action['combine']['combine_method'], action['combine']['combine_key_left'], action['combine']['combine_key_right'])
 
                     rename_map = {}
-                    for feature_id, features in features.items():
+                    for feature_id, feature in features.items():
                         new_feature_id = str(uuid.uuid1())
-                        rename_map[features['name']] = new_feature_id
-                        features[new_feature_id] = features.pop(feature_id)
+                        rename_map[feature['name']] = new_feature_id
+                        feature[new_feature_id] = features.pop(feature_id)
 
                     df.rename(columns=rename_map, inplace=True)
                     dataset_o['features'] = features
 
                     # TODO 5
 
-
                 elif action_name == 'transform':
-                    action['details'] = transform_store[action_id]
+                    action['transform'] = action_store[action_id]
                     dataset_o['features'] = [{
                         'id': f['id'],
                         'name': f['name'],
                         'datatype': f['datatype'],
                         'expectation': [],
-                    } for f in transform_store[action_id]['features'] if f['remove'] == False]
+                    } for f in action_store[action_id]['transform']['features'] if f['remove'] == False]
 
                     # # TODO truncate, filter, sort_by
                     # df.iloc[]
-                    # dataset_o['filter'] = transform_store[node_id]['features']['others']['filter']
-                    # dataset_o['sort_by'] = transform_store[node_id]['features']['others']['sort_by']      
+                    # dataset_o['filter'] = action_store[node_id]['features']['others']['filter']
+                    # dataset_o['sort_by'] = action_store[node_id]['features']['others']['sort_by']      
 
                 elif action_name == 'aggregate':
-                    action['details'] = aggregate_store[action_id]
+                    action['aggregate'] = aggregate_store[action_id]
                     df = pd.DataFrame(data_agg)
                     df = df.drop(columns=index_col_name, axis=1)
                     row_0 = df.iloc[0].to_dict()
@@ -593,11 +626,8 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
         add_dataset(project_id)
 
     elif triggered == id('button_add_action'):
-        if num_selected == 0: return no_update
-        if any(node['type'] == 'action' for node in selectedNodeData): return no_update
-        source_id_list = [node['id'] for node in selectedNodeData]
-        add_action(session.get('project_id'), source_id_list)
-
+        pass
+        
     elif triggered == id('button_remove'):
         remove(project_id, selectedNodeData)
     
@@ -624,6 +654,28 @@ def cytoscape_triggers(dataset_name, _1, _2, _3, _4, _5, _6, _7,
     elements = generate_cytoscape_elements(project_id)
 
     return elements, layout
+
+
+
+# Add new action to cytoscape & session
+@app.callback(
+    Output(id('action_store'), 'data'),
+    Input(id('button_add_action'), 'n_clicks'),
+    State(id('action_store'), 'data'),
+    State(id('cytoscape'), 'selectedNodeData'),
+    prevent_initial_call=True
+)
+def add_action_c(n_clicks, action_store, selectedNodeData):
+    if n_clicks is None: return no_update
+    if len(selectedNodeData) != 1: return no_update
+    if any(node['type'] == 'action' for node in selectedNodeData): return no_update
+
+    source_id_list = [node['id'] for node in selectedNodeData]
+    action = add_action(session.get('project_id'), source_id_list)
+    action_store[action['id']] = action
+
+    return action_store
+
 
 
 # # # Initialize Cytoscape Settings (that cannot be accessed through Dash)
@@ -1195,7 +1247,7 @@ def generate_datatable_aggregate(_, groupby_features, n_clicks_list, id_list, se
         for a in project['action_list']:
             action_id = a['id']
             action = get_document('action', action_id)
-            aggregate_store[action_id] = action['details']
+            aggregate_store[action_id] = action['aggregate']
 
         return no_update, no_update, aggregate_store
     else:
@@ -1317,12 +1369,17 @@ def display_merge_details(merge_type, action_inputs):
     Input(id('dropdown_action'), 'value'),
     State(id('cytoscape'), 'selectedNodeData'),
     State(id('action_store'), 'data'),
+    State(id('datatable_container'), 'style'),
+    State(id('add_feature_container'), 'style'),
+    State(id('aggregate_container'), 'style'),
 )
-def generate_right_content_1(active_tab, selected_action, selectedNodeData, action_store):
+def generate_right_content_1(active_tab, selected_action, selectedNodeData, action_store, s1, s2, s3):
     if active_tab != 'tab1': return no_update
     num_selected = len(selectedNodeData)
     datatable_container, add_feature_container = no_update, no_update
-    s1, s2, s3 = {'display':'none'}, {'display':'none'}, {'display':'none'}
+    
+    for s in [s1, s2, s3]:
+        s['display'] = 'none'
     
     if num_selected == 1:
         node_type = selectedNodeData[0]['type']
@@ -1336,9 +1393,27 @@ def generate_right_content_1(active_tab, selected_action, selectedNodeData, acti
             elif selected_action == 'transform':
                 s1['display'] = 'block'
                 s2['display'] = 'block'
-                datatable_container = generate_datatable(id('datatable'), cell_editable=True, height='65vh', sort_action='native', filter_action='native', col_selectable='multi')
-                pprint(action_store[action_id])
-                add_feature_container = [dbc.Input(feature_id, id=id(feature_id)) for feature_id, features in action_store[action_id]['details']['features'].items() if features['new'] == True]
+                datatable_container = generate_datatable(id('datatable'), cell_editable=True, height='55vh', sort_action='native', filter_action='native', col_selectable='multi')
+                
+                table_header = [html.Thead(html.Tr([
+                    html.Th("No."),
+                    html.Th("Name"),
+                    html.Th("Function"),
+                    html.Th("Comments"),
+                    html.Th(""),
+                ]))]
+                
+                features = action_store[action_id]['transform']['features']
+                if len(features) > 0:
+                    table_content = [html.Tr([
+                        html.Td(dbc.Input(feature_id)),
+                        html.Td(feature['function']),
+                        html.Td(dbc.Input(feature['comments'])),
+                        html.Td(dbc.Button('X', color='danger')),
+                    ]) for feature_id, feature in features.items() if feature['new'] == True]
+                else:
+                    table_content = [html.Tr(html.Td('No New Features', colSpan=5, style={'text-align':'center'}))]
+                add_feature_container = [dbc.Table(table_header + table_content, bordered=True, striped=True, dark=True, hover=True, color='light')]
 
             elif selected_action == 'aggregate':
                 s1['display'] = 'block'
@@ -1624,7 +1699,6 @@ def auto_select_column(active_cell, selected_columns):
 
 
 
-
 # Load Combine Session
 @app.callback(
     Output(id('combine_method'), 'value'),
@@ -1640,12 +1714,14 @@ def load_combine_session_c(selected_action, action_store, selectedNodeData):
     if selectedNodeData[0]['id'] not in action_store: return no_update
 
     action_id = selectedNodeData[0]['id']
-    details = action_store[action_id]['details']
-    combine_method    =   details['combine_method']     if 'combine_method'    in details else no_update
-    combine_key_left  =   details['combine_key_left']    if 'combine_key_left'      in details else no_update
-    combine_key_right =   details['combine_key_right']   if 'combine_key_right'      in details else no_update
+    combine_store = action_store[action_id]['combine']
+    combine_method    =   combine_store['combine_method']
+    combine_key_left  =   combine_store['combine_key_left']
+    combine_key_right =   combine_store['combine_key_right']
 
     return combine_method, combine_key_left, combine_key_right
+
+
 
 
 # Combine Action Session
@@ -1664,24 +1740,13 @@ def store_combine_session_c(combine_method, combine_key_left, combine_key_right,
 
     action_id = selectedNodeData[0]['id']
     action = get_document('action', action_id)
-    if action_id not in action_store:
-        action_store[action_id] = {
-            'id':           action['id'],
-            'name':         action['name'],
-            'description':  action['description'],
-            'state':        action['state'],
-            'details':      action['details'],
-            'inputs':        action['inputs'],
-            'outputs':       action['outputs'],
-        }
 
-    action_store[action_id]['details'] = {
+    action_store[action_id]['combine'] = {
         'combine_method':  combine_method,
         'combine_key_left': combine_key_left,
         'combine_key_right': combine_key_right,
     }
 
-    print('111')
     return action_store
 
 
@@ -1729,13 +1794,12 @@ def datatable_triggers(action_inputs, action_store,
         if node_type == 'action':
             action_id = selectedNodeData[0]['id']
             features, df = get_action_source(action_id, action_inputs)
-
+            
             # Combine Action
             if selected_action == 'combine':
-                print('222')
-                combine_method = action_store[action_id]['details']['combine_method']
-                combine_key_left = action_store[action_id]['details']['combine_key_left']
-                combine_key_right = action_store[action_id]['details']['combine_key_right']
+                combine_method = action_store[action_id]['combine']['combine_method']
+                combine_key_left = action_store[action_id]['combine']['combine_key_left']
+                combine_key_right = action_store[action_id]['combine']['combine_key_right']
                 features, df = get_action_source(action_id, action_inputs, combine_method, combine_key_left, combine_key_right)
                 
                 dataset1 = get_document('dataset', action_store[action_id]['inputs'][0])
@@ -1759,36 +1823,36 @@ def datatable_triggers(action_inputs, action_store,
                 
                 
 
-            elif selected_action == 'transform1':
-                show_datatype_dropdown = True
-                if action_id in transform_store:
-                    store = transform_store[action_id]
+            # elif selected_action == 'transform1':
+            #     show_datatype_dropdown = True
+            #     if action_id in transform_store:
+            #         store = transform_store[action_id]
                     
-                    if 'features' in store:
-                        for feature in store['features']:
-                            if feature['new'] == True:
-                                df[feature['id']] = feature['data']
-                                style_data_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "#8B8000"}]
-                                features.append(feature)
+            #         if 'features' in store:
+            #             for feature in store['features']:
+            #                 if feature['new'] == True:
+            #                     df[feature['id']] = feature['data']
+            #                     style_data_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "#8B8000"}]
+            #                     features.append(feature)
                             
-                            feature_saved = None
-                            for f in dataset['features']:
-                                if f['id'] == feature['id']:
-                                    feature_saved = f
-                            if feature_saved is not None:
-                                if feature['remove'] == True:
-                                    style_data_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "red"}]
-                                    style_header_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "red"}]
-                                if feature['name'] != feature_saved['name']:
-                                    for i in range(len(features)):
-                                        if features[i]['id'] == feature['id']:
-                                            features[i]['name'] = feature['name']
-                                    style_header_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "#8B8000"}]
-                                if feature['datatype'] != feature_saved['datatype']:
-                                    for i in range(len(features)):
-                                        if features[i]['id'] == feature['id']:
-                                            features[i]['datatype'] = feature['datatype']
-                                    style_data_conditional += [{"if": {"column_id": feature['id'], 'row_index': 0}, "backgroundColor": "#8B8000"}]
+            #                 feature_saved = None
+            #                 for f in dataset['features']:
+            #                     if f['id'] == feature['id']:
+            #                         feature_saved = f
+            #                 if feature_saved is not None:
+            #                     if feature['remove'] == True:
+            #                         style_data_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "red"}]
+            #                         style_header_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "red"}]
+            #                     if feature['name'] != feature_saved['name']:
+            #                         for i in range(len(features)):
+            #                             if features[i]['id'] == feature['id']:
+            #                                 features[i]['name'] = feature['name']
+            #                         style_header_conditional += [{"if": {"column_id": feature['id']}, "backgroundColor": "#8B8000"}]
+            #                     if feature['datatype'] != feature_saved['datatype']:
+            #                         for i in range(len(features)):
+            #                             if features[i]['id'] == feature['id']:
+            #                                 features[i]['datatype'] = feature['datatype']
+            #                         style_data_conditional += [{"if": {"column_id": feature['id'], 'row_index': 0}, "backgroundColor": "#8B8000"}]
                     
                     # # TODO modify df to fit these values
                     # store['others']['filter']
@@ -1828,14 +1892,33 @@ def datatable_triggers(action_inputs, action_store,
     Output(id('rename_modal'), 'is_open'),
     Output(id('rename_modal_body'), 'children'),
     Trigger(id('button_feature_rename_modal'), 'n_clicks'),
+    Trigger(id('rename_cancel'), 'n_clicks'),
     State(id('rename_modal'), 'is_open'),
     State(id('datatable'), 'selected_columns'),
+    State(id('action_store'), 'data'),
+    State(id('cytoscape'), 'selectedNodeData'),
     prevent_initial_call=True,
 )
-def rename_feature_c(is_open, selected_columns):
-    if selected_columns is None or len(selected_columns) < 1: return no_update 
-    rename_inputs = [dbc.Input('aaaaa')]
-    print("AAa", selected_columns, is_open)
+def rename_feature_c(is_open, selected_columns, action_store, selectedNodeData):
+    if selected_columns is None or len(selected_columns) < 1: return no_update
+    triggered = callback_context.triggered[0]['prop_id'].rsplit('.', 1)[0]
+    rename_inputs = no_update
+
+    if triggered == id('button_feature_rename_modal'):
+        action_id = selectedNodeData[0]['id']
+        rename_inputs = []
+
+        print("AAa", selected_columns, action_id)
+        pprint(action_store[action_id])
+
+        for feature_id in selected_columns:
+            feature_name = action_store[action_id]['transform']['features'][feature_id]['name']
+            rename_inputs += [dbc.Input(value=feature_name, placeholder=feature_name)]
+
+    elif triggered == id('rename_cancel'):
+        pass
+
+    
     
     return not is_open, rename_inputs
 
@@ -1850,17 +1933,19 @@ def rename_feature_c(is_open, selected_columns):
 #     return not is_open
 
 
+
 # Transform Session
 @app.callback(
     Output(id('action_store'), 'data'),
     Output(id('add_feature_msg'), 'children'),
 
-    # Input(id('right_content_1'), 'style'),
+    Trigger(id('right_content_1'), 'style'),
     Trigger(id('button_revert_changes'), 'n_clicks'),
     Trigger(id('button_execute_action'), 'n_clicks'),
     Trigger(id('button_display_calculator'), 'n_clicks'),
     Trigger(id('calc_equals'), 'n_clicks'),
     
+    Trigger(id('rename_confirm'), 'n_clicks'),
     Trigger(id('button_feature_left'), 'n_clicks'),
     Trigger(id('button_feature_right'), 'n_clicks'),
     Trigger(id('button_remove_feature'), 'n_clicks'),
@@ -1880,8 +1965,8 @@ def rename_feature_c(is_open, selected_columns):
 def store_transform_session_c(sort_by, filter_query, selected_action, selectedNodeData, data, columns, selected_columns, action_store):
     trigg_comp, trigg_attr = callback_context.triggered[0]['prop_id'].rsplit('.', 1)
     
-    print('\ntriggered1: ', trigg_comp, trigg_attr)
-    pprint(callback_context.triggered)
+    # print('\ntriggered1: ', trigg_comp, trigg_attr)
+    # pprint(callback_context.triggered)
 
     if len(selectedNodeData) != 1 or selectedNodeData[0]['type'] != 'action' or selected_action != 'transform':  return no_update
     if data == []: return no_update
@@ -1892,23 +1977,16 @@ def store_transform_session_c(sort_by, filter_query, selected_action, selectedNo
     action = get_document('action', action_id)
     
     # Init
-    if action_id not in action_store:
-        action_store[action_id] = {
-            'features':     {},
-            'truncate':     [],
-            'filter_query': {},
-            'sort_by':      {},
+    for c in columns:
+        action_store[action_id]['transform']['features'][c['id']] = {
+            'name':                 c['name'],
+            'datatype':             '',
+            'remove':               False,
+            'condition':            [],
+            'new':                  False,
+            'function':             '',
+            'dependent_features':   []
         }
-        for c in columns:
-            action_store[action_id]['features'][c['id']] = {
-                'name':                 '',
-                'datatype':             '',
-                'remove':               False,
-                'condition':            [],
-                'new':                  False,
-                'function':             '',
-                'dependent_features':   []
-            }
     store = action_store[action_id]
     add_feature_msg = ''
 
@@ -1919,7 +1997,7 @@ def store_transform_session_c(sort_by, filter_query, selected_action, selectedNo
 
     # Revert to Last Saved Data
     elif trigg_comp == id('button_revert_changes'):
-        action_store[action_id] = action['details']
+        action_store[action_id] = action
     
     # Display Calculator
     elif trigg_comp == id('button_display_calculator'):
@@ -1929,7 +2007,7 @@ def store_transform_session_c(sort_by, filter_query, selected_action, selectedNo
     elif trigg_comp == id('calc_equals'):
         pass
 
-    elif trigg_comp == id('button_feature_rename_modal'):
+    elif trigg_comp == id('rename_confirm'):
         pass
         # Rename (create custom rename button+popup)
         # for c in columns:
@@ -1991,6 +2069,8 @@ def store_transform_session_c(sort_by, filter_query, selected_action, selectedNo
             else:
                 store['features'][feature_id]['remove'] = not store['features'][feature_id]['remove']
 
+    print('333333333 ', action_id)
+    pprint(action_store[action_id])
 
     return action_store, add_feature_msg
 
@@ -1999,18 +2079,6 @@ def store_transform_session_c(sort_by, filter_query, selected_action, selectedNo
 
 
 
-
-
-# TODO
-@app.callback(
-    Output(id('add_feature_container'), 'children'),
-    Input(id('transform_store'), 'data'),
-)
-def display_add_features(transform_store):
-    add_feature_container = []
-
-
-    return add_feature_container
 
 
 

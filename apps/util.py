@@ -1108,6 +1108,8 @@ def add_action(project_id, source_id_list):
     upsert('project', project)
     upsert('action', action)
     upsert('dataset', dataset)
+
+    return action
 def add_edge(project_id, source_id, destination_id):
     project = get_document('project', project_id)
     edge = source_id + '_' + destination_id
@@ -1199,8 +1201,30 @@ def Project(id, type, dataset_list=[], action_list=[], group_list=[], edge_list=
     }
 def Dataset(id, name, description='', documentation='', features={}, upload_details={}, is_source='False'):
     return {'id':id, 'name':name, 'description':description, 'documentation':documentation, 'features':features, 'upload_details':upload_details, 'is_source': is_source}
-def Action(id, name, description='', state=['amber', 'amber'], details={}, inputs=[], outputs=[]):
-    return {'id':id, 'name':name, 'description':description, 'state':state, 'details':details, 'inputs':inputs, 'outputs':outputs}
+def Action(id, name, description='', state=['amber', 'amber'], combine={}, transform={}, aggregate={}, inputs=[], outputs=[]):
+    return {
+        'id':id,
+        'name':name,
+        'description':description,
+        'state':state,
+        'combine':{
+            'combine_method':  '',
+            'combine_key_left': '',
+            'combine_key_right': '',
+        },
+        'transform':{
+            'features':     {},
+            'truncate':     [],
+            'filter_query': {},
+            'sort_by':      {},
+        },
+        'aggregate': {
+            'groupby_features': [],
+            'aggregate_dict': {},
+        },
+        'inputs':inputs,
+        'outputs':outputs
+    }
 def Group(id, name, node_list):
     return {'id':id, 'name':name, 'node_list':node_list}
 # Cytoscape
