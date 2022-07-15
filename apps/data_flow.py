@@ -208,8 +208,8 @@ layout = html.Div([
 
                         # Tab 1 (Data)
                         html.Div([
-                            html.Div(generate_datatable(id('datatable')), id=id('datatable_container'), style={'display':'none'}),
-                            html.Div([], id=id('add_feature_container'), style={'width':'100%', 'display':'none', 'margin-top':'10px'}),
+                            html.Div(generate_datatable(id('datatable'), height='60vh'), id=id('tab1_container1'), style={'display':'none'}),
+                            html.Div([], id=id('tab1_container2'), style={'width':'100%', 'display':'none', 'margin-top':'10px'}),
                             html.Div([
                                 dbc.InputGroup([
                                     dbc.InputGroupText('Group By ', style={'width':'20%', 'font-weight':'bold', 'font-size':'13px', 'padding-left':'6px'}),
@@ -217,7 +217,7 @@ layout = html.Div([
                                 ]),
                                 dbc.Table([], id=id('table_aggregate_function'), bordered=True, dark=True, hover=True, striped=True, style={'overflow-y': 'auto', 'max-height':'18vh'}),
                                 dbc.Col(generate_datatable(id('datatable_aggregate'), height='25vh')),
-                            ], style={'display':'none'}, id=id('aggregate_container'))
+                            ], style={'display':'none'}, id=id('tab1_container3'))
                         ], id=id('right_content_1'), style={'display':'none'}),
 
                         
@@ -1355,88 +1355,88 @@ def display_merge_details(merge_type, action_inputs):
 
 
 
-
-
-
 # Right Content 1
 @app.callback(
-    Output(id('datatable_container'), 'children'),
-    Output(id('add_feature_container'), 'children'),
-    Output(id('datatable_container'), 'style'),
-    Output(id('add_feature_container'), 'style'),
-    Output(id('aggregate_container'), 'style'),
+    Output(id('tab1_container1'), 'style'),
+    Output(id('tab1_container2'), 'style'),
+    Output(id('tab1_container3'), 'style'),
     Input(id('tabs_node'), 'active_tab'),
-    Input(id('dropdown_action'), 'value'),
     State(id('cytoscape'), 'selectedNodeData'),
     State(id('action_store'), 'data'),
-    State(id('datatable_container'), 'style'),
-    State(id('add_feature_container'), 'style'),
-    State(id('aggregate_container'), 'style'),
+    State(id('tab1_container1'), 'style'),
+    State(id('tab1_container2'), 'style'),
+    State(id('tab1_container3'), 'style'),
 )
-def generate_right_content_1(active_tab, selected_action, selectedNodeData, action_store, s1, s2, s3):
+def display_tab1(active_tab, selectedNodeData, action_store, s1, s2, s3):
     if active_tab != 'tab1': return no_update
-    num_selected = len(selectedNodeData)
-    datatable_container, add_feature_container = no_update, no_update
-    
     for s in [s1, s2, s3]:
         s['display'] = 'none'
     
-    if num_selected == 1:
+    if len(selectedNodeData) == 1:
         node_type = selectedNodeData[0]['type']
         action_id = selectedNodeData[0]['id']
+        selected_action = action_store[action_id]['name']
 
         if node_type == 'action':
             if selected_action == 'combine':
                 s1['display'] = 'block'
-                datatable_container = generate_datatable(id('datatable'), height='60vh')
 
             elif selected_action == 'transform':
                 s1['display'] = 'block'
                 s2['display'] = 'block'
-                datatable_container = generate_datatable(id('datatable'), cell_editable=True, height='55vh', sort_action='native', filter_action='native', col_selectable='multi')
                 
-                table_header = [html.Thead(html.Tr([
-                    html.Th("No."),
-                    html.Th("Name"),
-                    html.Th("Function"),
-                    html.Th("Comments"),
-                    html.Th(""),
-                ]))]
-                
-                features = action_store[action_id]['transform']['features']
-                if len(features) > 0:
-                    table_content = [html.Tr([
-                        html.Td(dbc.Input(feature_id)),
-                        html.Td(feature['function']),
-                        html.Td(dbc.Input(feature['comments'])),
-                        html.Td(dbc.Button('X', color='danger')),
-                    ]) for feature_id, feature in features.items() if feature['new'] == True]
-                else:
-                    table_content = [html.Tr(html.Td('No New Features', colSpan=5, style={'text-align':'center'}))]
-                add_feature_container = [dbc.Table(table_header + table_content, bordered=True, striped=True, dark=True, hover=True, color='light')]
-
             elif selected_action == 'aggregate':
                 s1['display'] = 'block'
                 s3['display'] = 'block'
-                datatable_container = generate_datatable(id('datatable'), height='20vh', col_selectable='multi')
 
-            elif selected_action == 'impute': datatable_container = []
+            elif selected_action == 'impute':
+                pass
 
-            else: datatable_container = []
         elif node_type == 'dataset':
             s1['display'] = 'block'
-            datatable_container = generate_datatable(id('datatable'), height='75vh')
-    elif num_selected > 1 and all(node['type'] == 'dataset' for node in selectedNodeData):
+
+    elif len(selectedNodeData) > 1 and all(node['type'] == 'dataset' for node in selectedNodeData):
         s1['display'] = 'block'
-        datatable_container = generate_datatable(id('datatable'), height='70vh')
 
-    return datatable_container, add_feature_container, s1, s2, s3
-
+    return s1, s2, s3
 
 
 
 
+# New features
+@app.callback(
+    Output(id('tab1_container2'), 'children'),
+    Input(id('tabs_node'), 'active_tab'),
+    Input(id('action_store'), 'data'),
+    State(id('cytoscape'), 'selectedNodeData'),
+)
+def generate_new_features_table(active_tab, action_store, selectedNodeData):
+    if active_tab != 'tab1': return no_update
+    if len(selectedNodeData) != 1: return no_update
+    if selectedNodeData[0]['type'] != 'action': return no_update
 
+    action_id = selectedNodeData[0]['id']
+    table_header = [html.Thead(html.Tr([
+        html.Th("No."),
+        html.Th("Name"),
+        html.Th("Function"),
+        html.Th("Comments"),
+        html.Th(""),
+    ]))]
+                
+    features = action_store[action_id]['transform']['features']
+    if len(features) > 0:
+        table_content = [html.Tr([
+            html.Td(dbc.Input(feature_id)),
+            html.Td(feature['function']),
+            html.Td(dbc.Input(feature['comments'])),
+            html.Td(dbc.Button('X', color='danger')),
+        ]) for feature_id, feature in features.items() if feature['new'] == True]
+    else:
+        table_content = [html.Tr(html.Td('No New Features', colSpan=5, style={'text-align':'center'}))]
+    add_feature_container = [dbc.Table(table_header + table_content, bordered=True, striped=True, dark=True, hover=True, color='light')]
+
+    return add_feature_container
 
 
 
@@ -1741,11 +1741,9 @@ def store_combine_session_c(combine_method, combine_key_left, combine_key_right,
     action_id = selectedNodeData[0]['id']
     action = get_document('action', action_id)
 
-    action_store[action_id]['combine'] = {
-        'combine_method':  combine_method,
-        'combine_key_left': combine_key_left,
-        'combine_key_right': combine_key_right,
-    }
+    action_store[action_id]['combine']['combine_method'] = combine_method
+    action_store[action_id]['combine']['combine_key_left'] = combine_key_left
+    action_store[action_id]['combine']['combine_key_right'] = combine_key_right
 
     return action_store
 
@@ -1759,51 +1757,64 @@ def store_combine_session_c(combine_method, combine_key_left, combine_key_right,
     Output(id('datatable'), "dropdown_data"),
     Output(id('datatable'), "style_data_conditional"),
     Output(id('datatable'), "style_header_conditional"),
+    Output(id('datatable'), 'style_table'),
+    Output(id('datatable'), 'editable'),
+    Output(id('datatable'), 'sort_action'),
+    Output(id('datatable'), 'filter_action'),
+    Output(id('datatable'), 'column_selectable'),
 
-    Trigger(id('datatable_container'), 'children'),
-    Input(id('dropdown_action_inputs'), 'value'),
+    Input(id('tabs_node'), 'active_tab'),
     Input(id('action_store'), 'data'),
-    Input(id('range_slider'), 'value'),
-    Input(id('search2'), 'value'),
-    State(id('dropdown_action'), 'value'),
     State(id('cytoscape'), 'selectedNodeData'),
-    State(id('datatable'), 'data'),
-    State(id('datatable'), 'columns'),
+    State(id('datatable'), 'style_table'),
+
+    # State(id('dropdown_action_inputs'), 'value'),
+    # State(id('range_slider'), 'value'),
+    # State(id('search2'), 'value'),
+    # State(id('dropdown_action'), 'value'),    
+    # State(id('datatable'), 'data'),
+    # State(id('datatable'), 'columns'),
     preven_initial_call=True,
 )
-def datatable_triggers(action_inputs, action_store,
-                        range_val, search_val,
-                        selected_action, selectedNodeData, data, columns
+def datatable_triggers(active_tab, action_store, selectedNodeData, style_table
+    # action_inputs,
+    # range_val, search_val, data, columns
 ):
     num_selected = len(selectedNodeData)
     triggered = callback_context.triggered[0]['prop_id']
-
     if num_selected == 0: return no_update
-    if triggered == '.': return no_update
-    style_data_conditional, style_header_conditional = [], []
+    if active_tab != 'tab1': return no_update
+    # if triggered == '.': return no_update
     
+    style_data_conditional, style_header_conditional = [], []
+    style_table['height'] = '75vh'
+    editable, sort_action, filter_action, column_selectable = (no_update,) * 4
+
     show_datatype_dropdown = False
     renamable = False
     
-    # print("\ntriggered0")
-    # pprint(callback_context.triggered)
+    print("\ntriggered0")
+    pprint([t['prop_id'] for t in callback_context.triggered])
     
     if num_selected == 1:
         node_type = selectedNodeData[0]['type']
 
         if node_type == 'action':
             action_id = selectedNodeData[0]['id']
-            features, df = get_action_source(action_id, action_inputs)
+            store = action_store[action_id]
+            selected_action = store['name']
+            inputs = store['inputs']
+            features, df = get_action_source(action_id, inputs)
             
             # Combine Action
             if selected_action == 'combine':
-                combine_method = action_store[action_id]['combine']['combine_method']
-                combine_key_left = action_store[action_id]['combine']['combine_key_left']
-                combine_key_right = action_store[action_id]['combine']['combine_key_right']
+                style_table['height'] = '60vh'
+                combine_method = action_store[action_id][selected_action]['combine_method']
+                combine_key_left = action_store[action_id][selected_action]['combine_key_left']
+                combine_key_right = action_store[action_id][selected_action]['combine_key_right']
                 features, df = get_action_source(action_id, action_inputs, combine_method, combine_key_left, combine_key_right)
-                
-                dataset1 = get_document('dataset', action_store[action_id]['inputs'][0])
-                dataset2 = get_document('dataset', action_store[action_id]['inputs'][1])
+                dataset1 = get_document('dataset', inputs[0])
+                dataset2 = get_document('dataset', inputs[1])
 
                 # Styling Datatable
                 for c in df.columns:
@@ -1819,9 +1830,12 @@ def datatable_triggers(action_inputs, action_store,
 
             # Transform Action
             elif selected_action == 'transform':
+                style_table['height'] = '55vh'
+                editable = True
+                sort_action = 'native'
+                filter_action = 'native'
+                column_selectable = 'multi'
                 show_datatype_dropdown = True
-                
-                
 
             # elif selected_action == 'transform1':
             #     show_datatype_dropdown = True
@@ -1858,8 +1872,12 @@ def datatable_triggers(action_inputs, action_store,
                     # store['others']['filter']
                     # store['others']['truncate']
                     # store['others']['sort_by']
+            
+            elif selected_action == 'aggregate':
+                style_table['height'] = '20vh'
+                column_selectable = 'multi'
 
-        else:
+        if node_type == 'dataset':
             dataset_id = selectedNodeData[0]['id']
             dataset = get_document('dataset', dataset_id)
             df = get_dataset_data(dataset_id)
@@ -1869,9 +1887,6 @@ def datatable_triggers(action_inputs, action_store,
         inputs = [node['id'] for node in selectedNodeData]
         pass
 
-    else:
-        return no_update
-    
     # Filter Range
     # Search Value
 
@@ -1882,8 +1897,9 @@ def datatable_triggers(action_inputs, action_store,
     else:
         print("Empty Dataframe")
         data, dropdown_data = [], []
-    
-    return data, columns, dropdown_data, style_data_conditional, style_header_conditional
+
+    return (data, columns, dropdown_data, style_data_conditional, style_header_conditional,
+            style_table, editable, sort_action, filter_action, column_selectable)
 
 
 
@@ -1939,7 +1955,8 @@ def rename_feature_c(is_open, selected_columns, action_store, selectedNodeData):
     Output(id('action_store'), 'data'),
     Output(id('add_feature_msg'), 'children'),
 
-    Trigger(id('right_content_1'), 'style'),
+    # Trigger(id('tabs_node'), 'active_tab'),
+    # Trigger(id('right_content_1'), 'style'),
     Trigger(id('button_revert_changes'), 'n_clicks'),
     Trigger(id('button_execute_action'), 'n_clicks'),
     Trigger(id('button_display_calculator'), 'n_clicks'),
@@ -1950,10 +1967,11 @@ def rename_feature_c(is_open, selected_columns, action_store, selectedNodeData):
     Trigger(id('button_feature_right'), 'n_clicks'),
     Trigger(id('button_remove_feature'), 'n_clicks'),
     Trigger(id('button_clear'), 'n_clicks'),
-    Trigger(id('datatable'), 'data_previous'),
-
+    
+    Input(id('datatable'), 'data_previous'),
     Input(id('datatable'), 'sort_by'),
     Input(id('datatable'), 'filter_query'),
+
     State(id('dropdown_action'), 'value'),
     State(id('cytoscape'), 'selectedNodeData'),
     State(id('datatable'), 'data'),
@@ -1962,23 +1980,24 @@ def rename_feature_c(is_open, selected_columns, action_store, selectedNodeData):
     State(id('action_store'), 'data'),
 
 )
-def store_transform_session_c(sort_by, filter_query, selected_action, selectedNodeData, data, columns, selected_columns, action_store):
+def store_transform_session_c(data_previous, sort_by, filter_query, selected_action, selectedNodeData, data, columns, selected_columns, action_store):
     trigg_comp, trigg_attr = callback_context.triggered[0]['prop_id'].rsplit('.', 1)
-    
-    # print('\ntriggered1: ', trigg_comp, trigg_attr)
-    # pprint(callback_context.triggered)
-
     if len(selectedNodeData) != 1 or selectedNodeData[0]['type'] != 'action' or selected_action != 'transform':  return no_update
     if data == []: return no_update
+
+    print('\ntriggered1: ', trigg_comp, trigg_attr)
+    pprint([t['prop_id'] for t in callback_context.triggered])
+
     df = json_normalize(data)
     df.set_index(index_col_name, inplace=True)
     columns = [c for c in columns if c['name'] != index_col_name]
     action_id = selectedNodeData[0]['id']
     action = get_document('action', action_id)
-    
+
     # Init
+    store = action_store[action_id]
     for c in columns:
-        action_store[action_id]['transform']['features'][c['id']] = {
+        store['transform']['features'][c['id']] = {
             'name':                 c['name'],
             'datatype':             '',
             'remove':               False,
@@ -1987,17 +2006,17 @@ def store_transform_session_c(sort_by, filter_query, selected_action, selectedNo
             'function':             '',
             'dependent_features':   []
         }
-    store = action_store[action_id]
+    
     add_feature_msg = ''
 
     # Clear Session
     if trigg_comp == id('button_clear'):
         print("Clear Transform Session")
-        action_store[action_id] = {}
+        store = {}
 
     # Revert to Last Saved Data
     elif trigg_comp == id('button_revert_changes'):
-        action_store[action_id] = action
+        store = action
     
     # Display Calculator
     elif trigg_comp == id('button_display_calculator'):
@@ -2024,8 +2043,12 @@ def store_transform_session_c(sort_by, filter_query, selected_action, selectedNo
                     'name': mapper[feature_id],
                     'datatype': dtype,
                 }
+            
+            pprint(tmp)
+            pprint(store)
             for feature_id, feature in tmp.items():
-                store['features'][feature_id]['datatype'] = tmp['datatype']
+                store['transform']['features'][feature_id]['datatype'] = tmp['datatype']
+
         # sort_by
         elif trigg_attr == 'sort_by':
             store['sort_by'] = sort_by
@@ -2064,13 +2087,10 @@ def store_transform_session_c(sort_by, filter_query, selected_action, selectedNo
     # Remove Feature
     elif trigg_comp == id('button_remove_feature'):
         for feature_id in selected_columns:
-            if store['features'][feature_id]['new'] == True:
-                del store['features'][feature_id]
+            if store['transform']['features'][feature_id]['new'] == True:
+                del store['transform']['features'][feature_id]
             else:
-                store['features'][feature_id]['remove'] = not store['features'][feature_id]['remove']
-
-    print('333333333 ', action_id)
-    pprint(action_store[action_id])
+                store['transform']['features'][feature_id]['remove'] = not store['features'][feature_id]['remove']
 
     return action_store, add_feature_msg
 
