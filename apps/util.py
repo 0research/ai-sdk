@@ -355,7 +355,7 @@ def generate_datatable_data(df, features, show_datatype_dropdown=False, renamabl
 
     # Get Dropdown Data
     if show_datatype_dropdown:
-        dropdown_data = [ {feature_id: {'options': [{'label': datatype, 'value': feature['datatype']} for datatype in DATATYPE_LIST], 'clearable': False} for feature_id, feature in features.items()}]
+        dropdown_data = [ {feature_id: {'options': [{'label': datatype, 'value': datatype} for datatype in DATATYPE_LIST], 'clearable': False} for feature_id, feature in features.items()}]
 
     return df, columns, dropdown_data
 # --------------------------------------------------------------------------------
@@ -1203,19 +1203,7 @@ def Project(id, type, dataset_list=[], action_list=[], group_list=[], edge_list=
 def Dataset(id, name, description='', documentation='', features={}, upload_details={}, is_source='False'):
     return {'id':id, 'name':name, 'description':description, 'documentation':documentation, 'features':features, 'upload_details':upload_details, 'is_source': is_source}
 def Action(id, name, description='', state=['amber', 'amber'], combine={}, transform={}, aggregate={}, inputs=[], outputs=[]):
-    transform_features = {}
     dataset = get_document('dataset', inputs[0])
-    for feature_id, feature in dataset['features'].items():
-        transform_features[feature_id] = {
-            'name':                 feature['name'],
-            'datatype':             feature['datatype'],
-            'remove':               False,
-            'condition':            [],
-            'new':                  False,
-            'function':             '',
-            'dependent_features':   []
-        }
-
     return {
         'id':id,
         'name':name,
@@ -1227,10 +1215,19 @@ def Action(id, name, description='', state=['amber', 'amber'], combine={}, trans
             'combine_key_right': '',
         },
         'transform':{
-            'features':     transform_features,
+            'features':     {
+                feature_id: {
+                    'name':                 feature['name'],
+                    'datatype':             feature['datatype'],
+                    'remove':               False,
+                    'condition':            [],
+                    'new':                  False,
+                    'function':             '',
+                    'dependent_features':   []
+                } for feature_id, feature in dataset['features'].items()},
             'truncate':     [],
             'filter_query': {},
-            'sort_by':      {},
+            'sort_by':      (),
         },
         'aggregate': {
             'groupby_features': [],
