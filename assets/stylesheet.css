@@ -1,5 +1,21 @@
-
-/* Navbar */
+/* Page Layout Navbar */
+.page-content {
+	position: relative;
+	/* margin-left: 11rem,;
+    margin-right: 10px;
+    padding: 2px 0rem; */
+}
+.sidebar {
+    position: fixed;
+	margin-top:60px;
+    top: 40;
+    left: 0;
+    /* bottom: 0; */
+    width: 5%;
+    /* padding: 2rem 1rem; */
+    /* background-color: #f8f9fa; */
+    font-size: 0.9em;
+}
 .navbar .center {
     width: 50%;
     margin: 0 auto;
@@ -10,6 +26,32 @@
     right: 0;
     top: 0;
 }
+.left-panel {
+	width: 47%;
+	position: absolute;
+	top: 50;
+    left: 11rem;
+	right: 0;
+	top:0;
+}
+.right-panel {
+	width: 47%;
+	position: absolute;
+	right: 0;
+	/* top: ; */
+	/* bottom: 0; */
+	padding: 6px;
+}
+
+
+/* Cytoscape */
+.cytoscape-details {
+	float:left;
+}
+.cytoscape-buttons {
+	float: right;
+}
+
 
 
 .Select-menu-outer {
@@ -120,7 +162,8 @@
 #data_flow-calculator_container {
 	padding: 0;
 	margin: 0;
-	background: linear-gradient(to right, #00AAFF, #00FF6C);
+	background-color: rgb(6, 4, 4);
+    background-color: rgba(255,255,255,0.5);
 }
 
 .calculator-grid {
@@ -128,13 +171,13 @@
 	justify-content: center;
 	align-content: center;
 	min-height: 90vh;
-	grid-template-columns: repeat(4, 100px);
-	grid-template-rows: minmax(120px, auto) repeat(5, 100px);
+	grid-template-columns: repeat(4, 130px);
+	grid-template-rows: minmax(120px, auto) repeat(15, 50px);
 }
 
 .calculator-grid > button {
 	cursor: pointer;
-	font-size: 2rem;
+	font-size: 1.35rem;
 	border: 1px solid white;
 	outline: none;
 	background-color: rgba(255, 255, 255, .75);
@@ -148,6 +191,14 @@
 	grid-column: span 2;
 }
 
+.span-three {
+	grid-column: span 3;
+}
+
+.span-four {
+	grid-column: span 4;
+}
+
 .calc_outputs {
 	grid-column: 1 / -1;
 	background-color: rgba(0, 0, 0, .75);
@@ -158,6 +209,7 @@
 	padding: 10px;
 	word-wrap: break-word;
 	word-break: break-all;
+	color: white;
 }
 
 .calc_outputs .prev_operand {

@@ -190,8 +190,6 @@ THRESHOLD = 0.8
 
 
 
-
-
 # Cytocsape
 CYTOSCAPE_STYLESHEET = [
     # All Nodes
@@ -277,3 +275,9 @@ CYTOSCAPE_STYLESHEET = [
         }
     },
 ]
+
+
+# Calculator
+FUNCTION_TEMPLATE = {
+    '': ''
+}

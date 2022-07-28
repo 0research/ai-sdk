@@ -26,27 +26,6 @@ import urllib.parse
 
 id = id_factory('index')
 
-SIDEBAR_STYLE = {
-    "position": "fixed",
-    "top": 40,
-    "left": 0,
-    "bottom": 0,
-    "width": "14rem",
-    "padding": "2rem 1rem",
-    # "background-color": "#f8f9fa",
-    "font-size": "0.9em",
-}
-
-# the styles for the main content position it to the right of the sidebar and
-# add some padding.
-CONTENT_STYLE = {
-    "margin-left": "14rem",
-    "margin-right": "10px",
-    "padding": "2px 0rem",
-}
-
-
-
 
 # Top Navbar
 navbar = dbc.Navbar([
@@ -85,7 +64,7 @@ sidebar = html.Div([
         sidebar_0 + divider +
         sidebar_1 + divider
     , vertical=True, pills=True, id='sidebar'),
-], style=SIDEBAR_STYLE)
+], className='sidebar')
 
 
 
@@ -97,7 +76,7 @@ def serve_layout():
         dbc.Modal('', id='modal'),
         sidebar,
         navbar,
-        html.Div(id='page-content', style=CONTENT_STYLE),
+        html.Div(id='page-content', className='page-content'),
         #dbc.Container(dbc.Alert("Wrangle Data!", color="success"),className="p-5") #Added by Sagun
     ])
 app.layout = serve_layout

@@ -33,6 +33,7 @@ import plotly.graph_objects as go
 import csv
 import io
 import sys
+import dash_mantine_components as dmc
 
 # TODO Check if these functions are necessary else remove  
 def generate_tabs(tabs_id, tab_labels, tab_values, tab_disabled):
@@ -345,8 +346,8 @@ def generate_datatable_data(df, features, show_datatype_dropdown=False, renamabl
     df.sort_index(inplace=True)
 
     # Get Datatable Columns
-    columns = [{'id':'no.', 'name':'no.', 'selectable':False}]
-    columns += [{"id": feature_id, "name": feature['name'], "selectable": True, 'presentation': 'dropdown', 'renamable': renamable} for feature_id, feature in features.items()]
+    columns = [{"id": feature_id, "name": feature['name'], "selectable": True, 'presentation': 'dropdown', 'renamable': renamable} for feature_id, feature in sorted(features.items(), key=lambda d: d[1]['order'])]
+    columns = [{'id':'no.', 'name':'no.', 'selectable':False}] + columns
 
     # Add Index Column to df
     df.reset_index(inplace=True)
@@ -396,11 +397,12 @@ def upload_dataset(df, dataset_id, description, documentation, details=''):
     dataset['description'] = description
     dataset['documentation'] = documentation
     dataset['features'] = {}
-    for name, dtype in datatypes.items():
+    for i, (name, dtype) in enumerate(datatypes.items()):
         dataset['features'][str(uuid.uuid1())] = {
             'name': name, 
             'datatype': dtype,
             'expectation': {},
+            'order': i,
         }
 
     # Rename feature name to Unique ID
@@ -1081,6 +1083,7 @@ def add_dataset(project_id):
     project['dataset_list'].append({'id': dataset_id, 'position': {'x': x, 'y': y}})
     dataset = Dataset(id=dataset_id, name='New', description='', is_source=True)
     
+    
     # Upload to Typesense
     upsert('project', project)
     upsert('dataset', dataset)
@@ -1186,6 +1189,89 @@ def remove(project_id, selectedNodeData):
 """ -------------------------------------------------------------------------------- """
 
 
+""" Calculator """
+def generate_calculator_layout(id):
+    return html.Div([
+        html.Div([
+            html.Div('', id=id('prev_operand')),
+            html.Div('', id=id('curr_operand'))
+        ], className='calc_outputs', style={'text-align':'right', 'padding':'1rem', 'margin-bottom':'1rem'}),
+        
+        html.Button('AC', id('calc_button_clear'), className='calc_button'),
+        html.Button(html.I(className='fas fa-backspace'), id('calc_button_backspace'), className='calc_button'),
+        html.Button('=', id=id('calc_button_equals'), className='calc_button span-two'),
+        html.Button('Feature', id('calc_button_feature'), className='calc_button span-two'),
+        # html.Button(')', id('calc_button_close'), className='calc_button'),
+        html.Button(',', id('calc_button_comma'), className='calc_button span-two'),
+
+        html.Div('Aggregate', className='solid span-four'),
+        html.Button('sum',    id={'type':id('calc_button_function'), 'index': 'sum'}, className='calc_button'),
+        html.Button('mean',   id={'type':id('calc_button_function'), 'index': 'mean'}, className='calc_button'),
+        html.Button('min',    id={'type':id('calc_button_function'), 'index': 'min'}, className='calc_button'),
+        html.Button('max',    id={'type':id('calc_button_function'), 'index': 'max'}, className='calc_button'),
+
+        html.Div('General', className='solid span-four'),
+        html.Button('sub',    id={'type':id('calc_button_function'), 'index': 'sub'}, className='calc_button'),
+        html.Button('mul',    id={'type':id('calc_button_function'), 'index': 'mul'}, className='calc_button'),
+        html.Button('div',    id={'type':id('calc_button_function'), 'index': 'div'}, className='calc_button'),
+        html.Button('mod',    id={'type':id('calc_button_function'), 'index': 'mod'}, className='calc_button'),
+        html.Button('^',        id={'type':id('calc_button_function'), 'index': '^'}, className='calc_button'),
+        html.Button('√',        id={'type':id('calc_button_function'), 'index': 'nth_root'}, className='calc_button'),
+        html.Button('exp',      id={'type':id('calc_button_function'), 'index': 'exp'}, className='calc_button'),
+        html.Button('|x|',      id={'type':id('calc_button_function'), 'index': 'abs'}, className='calc_button'),
+        html.Button('shift',    id={'type':id('calc_button_function'), 'index': 'shift'}, className='calc_button'),
+        html.Button('sliding w.', id={'type':id('calc_button_function'), 'index': 'sliding_window'}, className='calc_button'),
+        html.Button('cumsum',   id={'type':id('calc_button_function'), 'index': 'cumsum'}, className='calc_button'),
+        
+        html.Div('Comparison', className='solid span-four'),
+        html.Button('>',        id={'type':id('calc_button_function'), 'index': 'gt'}, className='calc_button'),
+        html.Button('>=',       id={'type':id('calc_button_function'), 'index': 'ge'}, className='calc_button'),
+        html.Button('<',        id={'type':id('calc_button_function'), 'index': 'lt'}, className='calc_button'),
+        html.Button('<=',       id={'type':id('calc_button_function'), 'index': 'le'}, className='calc_button'),
+        html.Button('==',       id={'type':id('calc_button_function'), 'index': 'eq'}, className='calc_button'),
+        html.Button('!=',       id={'type':id('calc_button_function'), 'index': 'ne'}, className='calc_button'),
+
+        html.Div('Numbers / Custom', className='solid span-four'),
+        html.Button('1',        id={'type':id('calc_button_num'), 'index': '1'}, className='calc_button'),
+        html.Button('2',        id={'type':id('calc_button_num'), 'index': '2'}, className='calc_button'),
+        html.Button('3',        id={'type':id('calc_button_num'), 'index': '3'}, className='calc_button'),
+        html.Button('π',        id={'type':id('calc_button_num'), 'index': '3.14159'}, className='calc_button'),
+        html.Button('4',        id={'type':id('calc_button_num'), 'index': '4'}, className='calc_button'),
+        html.Button('5',        id={'type':id('calc_button_num'), 'index': '5'}, className='calc_button'),
+        html.Button('6',        id={'type':id('calc_button_num'), 'index': '6'}, className='calc_button'),
+        html.Button('-',        id={'type':id('calc_button_num'), 'index': '-'}, className='calc_button'),
+        html.Button('7',        id={'type':id('calc_button_num'), 'index': '7'}, className='calc_button'),
+        html.Button('8',        id={'type':id('calc_button_num'), 'index': '8'}, className='calc_button'),
+        html.Button('9',        id={'type':id('calc_button_num'), 'index': '9'}, className='calc_button'),
+        html.Button('.',        id={'type':id('calc_button_num'), 'index': '.'}, className='calc_button_period'),
+        html.Button('0',        id={'type':id('calc_button_num'), 'index': '0'}, className='calc_button'),
+        html.Button('Custom',   id={'type':id('calc_button_num'), 'index': 'custom'}, className='calc_button span-three'),
+        
+    ], className='calculator-grid'),
+
+
+def gt(feature1, feature2): return feature1.gt(feature2)
+# def ge(df, df2): return df.shift(periods)
+# def lt(df, df2): return df.shift(periods)
+# def le(df, df2): return df.shift(periods)
+# def shift(df, periods):
+#     df['New Feature'] = df[f].shift(periods)
+#     return df
+
+def calculator_compute(calc_store, df):
+    try:
+        df['New Feature'] = eval(calc_store['calc_function'])
+    except Exception as e:
+        print("ERROR: ", e)
+    return df
+def init_calc_store():
+    return {
+        'function_name': '',
+        'arg_template': '',
+        'curr': '',
+        'prev': '',
+    }
+""" -------------------------------------------------------------------------------- """
 
 """ Objects """
 # Typesense
@@ -1215,19 +1301,24 @@ def Action(id, name, description='', state=['amber', 'amber'], combine={}, trans
             'combine_key_right': '',
         },
         'transform':{
-            'features':     {
+            'features': {
                 feature_id: {
                     'name':                 feature['name'],
                     'datatype':             feature['datatype'],
                     'remove':               False,
-                    'condition':            [],
                     'new':                  False,
                     'function':             '',
-                    'dependent_features':   []
-                } for feature_id, feature in dataset['features'].items()},
+                    'comments':             '',
+                    'dependent_features':   [],
+                    'order':                feature['order']
+                } for feature_id, feature in dataset['features'].items()
+            },
+            'new_feature_order': [],
             'truncate':     [],
             'filter_query': {},
             'sort_by':      (),
+            'active_cell':  {},
+            'selected_cells': [],
         },
         'aggregate': {
             'groupby_features': [],
@@ -1299,6 +1390,27 @@ def is_date(string, fuzzy=False):
         return False
 def is_dollar(string):
     return string[0] == '$' if len(string) > 0 else False
+def is_json(myjson):
+  try:
+    json.loads(myjson)
+  except ValueError as e:
+    return False
+  return True
+def is_uuid(value):
+    try:
+        uuid.UUID(str(value))
+    except ValueError:
+        return False
+    return True
+def get_uuid_index(s):
+    if len(s) > 36:
+        for i in range(len(s)):
+            if is_uuid(s[i:i+35]):
+                return
+    return False
+def is_numberOrFloat(s):
+    return s.replace('.','',1).isdigit()
+
 """ -------------------------------------------------------------------------------- """
 
 
